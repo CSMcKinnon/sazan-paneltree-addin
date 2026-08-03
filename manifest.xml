@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<OfficeApp xmlns="http://schemas.microsoft.com/office/appforoffice/1.1"
+           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           xmlns:bt="http://schemas.microsoft.com/office/officeappbasictypes/1.0"
+           xmlns:ov="http://schemas.microsoft.com/office/taskpaneappversionoverrides"
+           xsi:type="TaskPaneApp">
+  <Id>8f1a2c34-5b6d-4e7f-9a01-2b3c4d5e6f70</Id>
+  <Version>1.0.0.0</Version>
+  <ProviderName>Sazan Group</ProviderName>
+  <DefaultLocale>en-US</DefaultLocale>
+  <DisplayName DefaultValue="SAZAN Panel Tree"/>
+  <Description DefaultValue="Source-to-load panel tree for SGI PowerCalc. Links equipment to its upstream source and writes back to the equipment registry."/>
+  <IconUrl DefaultValue="https://YOUR-HOST/icon-32.png"/>
+  <HighResolutionIconUrl DefaultValue="https://YOUR-HOST/icon-80.png"/>
+  <SupportUrl DefaultValue="https://YOUR-HOST/"/>
+  <AppDomains>
+    <AppDomain>https://YOUR-HOST</AppDomain>
+  </AppDomains>
+  <Hosts>
+    <Host Name="Workbook"/>
+  </Hosts>
+  <Requirements>
+    <Sets DefaultMinVersion="1.1">
+      <Set Name="ExcelApi" MinVersion="1.4"/>
+    </Sets>
+  </Requirements>
+  <DefaultSettings>
+    <SourceLocation DefaultValue="https://YOUR-HOST/taskpane.html"/>
+  </DefaultSettings>
+  <Permissions>ReadWriteDocument</Permissions>
+
+  <VersionOverrides xmlns="http://schemas.microsoft.com/office/taskpaneappversionoverrides" xsi:type="VersionOverridesV1_0">
+    <Hosts>
+      <Host xsi:type="Workbook">
+        <DesktopFormFactor>
+          <GetStarted>
+            <Title resid="GetStarted.Title"/>
+            <Description resid="GetStarted.Desc"/>
+            <LearnMoreUrl resid="GetStarted.Url"/>
+          </GetStarted>
+          <ExtensionPoint xsi:type="PrimaryCommandSurface">
+            <CustomTab id="Sazan.Tab">
+              <Group id="Sazan.Group">
+                <Label resid="Sazan.Group.Label"/>
+                <Icon>
+                  <bt:Image size="16" resid="Icon.16"/>
+                  <bt:Image size="32" resid="Icon.32"/>
+                  <bt:Image size="80" resid="Icon.80"/>
+                </Icon>
+                <Control xsi:type="Button" id="Sazan.PanelTree.Button">
+                  <Label resid="PanelTree.Label"/>
+                  <Supertip>
+                    <Title resid="PanelTree.Label"/>
+                    <Description resid="PanelTree.Tip"/>
+                  </Supertip>
+                  <Icon>
+                    <bt:Image size="16" resid="Icon.16"/>
+                    <bt:Image size="32" resid="Icon.32"/>
+                    <bt:Image size="80" resid="Icon.80"/>
+                  </Icon>
+                  <Action xsi:type="ShowTaskpane">
+                    <TaskpaneId>Sazan.PanelTree.Pane</TaskpaneId>
+                    <SourceLocation resid="Taskpane.Url"/>
+                  </Action>
+                </Control>
+              </Group>
+              <Label resid="Sazan.Tab.Label"/>
+            </CustomTab>
+          </ExtensionPoint>
+        </DesktopFormFactor>
+      </Host>
+    </Hosts>
+    <Resources>
+      <bt:Images>
+        <bt:Image id="Icon.16" DefaultValue="https://YOUR-HOST/icon-16.png"/>
+        <bt:Image id="Icon.32" DefaultValue="https://YOUR-HOST/icon-32.png"/>
+        <bt:Image id="Icon.80" DefaultValue="https://YOUR-HOST/icon-80.png"/>
+      </bt:Images>
+      <bt:Urls>
+        <bt:Url id="Taskpane.Url" DefaultValue="https://YOUR-HOST/taskpane.html"/>
+        <bt:Url id="GetStarted.Url" DefaultValue="https://YOUR-HOST/"/>
+      </bt:Urls>
+      <bt:ShortStrings>
+        <bt:String id="Sazan.Tab.Label" DefaultValue="SAZAN Tools"/>
+        <bt:String id="Sazan.Group.Label" DefaultValue="PowerCalc"/>
+        <bt:String id="PanelTree.Label" DefaultValue="Panel Tree"/>
+        <bt:String id="GetStarted.Title" DefaultValue="SAZAN Panel Tree is ready."/>
+      </bt:ShortStrings>
+      <bt:LongStrings>
+        <bt:String id="PanelTree.Tip" DefaultValue="Open the source-to-load panel tree."/>
+        <bt:String id="GetStarted.Desc" DefaultValue="Click SAZAN Tools then Panel Tree to open the pane."/>
+      </bt:LongStrings>
+    </Resources>
+  </VersionOverrides>
+</OfficeApp>

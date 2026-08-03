@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>SAZAN Panel Tree</title>
+<script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
+<style>
+  :root{
+    --bg:#ffffff; --txt:#262626; --muted:#7E868C; --line:#d8dbdd;
+    --field:#ffffff; --fieldTxt:#000000; --btn:#f0f0f0; --btnTxt:#262626;
+    --teal:#458A96; --gold:#F1B92A; --band:#000000; --bandTxt:#ffffff;
+  }
+  body.dark{
+    --bg:#2b2b2b; --txt:#f0f0f0; --muted:#9aa2a8; --line:#3f3f3f;
+    --field:#202020; --fieldTxt:#f0f0f0; --btn:#404040; --btnTxt:#f0f0f0;
+    --teal:#6EBECD;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--txt);
+       font-family:"Segoe UI",system-ui,sans-serif;font-size:13px;font-weight:400;}
+  /* header bands - black, 30px, per house standard, never bold */
+  .band{height:30px;line-height:30px;background:var(--band);color:var(--bandTxt);
+        padding:0 10px;font-size:16px;font-weight:400;}
+  .band.sub{font-size:14px;}
+  .bar{display:flex;gap:6px;align-items:center;padding:8px 10px;}
+  .bar .count{margin-left:auto;color:var(--muted);}
+  button{font-family:inherit;font-size:13px;font-weight:400;padding:5px 10px;
+         background:var(--btn);color:var(--btnTxt);border:1px solid var(--line);
+         border-radius:2px;cursor:pointer;}
+  button:hover{border-color:var(--teal);}
+  button:disabled{opacity:.45;cursor:default;}
+  #tree{margin:0 10px;border:1px solid var(--line);background:var(--field);
+        color:var(--fieldTxt);height:44vh;overflow:auto;
+        font-family:Consolas,monospace;font-size:12px;}
+  .node{padding:3px 6px;white-space:pre;cursor:pointer;}
+  .node:hover{background:rgba(69,138,150,.18);}
+  .node.sel{background:var(--teal);color:#fff;}
+  .twist{display:inline-block;width:14px;color:var(--muted);}
+  .flag{color:var(--gold);}
+  table.props{width:100%;border-collapse:collapse;padding:0 10px;}
+  .wrap{padding:8px 10px;}
+  .row{display:flex;align-items:center;margin-bottom:6px;gap:8px;}
+  .row label{width:118px;color:var(--muted);flex:0 0 auto;}
+  .row .val{color:var(--txt);}
+  .row .val.tag{color:var(--teal);}
+  select,input[type=text]{flex:1 1 auto;min-width:0;padding:4px 6px;
+        background:var(--field);color:var(--fieldTxt);
+        border:1px solid var(--line);border-radius:2px;font-family:inherit;font-size:13px;}
+  .actions{display:flex;flex-wrap:wrap;gap:6px;padding:4px 10px 12px 10px;}
+  .actions button{flex:1 1 auto;}
+  #status{padding:0 10px 10px 10px;color:var(--muted);min-height:16px;}
+</style>
+</head>
+<body>
+  <div class="band">PANEL TREE</div>
+
+  <div class="bar">
+    <button id="btnExpand">Expand all</button>
+    <button id="btnCollapse">Collapse all</button>
+    <button id="btnRefresh">Refresh</button>
+    <span class="count" id="count">0 items</span>
+  </div>
+
+  <div id="tree" role="tree" aria-label="Panel tree"></div>
+
+  <div class="band sub" style="margin-top:10px;">SELECTED EQUIPMENT</div>
+
+  <div class="wrap">
+    <div class="row"><label>Tag</label><span class="val tag" id="vTag">(none selected)</span></div>
+    <div class="row"><label>Type / volts</label><span class="val" id="vTV"></span></div>
+    <div class="row"><label>Demand kVA</label><span class="val" id="vKVA"></span></div>
+    <div class="row"><label>Downstream kVA</label><span class="val" id="vDown"></span></div>
+    <div class="row"><label>Status</label><span class="val" id="vStat"></span></div>
+
+    <div class="row"><label>Fed from</label><select id="selFed"></select></div>
+    <div class="row"><label>Feed type</label><select id="selFT">
+        <option value=""></option>
+        <option>Sub-Feed</option>
+        <option>Feed-Through</option>
+        <option>Main Breaker</option>
+        <option>Main Lugs (MLO)</option>
+        <option>Utility / Service</option>
+        <option>Tap / Splice</option>
+      </select></div>
+    <div class="row"><label>Ckt / space</label><input type="text" id="txtCkt"/></div>
+  </div>
+
+  <div class="actions">
+    <button id="btnApply">Apply link</button>
+    <button id="btnUnlink">Unlink</button>
+    <button id="btnGoto">Go to sheet</button>
+    <button id="btnAdd" style="flex:1 1 100%;">Add equipment fed from this</button>
+  </div>
+
+  <div id="status"></div>
+
+  <script src="taskpane.js"></script>
+</body>
+</html>

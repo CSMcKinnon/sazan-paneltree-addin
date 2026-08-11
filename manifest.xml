@@ -10,11 +10,11 @@
   <DefaultLocale>en-US</DefaultLocale>
   <DisplayName DefaultValue="SAZAN Panel Tree"/>
   <Description DefaultValue="Source-to-load panel tree for SGI PowerCalc. Links equipment to its upstream source and writes back to the equipment registry."/>
-  <IconUrl DefaultValue="https://YOUR-HOST/icon-32.png"/>
-  <HighResolutionIconUrl DefaultValue="https://YOUR-HOST/icon-80.png"/>
-  <SupportUrl DefaultValue="https://YOUR-HOST/"/>
+  <IconUrl DefaultValue="https://csmckinnon.github.io/sazan-paneltree-addin/icon-32.png"/>
+  <HighResolutionIconUrl DefaultValue="https://csmckinnon.github.io/sazan-paneltree-addin/icon-80.png"/>
+  <SupportUrl DefaultValue="https://csmckinnon.github.io/sazan-paneltree-addin/"/>
   <AppDomains>
-    <AppDomain>https://YOUR-HOST</AppDomain>
+  <AppDomain>https://csmckinnon.github.io</AppDomain>
   </AppDomains>
   <Hosts>
     <Host Name="Workbook"/>
@@ -25,7 +25,7 @@
     </Sets>
   </Requirements>
   <DefaultSettings>
-    <SourceLocation DefaultValue="https://YOUR-HOST/taskpane.html"/>
+    <SourceLocation DefaultValue="https://csmckinnon.github.io/sazan-paneltree-addin/taskpane.html"/>
   </DefaultSettings>
   <Permissions>ReadWriteDocument</Permissions>
 
@@ -72,13 +72,13 @@
     </Hosts>
     <Resources>
       <bt:Images>
-        <bt:Image id="Icon.16" DefaultValue="https://YOUR-HOST/icon-16.png"/>
-        <bt:Image id="Icon.32" DefaultValue="https://YOUR-HOST/icon-32.png"/>
-        <bt:Image id="Icon.80" DefaultValue="https://YOUR-HOST/icon-80.png"/>
+        <bt:Image id="Icon.16" DefaultValue="https://csmckinnon.github.io/sazan-paneltree-addin/icon-16.png"/>
+        <bt:Image id="Icon.32" DefaultValue="https://csmckinnon.github.io/sazan-paneltree-addin/icon-32.png"/>
+        <bt:Image id="Icon.80" DefaultValue="https://csmckinnon.github.io/sazan-paneltree-addin/icon-80.png"/>
       </bt:Images>
       <bt:Urls>
-        <bt:Url id="Taskpane.Url" DefaultValue="https://YOUR-HOST/taskpane.html"/>
-        <bt:Url id="GetStarted.Url" DefaultValue="https://YOUR-HOST/"/>
+        <bt:Url id="Taskpane.Url" DefaultValue="https://csmckinnon.github.io/sazan-paneltree-addin/taskpane.html"/>
+        <bt:Url id="GetStarted.Url" DefaultValue="https://csmckinnon.github.io/sazan-paneltree-addin/"/>
       </bt:Urls>
       <bt:ShortStrings>
         <bt:String id="Sazan.Tab.Label" DefaultValue="SAZAN Tools"/>

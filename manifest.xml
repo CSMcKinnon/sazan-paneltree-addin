@@ -33,6 +33,7 @@
     <Hosts>
       <Host xsi:type="Workbook">
         <DesktopFormFactor>
+          <FunctionFile resid="Commands.Url"/>
           <GetStarted>
             <Title resid="GetStarted.Title"/>
             <Description resid="GetStarted.Desc"/>
@@ -63,6 +64,174 @@
                     <SourceLocation resid="Taskpane.Url"/>
                   </Action>
                 </Control>
+                <Control xsi:type="Menu" id="Sazan.GoTo.Menu">
+                  <Label resid="GoTo.Label"/>
+                  <Supertip>
+                    <Title resid="GoTo.Label"/>
+                    <Description resid="GoTo.Tip"/>
+                  </Supertip>
+                  <Icon>
+                    <bt:Image size="16" resid="Icon.16"/>
+                    <bt:Image size="32" resid="Icon.32"/>
+                    <bt:Image size="80" resid="Icon.80"/>
+                  </Icon>
+                  <Items>
+                    <Item id="Sazan.Item.goInstructions">
+                      <Label resid="goInstructions.Label"/>
+                      <Supertip>
+                        <Title resid="goInstructions.Label"/>
+                        <Description resid="GoTo.Tip"/>
+                      </Supertip>
+                      <Icon><bt:Image size="16" resid="Icon.16"/><bt:Image size="32" resid="Icon.32"/><bt:Image size="80" resid="Icon.80"/></Icon>
+                      <Action xsi:type="ExecuteFunction">
+                        <FunctionName>goInstructions</FunctionName>
+                      </Action>
+                    </Item>
+                    <Item id="Sazan.Item.goDashboard">
+                      <Label resid="goDashboard.Label"/>
+                      <Supertip>
+                        <Title resid="goDashboard.Label"/>
+                        <Description resid="GoTo.Tip"/>
+                      </Supertip>
+                      <Icon><bt:Image size="16" resid="Icon.16"/><bt:Image size="32" resid="Icon.32"/><bt:Image size="80" resid="Icon.80"/></Icon>
+                      <Action xsi:type="ExecuteFunction">
+                        <FunctionName>goDashboard</FunctionName>
+                      </Action>
+                    </Item>
+                    <Item id="Sazan.Item.goLoadCalc">
+                      <Label resid="goLoadCalc.Label"/>
+                      <Supertip>
+                        <Title resid="goLoadCalc.Label"/>
+                        <Description resid="GoTo.Tip"/>
+                      </Supertip>
+                      <Icon><bt:Image size="16" resid="Icon.16"/><bt:Image size="32" resid="Icon.32"/><bt:Image size="80" resid="Icon.80"/></Icon>
+                      <Action xsi:type="ExecuteFunction">
+                        <FunctionName>goLoadCalc</FunctionName>
+                      </Action>
+                    </Item>
+                    <Item id="Sazan.Item.goUtility">
+                      <Label resid="goUtility.Label"/>
+                      <Supertip>
+                        <Title resid="goUtility.Label"/>
+                        <Description resid="GoTo.Tip"/>
+                      </Supertip>
+                      <Icon><bt:Image size="16" resid="Icon.16"/><bt:Image size="32" resid="Icon.32"/><bt:Image size="80" resid="Icon.80"/></Icon>
+                      <Action xsi:type="ExecuteFunction">
+                        <FunctionName>goUtility</FunctionName>
+                      </Action>
+                    </Item>
+                    <Item id="Sazan.Item.goLogging">
+                      <Label resid="goLogging.Label"/>
+                      <Supertip>
+                        <Title resid="goLogging.Label"/>
+                        <Description resid="GoTo.Tip"/>
+                      </Supertip>
+                      <Icon><bt:Image size="16" resid="Icon.16"/><bt:Image size="32" resid="Icon.32"/><bt:Image size="80" resid="Icon.80"/></Icon>
+                      <Action xsi:type="ExecuteFunction">
+                        <FunctionName>goLogging</FunctionName>
+                      </Action>
+                    </Item>
+                    <Item id="Sazan.Item.goGenerator">
+                      <Label resid="goGenerator.Label"/>
+                      <Supertip>
+                        <Title resid="goGenerator.Label"/>
+                        <Description resid="GoTo.Tip"/>
+                      </Supertip>
+                      <Icon><bt:Image size="16" resid="Icon.16"/><bt:Image size="32" resid="Icon.32"/><bt:Image size="80" resid="Icon.80"/></Icon>
+                      <Action xsi:type="ExecuteFunction">
+                        <FunctionName>goGenerator</FunctionName>
+                      </Action>
+                    </Item>
+                    <Item id="Sazan.Item.goUPS">
+                      <Label resid="goUPS.Label"/>
+                      <Supertip>
+                        <Title resid="goUPS.Label"/>
+                        <Description resid="GoTo.Tip"/>
+                      </Supertip>
+                      <Icon><bt:Image size="16" resid="Icon.16"/><bt:Image size="32" resid="Icon.32"/><bt:Image size="80" resid="Icon.80"/></Icon>
+                      <Action xsi:type="ExecuteFunction">
+                        <FunctionName>goUPS</FunctionName>
+                      </Action>
+                    </Item>
+                    <Item id="Sazan.Item.goTransformers">
+                      <Label resid="goTransformers.Label"/>
+                      <Supertip>
+                        <Title resid="goTransformers.Label"/>
+                        <Description resid="GoTo.Tip"/>
+                      </Supertip>
+                      <Icon><bt:Image size="16" resid="Icon.16"/><bt:Image size="32" resid="Icon.32"/><bt:Image size="80" resid="Icon.80"/></Icon>
+                      <Action xsi:type="ExecuteFunction">
+                        <FunctionName>goTransformers</FunctionName>
+                      </Action>
+                    </Item>
+                    <Item id="Sazan.Item.goShortCircuit">
+                      <Label resid="goShortCircuit.Label"/>
+                      <Supertip>
+                        <Title resid="goShortCircuit.Label"/>
+                        <Description resid="GoTo.Tip"/>
+                      </Supertip>
+                      <Icon><bt:Image size="16" resid="Icon.16"/><bt:Image size="32" resid="Icon.32"/><bt:Image size="80" resid="Icon.80"/></Icon>
+                      <Action xsi:type="ExecuteFunction">
+                        <FunctionName>goShortCircuit</FunctionName>
+                      </Action>
+                    </Item>
+                    <Item id="Sazan.Item.goVoltageDrop">
+                      <Label resid="goVoltageDrop.Label"/>
+                      <Supertip>
+                        <Title resid="goVoltageDrop.Label"/>
+                        <Description resid="GoTo.Tip"/>
+                      </Supertip>
+                      <Icon><bt:Image size="16" resid="Icon.16"/><bt:Image size="32" resid="Icon.32"/><bt:Image size="80" resid="Icon.80"/></Icon>
+                      <Action xsi:type="ExecuteFunction">
+                        <FunctionName>goVoltageDrop</FunctionName>
+                      </Action>
+                    </Item>
+                    <Item id="Sazan.Item.goArcFlash">
+                      <Label resid="goArcFlash.Label"/>
+                      <Supertip>
+                        <Title resid="goArcFlash.Label"/>
+                        <Description resid="GoTo.Tip"/>
+                      </Supertip>
+                      <Icon><bt:Image size="16" resid="Icon.16"/><bt:Image size="32" resid="Icon.32"/><bt:Image size="80" resid="Icon.80"/></Icon>
+                      <Action xsi:type="ExecuteFunction">
+                        <FunctionName>goArcFlash</FunctionName>
+                      </Action>
+                    </Item>
+                    <Item id="Sazan.Item.goFeederSchedule">
+                      <Label resid="goFeederSchedule.Label"/>
+                      <Supertip>
+                        <Title resid="goFeederSchedule.Label"/>
+                        <Description resid="GoTo.Tip"/>
+                      </Supertip>
+                      <Icon><bt:Image size="16" resid="Icon.16"/><bt:Image size="32" resid="Icon.32"/><bt:Image size="80" resid="Icon.80"/></Icon>
+                      <Action xsi:type="ExecuteFunction">
+                        <FunctionName>goFeederSchedule</FunctionName>
+                      </Action>
+                    </Item>
+                    <Item id="Sazan.Item.goReport">
+                      <Label resid="goReport.Label"/>
+                      <Supertip>
+                        <Title resid="goReport.Label"/>
+                        <Description resid="GoTo.Tip"/>
+                      </Supertip>
+                      <Icon><bt:Image size="16" resid="Icon.16"/><bt:Image size="32" resid="Icon.32"/><bt:Image size="80" resid="Icon.80"/></Icon>
+                      <Action xsi:type="ExecuteFunction">
+                        <FunctionName>goReport</FunctionName>
+                      </Action>
+                    </Item>
+                    <Item id="Sazan.Item.goRecon">
+                      <Label resid="goRecon.Label"/>
+                      <Supertip>
+                        <Title resid="goRecon.Label"/>
+                        <Description resid="GoTo.Tip"/>
+                      </Supertip>
+                      <Icon><bt:Image size="16" resid="Icon.16"/><bt:Image size="32" resid="Icon.32"/><bt:Image size="80" resid="Icon.80"/></Icon>
+                      <Action xsi:type="ExecuteFunction">
+                        <FunctionName>goRecon</FunctionName>
+                      </Action>
+                    </Item>
+                  </Items>
+                </Control>
               </Group>
               <Label resid="Sazan.Tab.Label"/>
             </CustomTab>
@@ -77,16 +246,33 @@
         <bt:Image id="Icon.80" DefaultValue="https://csmckinnon.github.io/sazan-paneltree-addin/icon-80.png"/>
       </bt:Images>
       <bt:Urls>
+        <bt:Url id="Commands.Url" DefaultValue="https://csmckinnon.github.io/sazan-paneltree-addin/commands.html"/>
         <bt:Url id="Taskpane.Url" DefaultValue="https://csmckinnon.github.io/sazan-paneltree-addin/taskpane.html"/>
         <bt:Url id="GetStarted.Url" DefaultValue="https://csmckinnon.github.io/sazan-paneltree-addin/"/>
       </bt:Urls>
       <bt:ShortStrings>
+        <bt:String id="GoTo.Label" DefaultValue="Go To"/>
+        <bt:String id="goInstructions.Label" DefaultValue="Instructions"/>
+        <bt:String id="goDashboard.Label" DefaultValue="Dashboard"/>
+        <bt:String id="goLoadCalc.Label" DefaultValue="Load Calc"/>
+        <bt:String id="goUtility.Label" DefaultValue="Utility Demand"/>
+        <bt:String id="goLogging.Label" DefaultValue="Logging Demand"/>
+        <bt:String id="goGenerator.Label" DefaultValue="Generator"/>
+        <bt:String id="goUPS.Label" DefaultValue="UPS"/>
+        <bt:String id="goTransformers.Label" DefaultValue="Transformers"/>
+        <bt:String id="goShortCircuit.Label" DefaultValue="Short Circuit"/>
+        <bt:String id="goVoltageDrop.Label" DefaultValue="Voltage Drop"/>
+        <bt:String id="goArcFlash.Label" DefaultValue="Arc Flash"/>
+        <bt:String id="goFeederSchedule.Label" DefaultValue="Feeder Schedule"/>
+        <bt:String id="goReport.Label" DefaultValue="Report"/>
+        <bt:String id="goRecon.Label" DefaultValue="Reconciliation"/>
         <bt:String id="Sazan.Tab.Label" DefaultValue="SAZAN Tools"/>
         <bt:String id="Sazan.Group.Label" DefaultValue="PowerCalc"/>
         <bt:String id="PanelTree.Label" DefaultValue="Panel Tree"/>
         <bt:String id="GetStarted.Title" DefaultValue="SAZAN Panel Tree is ready."/>
       </bt:ShortStrings>
       <bt:LongStrings>
+        <bt:String id="GoTo.Tip" DefaultValue="Jump to a PowerCalc sheet, or offer to create it if it is missing."/>
         <bt:String id="PanelTree.Tip" DefaultValue="Open the source-to-load panel tree."/>
         <bt:String id="GetStarted.Desc" DefaultValue="Click SAZAN Tools then Panel Tree to open the pane."/>
       </bt:LongStrings>

@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>SAZAN PowerCalc</title>
+  <link rel="stylesheet" href="css/sazan.css" />
+  <script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
+  <style>
+    body { display: flex; flex-direction: column; height: 100vh; }
+    #msg { padding: 10px; flex: 1 1 auto; }
+    #ctl { padding: 0 10px; }
+    #bar { padding: 10px; display: flex; gap: 8px; justify-content: flex-end; }
+  </style>
+</head>
+<body>
+  <div class="saz-header" id="title"></div>
+  <div id="msg"></div>
+  <div id="ctl"></div>
+  <div id="bar">
+    <button class="saz-btn" id="cancel">Cancel</button>
+    <button class="saz-btn saz-btn-primary" id="ok">OK</button>
+  </div>
+
+<script>
+/* Generic dialog host. The caller passes a spec in the URL fragment:
+   { kind: "confirm" | "alert" | "prompt" | "pick", title, message, ... }
+   The reply goes back through messageParent as { ok, value }. */
+
+var spec = { kind: "alert", title: "SAZAN", message: "" };
+try {
+  spec = JSON.parse(decodeURIComponent(window.location.hash.substring(1)));
+} catch (e) { /* keep the default */ }
+
+Office.onReady(function () {
+  document.getElementById("title").textContent = spec.title || "SAZAN PowerCalc";
+  document.getElementById("msg").textContent = spec.message || "";
+
+  var ctl = document.getElementById("ctl");
+  var ok = document.getElementById("ok");
+  var cancel = document.getElementById("cancel");
+  var field = null;
+
+  if (spec.kind === "prompt") {
+    field = document.createElement("input");
+    field.className = "saz-input";
+    field.type = "text";
+    field.value = spec.value || "";
+    ctl.appendChild(field);
+  } else if (spec.kind === "pick") {
+    field = document.createElement("select");
+    field.className = "saz-select";
+    (spec.options || []).forEach(function (o) {
+      var opt = document.createElement("option");
+      opt.value = o.value;
+      opt.textContent = o.label;
+      field.appendChild(opt);
+    });
+    ctl.appendChild(field);
+  }
+
+  if (spec.kind === "alert") { cancel.style.display = "none"; }
+  if (spec.ok) { ok.textContent = spec.ok; }
+
+  function send(payload) {
+    Office.context.ui.messageParent(JSON.stringify(payload));
+  }
+
+  ok.addEventListener("click", function () {
+    send({ ok: true, value: field ? field.value : null });
+  });
+  cancel.addEventListener("click", function () {
+    send({ ok: false, value: null });
+  });
+
+  document.addEventListener("keydown", function (ev) {
+    if (ev.key === "Enter") { ok.click(); }
+    if (ev.key === "Escape" && spec.kind !== "alert") { cancel.click(); }
+  });
+
+  if (field) { field.focus(); } else { ok.focus(); }
+});
+</script>
+</body>
+</html>

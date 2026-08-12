@@ -1,0 +1,111 @@
+/* ==========================================================
+   SAZAN PowerCalc  -  css/sazan.css
+   Shared stylesheet. Every pane, dialog and function-file UI
+   imports this one file so nothing re-derives the brand.
+   Palette source: Sazan Group Colors, UPDATED FORMULAS 2023
+   ========================================================== */
+
+:root {
+  --saz-teal:      #458A96;
+  --saz-grey-dark: #606262;
+  --saz-grey-mid:  #7E868C;
+  --saz-gold:      #F1B92A;
+  --saz-green:     #4DAB51;
+  --saz-ochre:     #CA7F39;
+  --saz-input-bg:  #D9D9D9;
+  --saz-input-fg:  #0000FF;
+  --saz-calc-fg:   #FF0000;
+  --saz-black:     #000000;
+  --saz-white:     #FFFFFF;
+  --saz-rule:      #D9D9D9;
+
+  --saz-font:      "Segoe UI", system-ui, sans-serif;
+  --saz-fs-header: 16px;
+  --saz-fs-sub:    14px;
+  --saz-fs-body:   13px;
+  --saz-fs-small:  12px;
+  --saz-h-header:  30px;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  font-family: var(--saz-font);
+  font-size: var(--saz-fs-body);
+  font-weight: 400;
+  color: var(--saz-black);
+  background: var(--saz-white);
+}
+
+/* House rule: no bold anywhere. Neutralise the browser defaults. */
+b, strong, th, h1, h2, h3, h4 { font-weight: 400; }
+
+/* ---------- banners ---------- */
+.saz-header {
+  height: var(--saz-h-header);
+  line-height: var(--saz-h-header);
+  background: var(--saz-black);
+  color: var(--saz-white);
+  font-size: var(--saz-fs-header);
+  padding: 0 10px;
+}
+.saz-subheader {
+  height: var(--saz-h-header);
+  line-height: var(--saz-h-header);
+  background: var(--saz-teal);
+  color: var(--saz-white);
+  font-size: var(--saz-fs-sub);
+  padding: 0 10px;
+}
+
+/* ---------- buttons ---------- */
+.saz-btn {
+  font-family: var(--saz-font);
+  font-size: var(--saz-fs-small);
+  font-weight: 400;
+  padding: 4px 12px;
+  border: 1px solid var(--saz-grey-mid);
+  background: var(--saz-white);
+  color: var(--saz-black);
+  cursor: pointer;
+}
+.saz-btn:hover    { background: var(--saz-input-bg); }
+.saz-btn:disabled { color: var(--saz-grey-mid); cursor: default; }
+.saz-btn-primary {
+  background: var(--saz-teal);
+  border-color: var(--saz-teal);
+  color: var(--saz-white);
+}
+.saz-btn-primary:hover {
+  background: var(--saz-grey-dark);
+  border-color: var(--saz-grey-dark);
+}
+
+/* ---------- inputs ---------- */
+/* Blue on grey = manual entry, red = calculated. Same as the workbook. */
+.saz-input, .saz-select {
+  font-family: var(--saz-font);
+  font-size: var(--saz-fs-small);
+  background: var(--saz-input-bg);
+  color: var(--saz-input-fg);
+  border: 1px solid var(--saz-grey-mid);
+  padding: 3px 6px;
+  width: 100%;
+}
+.saz-calc { color: var(--saz-calc-fg); }
+
+/* ---------- layout ---------- */
+.saz-row   { display: flex; align-items: center; gap: 8px; padding: 3px 10px; }
+.saz-label { color: var(--saz-grey-dark); flex: 0 0 40%; }
+.saz-value { flex: 1 1 60%; }
+.saz-rule  { border-top: 1px solid var(--saz-rule); margin: 6px 0; }
+.saz-pad   { padding: 10px; }
+
+/* ---------- status ---------- */
+.saz-status { font-size: var(--saz-fs-small); padding: 4px 10px; min-height: 20px; }
+.saz-ok     { color: var(--saz-green); }
+.saz-warn   { color: var(--saz-ochre); }
+.saz-error  { color: var(--saz-calc-fg); }
+.saz-flag   { background: var(--saz-gold); color: var(--saz-black); padding: 0 4px; }

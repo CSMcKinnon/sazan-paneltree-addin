@@ -1,239 +1,360 @@
-<?xml version="1.0" encoding="UTF-8"?>
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <OfficeApp xmlns="http://schemas.microsoft.com/office/appforoffice/1.1"
            xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
            xmlns:bt="http://schemas.microsoft.com/office/officeappbasictypes/1.0"
            xmlns:ov="http://schemas.microsoft.com/office/taskpaneappversionoverrides"
            xsi:type="TaskPaneApp">
   <Id>8f1a2c34-5b6d-4e7f-9a01-2b3c4d5e6f70</Id>
-  <Version>1.0.0.0</Version>
-  <ProviderName>Sazan Group</ProviderName>
+  <Version>2.0.0.0</Version>
+  <ProviderName>Säzän Group</ProviderName>
   <DefaultLocale>en-US</DefaultLocale>
-  <DisplayName DefaultValue="SAZAN Panel Tree"/>
-  <Description DefaultValue="Source-to-load panel tree for SGI PowerCalc. Links equipment to its upstream source and writes back to the equipment registry."/>
-  <IconUrl DefaultValue="https://csmckinnon.github.io/sazan-paneltree-addin/icon-32.png"/>
-  <HighResolutionIconUrl DefaultValue="https://csmckinnon.github.io/sazan-paneltree-addin/icon-80.png"/>
+  <DisplayName DefaultValue="SAZAN PowerCalc"/>
+  <Description DefaultValue="Electrical load calculation, panel schedule and study tools."/>
+  <IconUrl DefaultValue="https://csmckinnon.github.io/sazan-paneltree-addin/dashboard-32.png"/>
+  <HighResolutionIconUrl DefaultValue="https://csmckinnon.github.io/sazan-paneltree-addin/dashboard-80.png"/>
   <SupportUrl DefaultValue="https://csmckinnon.github.io/sazan-paneltree-addin/"/>
-  <AppDomains>
-  <AppDomain>https://csmckinnon.github.io</AppDomain>
-  </AppDomains>
-  <Hosts>
-    <Host Name="Workbook"/>
-  </Hosts>
-  <Requirements>
-    <Sets DefaultMinVersion="1.1">
-      <Set Name="ExcelApi" MinVersion="1.4"/>
-    </Sets>
-  </Requirements>
-  <DefaultSettings>
-    <SourceLocation DefaultValue="https://csmckinnon.github.io/sazan-paneltree-addin/taskpane.html"/>
-  </DefaultSettings>
+  <AppDomains><AppDomain>https://csmckinnon.github.io</AppDomain></AppDomains>
+  <Hosts><Host Name="Workbook"/></Hosts>
+  <DefaultSettings><SourceLocation DefaultValue="https://csmckinnon.github.io/sazan-paneltree-addin/taskpane.html"/></DefaultSettings>
   <Permissions>ReadWriteDocument</Permissions>
-
   <VersionOverrides xmlns="http://schemas.microsoft.com/office/taskpaneappversionoverrides" xsi:type="VersionOverridesV1_0">
     <Hosts>
       <Host xsi:type="Workbook">
         <DesktopFormFactor>
-          <FunctionFile resid="Commands.Url"/>
           <GetStarted>
-            <Title resid="GetStarted.Title"/>
-            <Description resid="GetStarted.Desc"/>
-            <LearnMoreUrl resid="GetStarted.Url"/>
+            <Title resid="Ls.GetStarted"/>
+            <Description resid="Ld.GetStarted"/>
+            <LearnMoreUrl resid="Url.Support"/>
           </GetStarted>
+          <FunctionFile resid="Url.Commands"/>
           <ExtensionPoint xsi:type="PrimaryCommandSurface">
             <CustomTab id="Sazan.Tab">
               <Group id="Sazan.Group">
-                <Label resid="Sazan.Group.Label"/>
-                <Icon>
-                  <bt:Image size="16" resid="Icon.16"/>
-                  <bt:Image size="32" resid="Icon.32"/>
-                  <bt:Image size="80" resid="Icon.80"/>
-                </Icon>
-                <Control xsi:type="Button" id="Sazan.PanelTree.Button">
-                  <Label resid="PanelTree.Label"/>
-                  <Supertip>
-                    <Title resid="PanelTree.Label"/>
-                    <Description resid="PanelTree.Tip"/>
-                  </Supertip>
-                  <Icon>
-                    <bt:Image size="16" resid="Icon.16"/>
-                    <bt:Image size="32" resid="Icon.32"/>
-                    <bt:Image size="80" resid="Icon.80"/>
-                  </Icon>
-                  <Action xsi:type="ShowTaskpane">
-                    <TaskpaneId>Sazan.PanelTree.Pane</TaskpaneId>
-                    <SourceLocation resid="Taskpane.Url"/>
-                  </Action>
+                <Label resid="Ls.Group"/>
+                <Icon><bt:Image size="16" resid="Ico.Dashboard.16"/><bt:Image size="32" resid="Ico.Dashboard.32"/><bt:Image size="80" resid="Ico.Dashboard.80"/></Icon>
+                <Control xsi:type="Button" id="Sazan.NewProject">
+                  <Label resid="Ls.NewProject"/>
+                  <Supertip><Title resid="Ls.NewProject"/><Description resid="Ld.NewProject"/></Supertip>
+                  <Icon><bt:Image size="16" resid="Ico.NewProject.16"/><bt:Image size="32" resid="Ico.NewProject.32"/><bt:Image size="80" resid="Ico.NewProject.80"/></Icon>
+                  <Action xsi:type="ExecuteFunction"><FunctionName>NewProject</FunctionName></Action>
                 </Control>
-                <Control xsi:type="Menu" id="Sazan.GoTo.Menu">
-                  <Label resid="GoTo.Label"/>
-                  <Supertip>
-                    <Title resid="GoTo.Label"/>
-                    <Description resid="GoTo.Tip"/>
-                  </Supertip>
-                  <Icon>
-                    <bt:Image size="16" resid="Icon.16"/>
-                    <bt:Image size="32" resid="Icon.32"/>
-                    <bt:Image size="80" resid="Icon.80"/>
-                  </Icon>
+                <Control xsi:type="Button" id="Sazan.GoInstructions">
+                  <Label resid="Ls.GoInstructions"/>
+                  <Supertip><Title resid="Ls.GoInstructions"/><Description resid="Ld.GoInstructions"/></Supertip>
+                  <Icon><bt:Image size="16" resid="Ico.Instructions.16"/><bt:Image size="32" resid="Ico.Instructions.32"/><bt:Image size="80" resid="Ico.Instructions.80"/></Icon>
+                  <Action xsi:type="ExecuteFunction"><FunctionName>GoInstructions</FunctionName></Action>
+                </Control>
+                <Control xsi:type="Button" id="Sazan.GoDashboard">
+                  <Label resid="Ls.GoDashboard"/>
+                  <Supertip><Title resid="Ls.GoDashboard"/><Description resid="Ld.GoDashboard"/></Supertip>
+                  <Icon><bt:Image size="16" resid="Ico.Dashboard.16"/><bt:Image size="32" resid="Ico.Dashboard.32"/><bt:Image size="80" resid="Ico.Dashboard.80"/></Icon>
+                  <Action xsi:type="ExecuteFunction"><FunctionName>GoDashboard</FunctionName></Action>
+                </Control>
+                <Control xsi:type="Menu" id="Sazan.LoadCalc">
+                  <Label resid="Ls.LoadCalc"/>
+                  <Supertip><Title resid="Ls.LoadCalc"/><Description resid="Ld.LoadCalc"/></Supertip>
+                  <Icon><bt:Image size="16" resid="Ico.LoadCalc.16"/><bt:Image size="32" resid="Ico.LoadCalc.32"/><bt:Image size="80" resid="Ico.LoadCalc.80"/></Icon>
                   <Items>
-                    <Item id="Sazan.Item.goInstructions">
-                      <Label resid="goInstructions.Label"/>
-                      <Supertip>
-                        <Title resid="goInstructions.Label"/>
-                        <Description resid="GoTo.Tip"/>
-                      </Supertip>
-                      <Icon><bt:Image size="16" resid="Icon.16"/><bt:Image size="32" resid="Icon.32"/><bt:Image size="80" resid="Icon.80"/></Icon>
-                      <Action xsi:type="ExecuteFunction">
-                        <FunctionName>goInstructions</FunctionName>
-                      </Action>
+                    <Item id="Sazan.NewLoadCalc">
+                      <Label resid="Ls.NewLoadCalc"/>
+                      <Supertip><Title resid="Ls.NewLoadCalc"/><Description resid="Ld.NewLoadCalc"/></Supertip>
+                      <Icon><bt:Image size="16" resid="Ico.LoadCalc.16"/><bt:Image size="32" resid="Ico.LoadCalc.32"/><bt:Image size="80" resid="Ico.LoadCalc.80"/></Icon>
+                      <Action xsi:type="ExecuteFunction"><FunctionName>NewLoadCalc</FunctionName></Action>
                     </Item>
-                    <Item id="Sazan.Item.goDashboard">
-                      <Label resid="goDashboard.Label"/>
-                      <Supertip>
-                        <Title resid="goDashboard.Label"/>
-                        <Description resid="GoTo.Tip"/>
-                      </Supertip>
-                      <Icon><bt:Image size="16" resid="Icon.16"/><bt:Image size="32" resid="Icon.32"/><bt:Image size="80" resid="Icon.80"/></Icon>
-                      <Action xsi:type="ExecuteFunction">
-                        <FunctionName>goDashboard</FunctionName>
-                      </Action>
+                    <Item id="Sazan.GoLoadCalc">
+                      <Label resid="Ls.GoLoadCalc"/>
+                      <Supertip><Title resid="Ls.GoLoadCalc"/><Description resid="Ld.GoLoadCalc"/></Supertip>
+                      <Icon><bt:Image size="16" resid="Ico.LoadCalc.16"/><bt:Image size="32" resid="Ico.LoadCalc.32"/><bt:Image size="80" resid="Ico.LoadCalc.80"/></Icon>
+                      <Action xsi:type="ExecuteFunction"><FunctionName>GoLoadCalc</FunctionName></Action>
                     </Item>
-                    <Item id="Sazan.Item.goLoadCalc">
-                      <Label resid="goLoadCalc.Label"/>
-                      <Supertip>
-                        <Title resid="goLoadCalc.Label"/>
-                        <Description resid="GoTo.Tip"/>
-                      </Supertip>
-                      <Icon><bt:Image size="16" resid="Icon.16"/><bt:Image size="32" resid="Icon.32"/><bt:Image size="80" resid="Icon.80"/></Icon>
-                      <Action xsi:type="ExecuteFunction">
-                        <FunctionName>goLoadCalc</FunctionName>
-                      </Action>
+                    <Item id="Sazan.AddSectionRow">
+                      <Label resid="Ls.AddSectionRow"/>
+                      <Supertip><Title resid="Ls.AddSectionRow"/><Description resid="Ld.AddSectionRow"/></Supertip>
+                      <Icon><bt:Image size="16" resid="Ico.RowsAdd.16"/><bt:Image size="32" resid="Ico.RowsAdd.32"/><bt:Image size="80" resid="Ico.RowsAdd.80"/></Icon>
+                      <Action xsi:type="ExecuteFunction"><FunctionName>AddSectionRow</FunctionName></Action>
                     </Item>
-                    <Item id="Sazan.Item.goUtility">
-                      <Label resid="goUtility.Label"/>
-                      <Supertip>
-                        <Title resid="goUtility.Label"/>
-                        <Description resid="GoTo.Tip"/>
-                      </Supertip>
-                      <Icon><bt:Image size="16" resid="Icon.16"/><bt:Image size="32" resid="Icon.32"/><bt:Image size="80" resid="Icon.80"/></Icon>
-                      <Action xsi:type="ExecuteFunction">
-                        <FunctionName>goUtility</FunctionName>
-                      </Action>
+                    <Item id="Sazan.TrimSectionRows">
+                      <Label resid="Ls.TrimSectionRows"/>
+                      <Supertip><Title resid="Ls.TrimSectionRows"/><Description resid="Ld.TrimSectionRows"/></Supertip>
+                      <Icon><bt:Image size="16" resid="Ico.RowsTrim.16"/><bt:Image size="32" resid="Ico.RowsTrim.32"/><bt:Image size="80" resid="Ico.RowsTrim.80"/></Icon>
+                      <Action xsi:type="ExecuteFunction"><FunctionName>TrimSectionRows</FunctionName></Action>
                     </Item>
-                    <Item id="Sazan.Item.goLogging">
-                      <Label resid="goLogging.Label"/>
-                      <Supertip>
-                        <Title resid="goLogging.Label"/>
-                        <Description resid="GoTo.Tip"/>
-                      </Supertip>
-                      <Icon><bt:Image size="16" resid="Icon.16"/><bt:Image size="32" resid="Icon.32"/><bt:Image size="80" resid="Icon.80"/></Icon>
-                      <Action xsi:type="ExecuteFunction">
-                        <FunctionName>goLogging</FunctionName>
-                      </Action>
-                    </Item>
-                    <Item id="Sazan.Item.goGenerator">
-                      <Label resid="goGenerator.Label"/>
-                      <Supertip>
-                        <Title resid="goGenerator.Label"/>
-                        <Description resid="GoTo.Tip"/>
-                      </Supertip>
-                      <Icon><bt:Image size="16" resid="Icon.16"/><bt:Image size="32" resid="Icon.32"/><bt:Image size="80" resid="Icon.80"/></Icon>
-                      <Action xsi:type="ExecuteFunction">
-                        <FunctionName>goGenerator</FunctionName>
-                      </Action>
-                    </Item>
-                    <Item id="Sazan.Item.goUPS">
-                      <Label resid="goUPS.Label"/>
-                      <Supertip>
-                        <Title resid="goUPS.Label"/>
-                        <Description resid="GoTo.Tip"/>
-                      </Supertip>
-                      <Icon><bt:Image size="16" resid="Icon.16"/><bt:Image size="32" resid="Icon.32"/><bt:Image size="80" resid="Icon.80"/></Icon>
-                      <Action xsi:type="ExecuteFunction">
-                        <FunctionName>goUPS</FunctionName>
-                      </Action>
-                    </Item>
-                    <Item id="Sazan.Item.goTransformers">
-                      <Label resid="goTransformers.Label"/>
-                      <Supertip>
-                        <Title resid="goTransformers.Label"/>
-                        <Description resid="GoTo.Tip"/>
-                      </Supertip>
-                      <Icon><bt:Image size="16" resid="Icon.16"/><bt:Image size="32" resid="Icon.32"/><bt:Image size="80" resid="Icon.80"/></Icon>
-                      <Action xsi:type="ExecuteFunction">
-                        <FunctionName>goTransformers</FunctionName>
-                      </Action>
-                    </Item>
-                    <Item id="Sazan.Item.goShortCircuit">
-                      <Label resid="goShortCircuit.Label"/>
-                      <Supertip>
-                        <Title resid="goShortCircuit.Label"/>
-                        <Description resid="GoTo.Tip"/>
-                      </Supertip>
-                      <Icon><bt:Image size="16" resid="Icon.16"/><bt:Image size="32" resid="Icon.32"/><bt:Image size="80" resid="Icon.80"/></Icon>
-                      <Action xsi:type="ExecuteFunction">
-                        <FunctionName>goShortCircuit</FunctionName>
-                      </Action>
-                    </Item>
-                    <Item id="Sazan.Item.goVoltageDrop">
-                      <Label resid="goVoltageDrop.Label"/>
-                      <Supertip>
-                        <Title resid="goVoltageDrop.Label"/>
-                        <Description resid="GoTo.Tip"/>
-                      </Supertip>
-                      <Icon><bt:Image size="16" resid="Icon.16"/><bt:Image size="32" resid="Icon.32"/><bt:Image size="80" resid="Icon.80"/></Icon>
-                      <Action xsi:type="ExecuteFunction">
-                        <FunctionName>goVoltageDrop</FunctionName>
-                      </Action>
-                    </Item>
-                    <Item id="Sazan.Item.goArcFlash">
-                      <Label resid="goArcFlash.Label"/>
-                      <Supertip>
-                        <Title resid="goArcFlash.Label"/>
-                        <Description resid="GoTo.Tip"/>
-                      </Supertip>
-                      <Icon><bt:Image size="16" resid="Icon.16"/><bt:Image size="32" resid="Icon.32"/><bt:Image size="80" resid="Icon.80"/></Icon>
-                      <Action xsi:type="ExecuteFunction">
-                        <FunctionName>goArcFlash</FunctionName>
-                      </Action>
-                    </Item>
-                    <Item id="Sazan.Item.goFeederSchedule">
-                      <Label resid="goFeederSchedule.Label"/>
-                      <Supertip>
-                        <Title resid="goFeederSchedule.Label"/>
-                        <Description resid="GoTo.Tip"/>
-                      </Supertip>
-                      <Icon><bt:Image size="16" resid="Icon.16"/><bt:Image size="32" resid="Icon.32"/><bt:Image size="80" resid="Icon.80"/></Icon>
-                      <Action xsi:type="ExecuteFunction">
-                        <FunctionName>goFeederSchedule</FunctionName>
-                      </Action>
-                    </Item>
-                    <Item id="Sazan.Item.goReport">
-                      <Label resid="goReport.Label"/>
-                      <Supertip>
-                        <Title resid="goReport.Label"/>
-                        <Description resid="GoTo.Tip"/>
-                      </Supertip>
-                      <Icon><bt:Image size="16" resid="Icon.16"/><bt:Image size="32" resid="Icon.32"/><bt:Image size="80" resid="Icon.80"/></Icon>
-                      <Action xsi:type="ExecuteFunction">
-                        <FunctionName>goReport</FunctionName>
-                      </Action>
-                    </Item>
-                    <Item id="Sazan.Item.goRecon">
-                      <Label resid="goRecon.Label"/>
-                      <Supertip>
-                        <Title resid="goRecon.Label"/>
-                        <Description resid="GoTo.Tip"/>
-                      </Supertip>
-                      <Icon><bt:Image size="16" resid="Icon.16"/><bt:Image size="32" resid="Icon.32"/><bt:Image size="80" resid="Icon.80"/></Icon>
-                      <Action xsi:type="ExecuteFunction">
-                        <FunctionName>goRecon</FunctionName>
-                      </Action>
+                    <Item id="Sazan.ToggleSection">
+                      <Label resid="Ls.ToggleSection"/>
+                      <Supertip><Title resid="Ls.ToggleSection"/><Description resid="Ld.ToggleSection"/></Supertip>
+                      <Icon><bt:Image size="16" resid="Ico.LoadCalc.16"/><bt:Image size="32" resid="Ico.LoadCalc.32"/><bt:Image size="80" resid="Ico.LoadCalc.80"/></Icon>
+                      <Action xsi:type="ExecuteFunction"><FunctionName>ToggleSection</FunctionName></Action>
                     </Item>
                   </Items>
                 </Control>
+                <Control xsi:type="Menu" id="Sazan.ExistDemand">
+                  <Label resid="Ls.ExistDemand"/>
+                  <Supertip><Title resid="Ls.ExistDemand"/><Description resid="Ld.ExistDemand"/></Supertip>
+                  <Icon><bt:Image size="16" resid="Ico.DemandBar.16"/><bt:Image size="32" resid="Ico.DemandBar.32"/><bt:Image size="80" resid="Ico.DemandBar.80"/></Icon>
+                  <Items>
+                    <Item id="Sazan.NewUtility">
+                      <Label resid="Ls.NewUtility"/>
+                      <Supertip><Title resid="Ls.NewUtility"/><Description resid="Ld.NewUtility"/></Supertip>
+                      <Icon><bt:Image size="16" resid="Ico.DemandBar.16"/><bt:Image size="32" resid="Ico.DemandBar.32"/><bt:Image size="80" resid="Ico.DemandBar.80"/></Icon>
+                      <Action xsi:type="ExecuteFunction"><FunctionName>NewUtility</FunctionName></Action>
+                    </Item>
+                    <Item id="Sazan.GoUtility">
+                      <Label resid="Ls.GoUtility"/>
+                      <Supertip><Title resid="Ls.GoUtility"/><Description resid="Ld.GoUtility"/></Supertip>
+                      <Icon><bt:Image size="16" resid="Ico.DemandLine.16"/><bt:Image size="32" resid="Ico.DemandLine.32"/><bt:Image size="80" resid="Ico.DemandLine.80"/></Icon>
+                      <Action xsi:type="ExecuteFunction"><FunctionName>GoUtility</FunctionName></Action>
+                    </Item>
+                    <Item id="Sazan.NewLogging">
+                      <Label resid="Ls.NewLogging"/>
+                      <Supertip><Title resid="Ls.NewLogging"/><Description resid="Ld.NewLogging"/></Supertip>
+                      <Icon><bt:Image size="16" resid="Ico.DemandBar.16"/><bt:Image size="32" resid="Ico.DemandBar.32"/><bt:Image size="80" resid="Ico.DemandBar.80"/></Icon>
+                      <Action xsi:type="ExecuteFunction"><FunctionName>NewLogging</FunctionName></Action>
+                    </Item>
+                    <Item id="Sazan.GoLogging">
+                      <Label resid="Ls.GoLogging"/>
+                      <Supertip><Title resid="Ls.GoLogging"/><Description resid="Ld.GoLogging"/></Supertip>
+                      <Icon><bt:Image size="16" resid="Ico.DemandLine.16"/><bt:Image size="32" resid="Ico.DemandLine.32"/><bt:Image size="80" resid="Ico.DemandLine.80"/></Icon>
+                      <Action xsi:type="ExecuteFunction"><FunctionName>GoLogging</FunctionName></Action>
+                    </Item>
+                    <Item id="Sazan.AddMeter">
+                      <Label resid="Ls.AddMeter"/>
+                      <Supertip><Title resid="Ls.AddMeter"/><Description resid="Ld.AddMeter"/></Supertip>
+                      <Icon><bt:Image size="16" resid="Ico.AddMeter.16"/><bt:Image size="32" resid="Ico.AddMeter.32"/><bt:Image size="80" resid="Ico.AddMeter.80"/></Icon>
+                      <Action xsi:type="ExecuteFunction"><FunctionName>AddMeter</FunctionName></Action>
+                    </Item>
+                  </Items>
+                </Control>
+                <Control xsi:type="Menu" id="Sazan.Panels">
+                  <Label resid="Ls.Panels"/>
+                  <Supertip><Title resid="Ls.Panels"/><Description resid="Ld.Panels"/></Supertip>
+                  <Icon><bt:Image size="16" resid="Ico.SheetNew.16"/><bt:Image size="32" resid="Ico.SheetNew.32"/><bt:Image size="80" resid="Ico.SheetNew.80"/></Icon>
+                  <Items>
+                    <Item id="Sazan.NewPanelboard">
+                      <Label resid="Ls.NewPanelboard"/>
+                      <Supertip><Title resid="Ls.NewPanelboard"/><Description resid="Ld.NewPanelboard"/></Supertip>
+                      <Icon><bt:Image size="16" resid="Ico.SheetNew.16"/><bt:Image size="32" resid="Ico.SheetNew.32"/><bt:Image size="80" resid="Ico.SheetNew.80"/></Icon>
+                      <Action xsi:type="ExecuteFunction"><FunctionName>NewPanelboard</FunctionName></Action>
+                    </Item>
+                    <Item id="Sazan.NewSwitchboard">
+                      <Label resid="Ls.NewSwitchboard"/>
+                      <Supertip><Title resid="Ls.NewSwitchboard"/><Description resid="Ld.NewSwitchboard"/></Supertip>
+                      <Icon><bt:Image size="16" resid="Ico.SheetNew.16"/><bt:Image size="32" resid="Ico.SheetNew.32"/><bt:Image size="80" resid="Ico.SheetNew.80"/></Icon>
+                      <Action xsi:type="ExecuteFunction"><FunctionName>NewSwitchboard</FunctionName></Action>
+                    </Item>
+                    <Item id="Sazan.NewMCC">
+                      <Label resid="Ls.NewMCC"/>
+                      <Supertip><Title resid="Ls.NewMCC"/><Description resid="Ld.NewMCC"/></Supertip>
+                      <Icon><bt:Image size="16" resid="Ico.SheetNew.16"/><bt:Image size="32" resid="Ico.SheetNew.32"/><bt:Image size="80" resid="Ico.SheetNew.80"/></Icon>
+                      <Action xsi:type="ExecuteFunction"><FunctionName>NewMCC</FunctionName></Action>
+                    </Item>
+                    <Item id="Sazan.Link">
+                      <Label resid="Ls.Link"/>
+                      <Supertip><Title resid="Ls.Link"/><Description resid="Ld.Link"/></Supertip>
+                      <Icon><bt:Image size="16" resid="Ico.Link.16"/><bt:Image size="32" resid="Ico.Link.32"/><bt:Image size="80" resid="Ico.Link.80"/></Icon>
+                      <Action xsi:type="ExecuteFunction"><FunctionName>Link</FunctionName></Action>
+                    </Item>
+                    <Item id="Sazan.SubFeed">
+                      <Label resid="Ls.SubFeed"/>
+                      <Supertip><Title resid="Ls.SubFeed"/><Description resid="Ld.SubFeed"/></Supertip>
+                      <Icon><bt:Image size="16" resid="Ico.SubFeed.16"/><bt:Image size="32" resid="Ico.SubFeed.32"/><bt:Image size="80" resid="Ico.SubFeed.80"/></Icon>
+                      <Action xsi:type="ExecuteFunction"><FunctionName>SubFeed</FunctionName></Action>
+                    </Item>
+                    <Item id="Sazan.FeedThru">
+                      <Label resid="Ls.FeedThru"/>
+                      <Supertip><Title resid="Ls.FeedThru"/><Description resid="Ld.FeedThru"/></Supertip>
+                      <Icon><bt:Image size="16" resid="Ico.SubFeed.16"/><bt:Image size="32" resid="Ico.SubFeed.32"/><bt:Image size="80" resid="Ico.SubFeed.80"/></Icon>
+                      <Action xsi:type="ExecuteFunction"><FunctionName>FeedThru</FunctionName></Action>
+                    </Item>
+                    <Item id="Sazan.Resize">
+                      <Label resid="Ls.Resize"/>
+                      <Supertip><Title resid="Ls.Resize"/><Description resid="Ld.Resize"/></Supertip>
+                      <Icon><bt:Image size="16" resid="Ico.Resize.16"/><bt:Image size="32" resid="Ico.Resize.32"/><bt:Image size="80" resid="Ico.Resize.80"/></Icon>
+                      <Action xsi:type="ExecuteFunction"><FunctionName>Resize</FunctionName></Action>
+                    </Item>
+                    <Item id="Sazan.AddEquipRows">
+                      <Label resid="Ls.AddEquipRows"/>
+                      <Supertip><Title resid="Ls.AddEquipRows"/><Description resid="Ld.AddEquipRows"/></Supertip>
+                      <Icon><bt:Image size="16" resid="Ico.RowsAdd.16"/><bt:Image size="32" resid="Ico.RowsAdd.32"/><bt:Image size="80" resid="Ico.RowsAdd.80"/></Icon>
+                      <Action xsi:type="ExecuteFunction"><FunctionName>AddEquipRows</FunctionName></Action>
+                    </Item>
+                    <Item id="Sazan.TrimEquipRows">
+                      <Label resid="Ls.TrimEquipRows"/>
+                      <Supertip><Title resid="Ls.TrimEquipRows"/><Description resid="Ld.TrimEquipRows"/></Supertip>
+                      <Icon><bt:Image size="16" resid="Ico.RowsTrim.16"/><bt:Image size="32" resid="Ico.RowsTrim.32"/><bt:Image size="80" resid="Ico.RowsTrim.80"/></Icon>
+                      <Action xsi:type="ExecuteFunction"><FunctionName>TrimEquipRows</FunctionName></Action>
+                    </Item>
+                    <Item id="Sazan.RebuildGeo">
+                      <Label resid="Ls.RebuildGeo"/>
+                      <Supertip><Title resid="Ls.RebuildGeo"/><Description resid="Ld.RebuildGeo"/></Supertip>
+                      <Icon><bt:Image size="16" resid="Ico.RebuildGeo.16"/><bt:Image size="32" resid="Ico.RebuildGeo.32"/><bt:Image size="80" resid="Ico.RebuildGeo.80"/></Icon>
+                      <Action xsi:type="ExecuteFunction"><FunctionName>RebuildGeo</FunctionName></Action>
+                    </Item>
+                  </Items>
+                </Control>
+                <Control xsi:type="Menu" id="Sazan.Backup">
+                  <Label resid="Ls.Backup"/>
+                  <Supertip><Title resid="Ls.Backup"/><Description resid="Ld.Backup"/></Supertip>
+                  <Icon><bt:Image size="16" resid="Ico.Generator.16"/><bt:Image size="32" resid="Ico.Generator.32"/><bt:Image size="80" resid="Ico.Generator.80"/></Icon>
+                  <Items>
+                    <Item id="Sazan.NewGenerator">
+                      <Label resid="Ls.NewGenerator"/>
+                      <Supertip><Title resid="Ls.NewGenerator"/><Description resid="Ld.NewGenerator"/></Supertip>
+                      <Icon><bt:Image size="16" resid="Ico.Generator.16"/><bt:Image size="32" resid="Ico.Generator.32"/><bt:Image size="80" resid="Ico.Generator.80"/></Icon>
+                      <Action xsi:type="ExecuteFunction"><FunctionName>NewGenerator</FunctionName></Action>
+                    </Item>
+                    <Item id="Sazan.GoGenerator">
+                      <Label resid="Ls.GoGenerator"/>
+                      <Supertip><Title resid="Ls.GoGenerator"/><Description resid="Ld.GoGenerator"/></Supertip>
+                      <Icon><bt:Image size="16" resid="Ico.Generator.16"/><bt:Image size="32" resid="Ico.Generator.32"/><bt:Image size="80" resid="Ico.Generator.80"/></Icon>
+                      <Action xsi:type="ExecuteFunction"><FunctionName>GoGenerator</FunctionName></Action>
+                    </Item>
+                    <Item id="Sazan.NewUPS">
+                      <Label resid="Ls.NewUPS"/>
+                      <Supertip><Title resid="Ls.NewUPS"/><Description resid="Ld.NewUPS"/></Supertip>
+                      <Icon><bt:Image size="16" resid="Ico.Ups.16"/><bt:Image size="32" resid="Ico.Ups.32"/><bt:Image size="80" resid="Ico.Ups.80"/></Icon>
+                      <Action xsi:type="ExecuteFunction"><FunctionName>NewUPS</FunctionName></Action>
+                    </Item>
+                    <Item id="Sazan.GoUPS">
+                      <Label resid="Ls.GoUPS"/>
+                      <Supertip><Title resid="Ls.GoUPS"/><Description resid="Ld.GoUPS"/></Supertip>
+                      <Icon><bt:Image size="16" resid="Ico.Ups.16"/><bt:Image size="32" resid="Ico.Ups.32"/><bt:Image size="80" resid="Ico.Ups.80"/></Icon>
+                      <Action xsi:type="ExecuteFunction"><FunctionName>GoUPS</FunctionName></Action>
+                    </Item>
+                    <Item id="Sazan.NewTransformers">
+                      <Label resid="Ls.NewTransformers"/>
+                      <Supertip><Title resid="Ls.NewTransformers"/><Description resid="Ld.NewTransformers"/></Supertip>
+                      <Icon><bt:Image size="16" resid="Ico.Transformer.16"/><bt:Image size="32" resid="Ico.Transformer.32"/><bt:Image size="80" resid="Ico.Transformer.80"/></Icon>
+                      <Action xsi:type="ExecuteFunction"><FunctionName>NewTransformers</FunctionName></Action>
+                    </Item>
+                    <Item id="Sazan.GoTransformers">
+                      <Label resid="Ls.GoTransformers"/>
+                      <Supertip><Title resid="Ls.GoTransformers"/><Description resid="Ld.GoTransformers"/></Supertip>
+                      <Icon><bt:Image size="16" resid="Ico.Transformer.16"/><bt:Image size="32" resid="Ico.Transformer.32"/><bt:Image size="80" resid="Ico.Transformer.80"/></Icon>
+                      <Action xsi:type="ExecuteFunction"><FunctionName>GoTransformers</FunctionName></Action>
+                    </Item>
+                  </Items>
+                </Control>
+                <Control xsi:type="Menu" id="Sazan.Studies">
+                  <Label resid="Ls.Studies"/>
+                  <Supertip><Title resid="Ls.Studies"/><Description resid="Ld.Studies"/></Supertip>
+                  <Icon><bt:Image size="16" resid="Ico.ShortCircuit.16"/><bt:Image size="32" resid="Ico.ShortCircuit.32"/><bt:Image size="80" resid="Ico.ShortCircuit.80"/></Icon>
+                  <Items>
+                    <Item id="Sazan.NewShortCircuit">
+                      <Label resid="Ls.NewShortCircuit"/>
+                      <Supertip><Title resid="Ls.NewShortCircuit"/><Description resid="Ld.NewShortCircuit"/></Supertip>
+                      <Icon><bt:Image size="16" resid="Ico.ShortCircuit.16"/><bt:Image size="32" resid="Ico.ShortCircuit.32"/><bt:Image size="80" resid="Ico.ShortCircuit.80"/></Icon>
+                      <Action xsi:type="ExecuteFunction"><FunctionName>NewShortCircuit</FunctionName></Action>
+                    </Item>
+                    <Item id="Sazan.GoShortCircuit">
+                      <Label resid="Ls.GoShortCircuit"/>
+                      <Supertip><Title resid="Ls.GoShortCircuit"/><Description resid="Ld.GoShortCircuit"/></Supertip>
+                      <Icon><bt:Image size="16" resid="Ico.ShortCircuit.16"/><bt:Image size="32" resid="Ico.ShortCircuit.32"/><bt:Image size="80" resid="Ico.ShortCircuit.80"/></Icon>
+                      <Action xsi:type="ExecuteFunction"><FunctionName>GoShortCircuit</FunctionName></Action>
+                    </Item>
+                    <Item id="Sazan.NewVoltageDrop">
+                      <Label resid="Ls.NewVoltageDrop"/>
+                      <Supertip><Title resid="Ls.NewVoltageDrop"/><Description resid="Ld.NewVoltageDrop"/></Supertip>
+                      <Icon><bt:Image size="16" resid="Ico.VoltageDrop.16"/><bt:Image size="32" resid="Ico.VoltageDrop.32"/><bt:Image size="80" resid="Ico.VoltageDrop.80"/></Icon>
+                      <Action xsi:type="ExecuteFunction"><FunctionName>NewVoltageDrop</FunctionName></Action>
+                    </Item>
+                    <Item id="Sazan.GoVoltageDrop">
+                      <Label resid="Ls.GoVoltageDrop"/>
+                      <Supertip><Title resid="Ls.GoVoltageDrop"/><Description resid="Ld.GoVoltageDrop"/></Supertip>
+                      <Icon><bt:Image size="16" resid="Ico.VoltageDrop.16"/><bt:Image size="32" resid="Ico.VoltageDrop.32"/><bt:Image size="80" resid="Ico.VoltageDrop.80"/></Icon>
+                      <Action xsi:type="ExecuteFunction"><FunctionName>GoVoltageDrop</FunctionName></Action>
+                    </Item>
+                    <Item id="Sazan.NewArcFlash">
+                      <Label resid="Ls.NewArcFlash"/>
+                      <Supertip><Title resid="Ls.NewArcFlash"/><Description resid="Ld.NewArcFlash"/></Supertip>
+                      <Icon><bt:Image size="16" resid="Ico.ArcFlash.16"/><bt:Image size="32" resid="Ico.ArcFlash.32"/><bt:Image size="80" resid="Ico.ArcFlash.80"/></Icon>
+                      <Action xsi:type="ExecuteFunction"><FunctionName>NewArcFlash</FunctionName></Action>
+                    </Item>
+                    <Item id="Sazan.GoArcFlash">
+                      <Label resid="Ls.GoArcFlash"/>
+                      <Supertip><Title resid="Ls.GoArcFlash"/><Description resid="Ld.GoArcFlash"/></Supertip>
+                      <Icon><bt:Image size="16" resid="Ico.ArcFlash.16"/><bt:Image size="32" resid="Ico.ArcFlash.32"/><bt:Image size="80" resid="Ico.ArcFlash.80"/></Icon>
+                      <Action xsi:type="ExecuteFunction"><FunctionName>GoArcFlash</FunctionName></Action>
+                    </Item>
+                    <Item id="Sazan.NewFeederSchedule">
+                      <Label resid="Ls.NewFeederSchedule"/>
+                      <Supertip><Title resid="Ls.NewFeederSchedule"/><Description resid="Ld.NewFeederSchedule"/></Supertip>
+                      <Icon><bt:Image size="16" resid="Ico.FeederSchedule.16"/><bt:Image size="32" resid="Ico.FeederSchedule.32"/><bt:Image size="80" resid="Ico.FeederSchedule.80"/></Icon>
+                      <Action xsi:type="ExecuteFunction"><FunctionName>NewFeederSchedule</FunctionName></Action>
+                    </Item>
+                    <Item id="Sazan.GoFeederSchedule">
+                      <Label resid="Ls.GoFeederSchedule"/>
+                      <Supertip><Title resid="Ls.GoFeederSchedule"/><Description resid="Ld.GoFeederSchedule"/></Supertip>
+                      <Icon><bt:Image size="16" resid="Ico.FeederSchedule.16"/><bt:Image size="32" resid="Ico.FeederSchedule.32"/><bt:Image size="80" resid="Ico.FeederSchedule.80"/></Icon>
+                      <Action xsi:type="ExecuteFunction"><FunctionName>GoFeederSchedule</FunctionName></Action>
+                    </Item>
+                    <Item id="Sazan.GoStudiesView">
+                      <Label resid="Ls.GoStudiesView"/>
+                      <Supertip><Title resid="Ls.GoStudiesView"/><Description resid="Ld.GoStudiesView"/></Supertip>
+                      <Icon><bt:Image size="16" resid="Ico.Recon.16"/><bt:Image size="32" resid="Ico.Recon.32"/><bt:Image size="80" resid="Ico.Recon.80"/></Icon>
+                      <Action xsi:type="ExecuteFunction"><FunctionName>GoStudiesView</FunctionName></Action>
+                    </Item>
+                    <Item id="Sazan.RefreshFeeders">
+                      <Label resid="Ls.RefreshFeeders"/>
+                      <Supertip><Title resid="Ls.RefreshFeeders"/><Description resid="Ld.RefreshFeeders"/></Supertip>
+                      <Icon><bt:Image size="16" resid="Ico.Refresh.16"/><bt:Image size="32" resid="Ico.Refresh.32"/><bt:Image size="80" resid="Ico.Refresh.80"/></Icon>
+                      <Action xsi:type="ExecuteFunction"><FunctionName>RefreshFeeders</FunctionName></Action>
+                    </Item>
+                  </Items>
+                </Control>
+                <Control xsi:type="Menu" id="Sazan.Output">
+                  <Label resid="Ls.Output"/>
+                  <Supertip><Title resid="Ls.Output"/><Description resid="Ld.Output"/></Supertip>
+                  <Icon><bt:Image size="16" resid="Ico.Report.16"/><bt:Image size="32" resid="Ico.Report.32"/><bt:Image size="80" resid="Ico.Report.80"/></Icon>
+                  <Items>
+                    <Item id="Sazan.NewReport">
+                      <Label resid="Ls.NewReport"/>
+                      <Supertip><Title resid="Ls.NewReport"/><Description resid="Ld.NewReport"/></Supertip>
+                      <Icon><bt:Image size="16" resid="Ico.Report.16"/><bt:Image size="32" resid="Ico.Report.32"/><bt:Image size="80" resid="Ico.Report.80"/></Icon>
+                      <Action xsi:type="ExecuteFunction"><FunctionName>NewReport</FunctionName></Action>
+                    </Item>
+                    <Item id="Sazan.GoReport">
+                      <Label resid="Ls.GoReport"/>
+                      <Supertip><Title resid="Ls.GoReport"/><Description resid="Ld.GoReport"/></Supertip>
+                      <Icon><bt:Image size="16" resid="Ico.Report.16"/><bt:Image size="32" resid="Ico.Report.32"/><bt:Image size="80" resid="Ico.Report.80"/></Icon>
+                      <Action xsi:type="ExecuteFunction"><FunctionName>GoReport</FunctionName></Action>
+                    </Item>
+                    <Item id="Sazan.GoRecon">
+                      <Label resid="Ls.GoRecon"/>
+                      <Supertip><Title resid="Ls.GoRecon"/><Description resid="Ld.GoRecon"/></Supertip>
+                      <Icon><bt:Image size="16" resid="Ico.Recon.16"/><bt:Image size="32" resid="Ico.Recon.32"/><bt:Image size="80" resid="Ico.Recon.80"/></Icon>
+                      <Action xsi:type="ExecuteFunction"><FunctionName>GoRecon</FunctionName></Action>
+                    </Item>
+                    <Item id="Sazan.ToggleSizing">
+                      <Label resid="Ls.ToggleSizing"/>
+                      <Supertip><Title resid="Ls.ToggleSizing"/><Description resid="Ld.ToggleSizing"/></Supertip>
+                      <Icon><bt:Image size="16" resid="Ico.ToggleSizing.16"/><bt:Image size="32" resid="Ico.ToggleSizing.32"/><bt:Image size="80" resid="Ico.ToggleSizing.80"/></Icon>
+                      <Action xsi:type="ExecuteFunction"><FunctionName>ToggleSizing</FunctionName></Action>
+                    </Item>
+                    <Item id="Sazan.ToggleMatrix">
+                      <Label resid="Ls.ToggleMatrix"/>
+                      <Supertip><Title resid="Ls.ToggleMatrix"/><Description resid="Ld.ToggleMatrix"/></Supertip>
+                      <Icon><bt:Image size="16" resid="Ico.ToggleMatrix.16"/><bt:Image size="32" resid="Ico.ToggleMatrix.32"/><bt:Image size="80" resid="Ico.ToggleMatrix.80"/></Icon>
+                      <Action xsi:type="ExecuteFunction"><FunctionName>ToggleMatrix</FunctionName></Action>
+                    </Item>
+                  </Items>
+                </Control>
+                <Control xsi:type="Button" id="Sazan.RefreshStudies">
+                  <Label resid="Ls.RefreshStudies"/>
+                  <Supertip><Title resid="Ls.RefreshStudies"/><Description resid="Ld.RefreshStudies"/></Supertip>
+                  <Icon><bt:Image size="16" resid="Ico.Refresh.16"/><bt:Image size="32" resid="Ico.Refresh.32"/><bt:Image size="80" resid="Ico.Refresh.80"/></Icon>
+                  <Action xsi:type="ExecuteFunction"><FunctionName>RefreshStudies</FunctionName></Action>
+                </Control>
+                <Control xsi:type="Button" id="Sazan.PanelTreePane">
+                  <Label resid="Ls.PanelTreePane"/>
+                  <Supertip><Title resid="Ls.PanelTreePane"/><Description resid="Ld.PanelTreePane"/></Supertip>
+                  <Icon><bt:Image size="16" resid="Ico.PanelTree.16"/><bt:Image size="32" resid="Ico.PanelTree.32"/><bt:Image size="80" resid="Ico.PanelTree.80"/></Icon>
+                  <Action xsi:type="ShowTaskpane">
+                    <TaskpaneId>Sazan.PanelTree.Pane</TaskpaneId>
+                    <SourceLocation resid="Url.Taskpane"/>
+                  </Action>
+                </Control>
               </Group>
-              <Label resid="Sazan.Tab.Label"/>
+              <Label resid="Ls.Tab"/>
             </CustomTab>
           </ExtensionPoint>
         </DesktopFormFactor>
@@ -241,40 +362,204 @@
     </Hosts>
     <Resources>
       <bt:Images>
-        <bt:Image id="Icon.16" DefaultValue="https://csmckinnon.github.io/sazan-paneltree-addin/icon-16.png"/>
-        <bt:Image id="Icon.32" DefaultValue="https://csmckinnon.github.io/sazan-paneltree-addin/icon-32.png"/>
-        <bt:Image id="Icon.80" DefaultValue="https://csmckinnon.github.io/sazan-paneltree-addin/icon-80.png"/>
+        <bt:Image id="Ico.NewProject.16" DefaultValue="https://csmckinnon.github.io/sazan-paneltree-addin/new-project-16.png"/>
+        <bt:Image id="Ico.NewProject.32" DefaultValue="https://csmckinnon.github.io/sazan-paneltree-addin/new-project-32.png"/>
+        <bt:Image id="Ico.NewProject.80" DefaultValue="https://csmckinnon.github.io/sazan-paneltree-addin/new-project-80.png"/>
+        <bt:Image id="Ico.Instructions.16" DefaultValue="https://csmckinnon.github.io/sazan-paneltree-addin/instructions-16.png"/>
+        <bt:Image id="Ico.Instructions.32" DefaultValue="https://csmckinnon.github.io/sazan-paneltree-addin/instructions-32.png"/>
+        <bt:Image id="Ico.Instructions.80" DefaultValue="https://csmckinnon.github.io/sazan-paneltree-addin/instructions-80.png"/>
+        <bt:Image id="Ico.Dashboard.16" DefaultValue="https://csmckinnon.github.io/sazan-paneltree-addin/dashboard-16.png"/>
+        <bt:Image id="Ico.Dashboard.32" DefaultValue="https://csmckinnon.github.io/sazan-paneltree-addin/dashboard-32.png"/>
+        <bt:Image id="Ico.Dashboard.80" DefaultValue="https://csmckinnon.github.io/sazan-paneltree-addin/dashboard-80.png"/>
+        <bt:Image id="Ico.LoadCalc.16" DefaultValue="https://csmckinnon.github.io/sazan-paneltree-addin/load-calc-16.png"/>
+        <bt:Image id="Ico.LoadCalc.32" DefaultValue="https://csmckinnon.github.io/sazan-paneltree-addin/load-calc-32.png"/>
+        <bt:Image id="Ico.LoadCalc.80" DefaultValue="https://csmckinnon.github.io/sazan-paneltree-addin/load-calc-80.png"/>
+        <bt:Image id="Ico.RowsAdd.16" DefaultValue="https://csmckinnon.github.io/sazan-paneltree-addin/rows-add-16.png"/>
+        <bt:Image id="Ico.RowsAdd.32" DefaultValue="https://csmckinnon.github.io/sazan-paneltree-addin/rows-add-32.png"/>
+        <bt:Image id="Ico.RowsAdd.80" DefaultValue="https://csmckinnon.github.io/sazan-paneltree-addin/rows-add-80.png"/>
+        <bt:Image id="Ico.RowsTrim.16" DefaultValue="https://csmckinnon.github.io/sazan-paneltree-addin/rows-trim-16.png"/>
+        <bt:Image id="Ico.RowsTrim.32" DefaultValue="https://csmckinnon.github.io/sazan-paneltree-addin/rows-trim-32.png"/>
+        <bt:Image id="Ico.RowsTrim.80" DefaultValue="https://csmckinnon.github.io/sazan-paneltree-addin/rows-trim-80.png"/>
+        <bt:Image id="Ico.DemandBar.16" DefaultValue="https://csmckinnon.github.io/sazan-paneltree-addin/demand-bar-16.png"/>
+        <bt:Image id="Ico.DemandBar.32" DefaultValue="https://csmckinnon.github.io/sazan-paneltree-addin/demand-bar-32.png"/>
+        <bt:Image id="Ico.DemandBar.80" DefaultValue="https://csmckinnon.github.io/sazan-paneltree-addin/demand-bar-80.png"/>
+        <bt:Image id="Ico.DemandLine.16" DefaultValue="https://csmckinnon.github.io/sazan-paneltree-addin/demand-line-16.png"/>
+        <bt:Image id="Ico.DemandLine.32" DefaultValue="https://csmckinnon.github.io/sazan-paneltree-addin/demand-line-32.png"/>
+        <bt:Image id="Ico.DemandLine.80" DefaultValue="https://csmckinnon.github.io/sazan-paneltree-addin/demand-line-80.png"/>
+        <bt:Image id="Ico.AddMeter.16" DefaultValue="https://csmckinnon.github.io/sazan-paneltree-addin/add-meter-16.png"/>
+        <bt:Image id="Ico.AddMeter.32" DefaultValue="https://csmckinnon.github.io/sazan-paneltree-addin/add-meter-32.png"/>
+        <bt:Image id="Ico.AddMeter.80" DefaultValue="https://csmckinnon.github.io/sazan-paneltree-addin/add-meter-80.png"/>
+        <bt:Image id="Ico.SheetNew.16" DefaultValue="https://csmckinnon.github.io/sazan-paneltree-addin/sheet-new-16.png"/>
+        <bt:Image id="Ico.SheetNew.32" DefaultValue="https://csmckinnon.github.io/sazan-paneltree-addin/sheet-new-32.png"/>
+        <bt:Image id="Ico.SheetNew.80" DefaultValue="https://csmckinnon.github.io/sazan-paneltree-addin/sheet-new-80.png"/>
+        <bt:Image id="Ico.Link.16" DefaultValue="https://csmckinnon.github.io/sazan-paneltree-addin/link-16.png"/>
+        <bt:Image id="Ico.Link.32" DefaultValue="https://csmckinnon.github.io/sazan-paneltree-addin/link-32.png"/>
+        <bt:Image id="Ico.Link.80" DefaultValue="https://csmckinnon.github.io/sazan-paneltree-addin/link-80.png"/>
+        <bt:Image id="Ico.SubFeed.16" DefaultValue="https://csmckinnon.github.io/sazan-paneltree-addin/sub-feed-16.png"/>
+        <bt:Image id="Ico.SubFeed.32" DefaultValue="https://csmckinnon.github.io/sazan-paneltree-addin/sub-feed-32.png"/>
+        <bt:Image id="Ico.SubFeed.80" DefaultValue="https://csmckinnon.github.io/sazan-paneltree-addin/sub-feed-80.png"/>
+        <bt:Image id="Ico.Resize.16" DefaultValue="https://csmckinnon.github.io/sazan-paneltree-addin/resize-16.png"/>
+        <bt:Image id="Ico.Resize.32" DefaultValue="https://csmckinnon.github.io/sazan-paneltree-addin/resize-32.png"/>
+        <bt:Image id="Ico.Resize.80" DefaultValue="https://csmckinnon.github.io/sazan-paneltree-addin/resize-80.png"/>
+        <bt:Image id="Ico.RebuildGeo.16" DefaultValue="https://csmckinnon.github.io/sazan-paneltree-addin/rebuild-geo-16.png"/>
+        <bt:Image id="Ico.RebuildGeo.32" DefaultValue="https://csmckinnon.github.io/sazan-paneltree-addin/rebuild-geo-32.png"/>
+        <bt:Image id="Ico.RebuildGeo.80" DefaultValue="https://csmckinnon.github.io/sazan-paneltree-addin/rebuild-geo-80.png"/>
+        <bt:Image id="Ico.Generator.16" DefaultValue="https://csmckinnon.github.io/sazan-paneltree-addin/generator-16.png"/>
+        <bt:Image id="Ico.Generator.32" DefaultValue="https://csmckinnon.github.io/sazan-paneltree-addin/generator-32.png"/>
+        <bt:Image id="Ico.Generator.80" DefaultValue="https://csmckinnon.github.io/sazan-paneltree-addin/generator-80.png"/>
+        <bt:Image id="Ico.Ups.16" DefaultValue="https://csmckinnon.github.io/sazan-paneltree-addin/ups-16.png"/>
+        <bt:Image id="Ico.Ups.32" DefaultValue="https://csmckinnon.github.io/sazan-paneltree-addin/ups-32.png"/>
+        <bt:Image id="Ico.Ups.80" DefaultValue="https://csmckinnon.github.io/sazan-paneltree-addin/ups-80.png"/>
+        <bt:Image id="Ico.Transformer.16" DefaultValue="https://csmckinnon.github.io/sazan-paneltree-addin/transformer-16.png"/>
+        <bt:Image id="Ico.Transformer.32" DefaultValue="https://csmckinnon.github.io/sazan-paneltree-addin/transformer-32.png"/>
+        <bt:Image id="Ico.Transformer.80" DefaultValue="https://csmckinnon.github.io/sazan-paneltree-addin/transformer-80.png"/>
+        <bt:Image id="Ico.ShortCircuit.16" DefaultValue="https://csmckinnon.github.io/sazan-paneltree-addin/short-circuit-16.png"/>
+        <bt:Image id="Ico.ShortCircuit.32" DefaultValue="https://csmckinnon.github.io/sazan-paneltree-addin/short-circuit-32.png"/>
+        <bt:Image id="Ico.ShortCircuit.80" DefaultValue="https://csmckinnon.github.io/sazan-paneltree-addin/short-circuit-80.png"/>
+        <bt:Image id="Ico.VoltageDrop.16" DefaultValue="https://csmckinnon.github.io/sazan-paneltree-addin/voltage-drop-16.png"/>
+        <bt:Image id="Ico.VoltageDrop.32" DefaultValue="https://csmckinnon.github.io/sazan-paneltree-addin/voltage-drop-32.png"/>
+        <bt:Image id="Ico.VoltageDrop.80" DefaultValue="https://csmckinnon.github.io/sazan-paneltree-addin/voltage-drop-80.png"/>
+        <bt:Image id="Ico.ArcFlash.16" DefaultValue="https://csmckinnon.github.io/sazan-paneltree-addin/arc-flash-16.png"/>
+        <bt:Image id="Ico.ArcFlash.32" DefaultValue="https://csmckinnon.github.io/sazan-paneltree-addin/arc-flash-32.png"/>
+        <bt:Image id="Ico.ArcFlash.80" DefaultValue="https://csmckinnon.github.io/sazan-paneltree-addin/arc-flash-80.png"/>
+        <bt:Image id="Ico.FeederSchedule.16" DefaultValue="https://csmckinnon.github.io/sazan-paneltree-addin/feeder-schedule-16.png"/>
+        <bt:Image id="Ico.FeederSchedule.32" DefaultValue="https://csmckinnon.github.io/sazan-paneltree-addin/feeder-schedule-32.png"/>
+        <bt:Image id="Ico.FeederSchedule.80" DefaultValue="https://csmckinnon.github.io/sazan-paneltree-addin/feeder-schedule-80.png"/>
+        <bt:Image id="Ico.Refresh.16" DefaultValue="https://csmckinnon.github.io/sazan-paneltree-addin/refresh-16.png"/>
+        <bt:Image id="Ico.Refresh.32" DefaultValue="https://csmckinnon.github.io/sazan-paneltree-addin/refresh-32.png"/>
+        <bt:Image id="Ico.Refresh.80" DefaultValue="https://csmckinnon.github.io/sazan-paneltree-addin/refresh-80.png"/>
+        <bt:Image id="Ico.PanelTree.16" DefaultValue="https://csmckinnon.github.io/sazan-paneltree-addin/panel-tree-16.png"/>
+        <bt:Image id="Ico.PanelTree.32" DefaultValue="https://csmckinnon.github.io/sazan-paneltree-addin/panel-tree-32.png"/>
+        <bt:Image id="Ico.PanelTree.80" DefaultValue="https://csmckinnon.github.io/sazan-paneltree-addin/panel-tree-80.png"/>
+        <bt:Image id="Ico.Report.16" DefaultValue="https://csmckinnon.github.io/sazan-paneltree-addin/report-16.png"/>
+        <bt:Image id="Ico.Report.32" DefaultValue="https://csmckinnon.github.io/sazan-paneltree-addin/report-32.png"/>
+        <bt:Image id="Ico.Report.80" DefaultValue="https://csmckinnon.github.io/sazan-paneltree-addin/report-80.png"/>
+        <bt:Image id="Ico.Recon.16" DefaultValue="https://csmckinnon.github.io/sazan-paneltree-addin/recon-16.png"/>
+        <bt:Image id="Ico.Recon.32" DefaultValue="https://csmckinnon.github.io/sazan-paneltree-addin/recon-32.png"/>
+        <bt:Image id="Ico.Recon.80" DefaultValue="https://csmckinnon.github.io/sazan-paneltree-addin/recon-80.png"/>
+        <bt:Image id="Ico.ToggleSizing.16" DefaultValue="https://csmckinnon.github.io/sazan-paneltree-addin/toggle-sizing-16.png"/>
+        <bt:Image id="Ico.ToggleSizing.32" DefaultValue="https://csmckinnon.github.io/sazan-paneltree-addin/toggle-sizing-32.png"/>
+        <bt:Image id="Ico.ToggleSizing.80" DefaultValue="https://csmckinnon.github.io/sazan-paneltree-addin/toggle-sizing-80.png"/>
+        <bt:Image id="Ico.ToggleMatrix.16" DefaultValue="https://csmckinnon.github.io/sazan-paneltree-addin/toggle-matrix-16.png"/>
+        <bt:Image id="Ico.ToggleMatrix.32" DefaultValue="https://csmckinnon.github.io/sazan-paneltree-addin/toggle-matrix-32.png"/>
+        <bt:Image id="Ico.ToggleMatrix.80" DefaultValue="https://csmckinnon.github.io/sazan-paneltree-addin/toggle-matrix-80.png"/>
       </bt:Images>
       <bt:Urls>
-        <bt:Url id="Commands.Url" DefaultValue="https://csmckinnon.github.io/sazan-paneltree-addin/commands.html"/>
-        <bt:Url id="Taskpane.Url" DefaultValue="https://csmckinnon.github.io/sazan-paneltree-addin/taskpane.html"/>
-        <bt:Url id="GetStarted.Url" DefaultValue="https://csmckinnon.github.io/sazan-paneltree-addin/"/>
+        <bt:Url id="Url.Taskpane" DefaultValue="https://csmckinnon.github.io/sazan-paneltree-addin/taskpane.html"/>
+        <bt:Url id="Url.Commands" DefaultValue="https://csmckinnon.github.io/sazan-paneltree-addin/commands.html"/>
+        <bt:Url id="Url.Support"  DefaultValue="https://csmckinnon.github.io/sazan-paneltree-addin/"/>
       </bt:Urls>
       <bt:ShortStrings>
-        <bt:String id="GoTo.Label" DefaultValue="Go To"/>
-        <bt:String id="goInstructions.Label" DefaultValue="Instructions"/>
-        <bt:String id="goDashboard.Label" DefaultValue="Dashboard"/>
-        <bt:String id="goLoadCalc.Label" DefaultValue="Load Calc"/>
-        <bt:String id="goUtility.Label" DefaultValue="Utility Demand"/>
-        <bt:String id="goLogging.Label" DefaultValue="Logging Demand"/>
-        <bt:String id="goGenerator.Label" DefaultValue="Generator"/>
-        <bt:String id="goUPS.Label" DefaultValue="UPS"/>
-        <bt:String id="goTransformers.Label" DefaultValue="Transformers"/>
-        <bt:String id="goShortCircuit.Label" DefaultValue="Short Circuit"/>
-        <bt:String id="goVoltageDrop.Label" DefaultValue="Voltage Drop"/>
-        <bt:String id="goArcFlash.Label" DefaultValue="Arc Flash"/>
-        <bt:String id="goFeederSchedule.Label" DefaultValue="Feeder Schedule"/>
-        <bt:String id="goReport.Label" DefaultValue="Report"/>
-        <bt:String id="goRecon.Label" DefaultValue="Reconciliation"/>
-        <bt:String id="Sazan.Tab.Label" DefaultValue="SAZAN Tools"/>
-        <bt:String id="Sazan.Group.Label" DefaultValue="PowerCalc"/>
-        <bt:String id="PanelTree.Label" DefaultValue="Panel Tree"/>
-        <bt:String id="GetStarted.Title" DefaultValue="SAZAN Panel Tree is ready."/>
+        <bt:String id="Ls.Tab" DefaultValue="SAZAN PowerCalc"/>
+        <bt:String id="Ls.Group" DefaultValue="PowerCalc"/>
+        <bt:String id="Ls.GetStarted" DefaultValue="SAZAN PowerCalc is ready"/>
+        <bt:String id="Ls.NewProject" DefaultValue="New Project"/>
+        <bt:String id="Ls.GoInstructions" DefaultValue="Instructions"/>
+        <bt:String id="Ls.GoDashboard" DefaultValue="Dashboard"/>
+        <bt:String id="Ls.LoadCalc" DefaultValue="Load Calc"/>
+        <bt:String id="Ls.NewLoadCalc" DefaultValue="New Load Calc"/>
+        <bt:String id="Ls.GoLoadCalc" DefaultValue="Go To Load Calc"/>
+        <bt:String id="Ls.AddSectionRow" DefaultValue="Add Row"/>
+        <bt:String id="Ls.TrimSectionRows" DefaultValue="Trim Empty Rows"/>
+        <bt:String id="Ls.ToggleSection" DefaultValue="Toggle Section"/>
+        <bt:String id="Ls.ExistDemand" DefaultValue="Existing Demand"/>
+        <bt:String id="Ls.NewUtility" DefaultValue="New Utility Demand (12 mo)"/>
+        <bt:String id="Ls.GoUtility" DefaultValue="Go To Utility Demand"/>
+        <bt:String id="Ls.NewLogging" DefaultValue="New Logging Demand (30 day)"/>
+        <bt:String id="Ls.GoLogging" DefaultValue="Go To Logging Demand"/>
+        <bt:String id="Ls.AddMeter" DefaultValue="Add Meter"/>
+        <bt:String id="Ls.Panels" DefaultValue="Panel Schedules"/>
+        <bt:String id="Ls.NewPanelboard" DefaultValue="New Panelboard"/>
+        <bt:String id="Ls.NewSwitchboard" DefaultValue="New Switchboard"/>
+        <bt:String id="Ls.NewMCC" DefaultValue="New MCC"/>
+        <bt:String id="Ls.Link" DefaultValue="Link Equipment"/>
+        <bt:String id="Ls.SubFeed" DefaultValue="Sub-Feed"/>
+        <bt:String id="Ls.FeedThru" DefaultValue="Feed-Through"/>
+        <bt:String id="Ls.Resize" DefaultValue="Resize Panel"/>
+      <bt:String id="Ls.AddEquipRows" DefaultValue="Add Table Rows"/>
+      <bt:String id="Ls.TrimEquipRows" DefaultValue="Trim Table Rows"/>
+        <bt:String id="Ls.RebuildGeo" DefaultValue="Rebuild GEO_MAP"/>
+        <bt:String id="Ls.Backup" DefaultValue="Backup Power"/>
+        <bt:String id="Ls.NewGenerator" DefaultValue="New Generator"/>
+        <bt:String id="Ls.GoGenerator" DefaultValue="Go To Generator"/>
+        <bt:String id="Ls.NewUPS" DefaultValue="New UPS"/>
+        <bt:String id="Ls.GoUPS" DefaultValue="Go To UPS"/>
+        <bt:String id="Ls.NewTransformers" DefaultValue="New Transformers"/>
+        <bt:String id="Ls.GoTransformers" DefaultValue="Go To Transformers"/>
+        <bt:String id="Ls.Studies" DefaultValue="Studies"/>
+        <bt:String id="Ls.NewShortCircuit" DefaultValue="New Short Circuit"/>
+        <bt:String id="Ls.GoShortCircuit" DefaultValue="Go To Short Circuit"/>
+        <bt:String id="Ls.NewVoltageDrop" DefaultValue="New Voltage Drop"/>
+        <bt:String id="Ls.GoVoltageDrop" DefaultValue="Go To Voltage Drop"/>
+        <bt:String id="Ls.NewArcFlash" DefaultValue="New Arc Flash"/>
+        <bt:String id="Ls.GoArcFlash" DefaultValue="Go To Arc Flash"/>
+        <bt:String id="Ls.NewFeederSchedule" DefaultValue="New Feeder Schedule"/>
+        <bt:String id="Ls.GoFeederSchedule" DefaultValue="Go To Feeder Schedule"/>
+        <bt:String id="Ls.GoStudiesView" DefaultValue="Go To Combined Studies"/>
+        <bt:String id="Ls.RefreshFeeders" DefaultValue="Refresh Feeders"/>
+        <bt:String id="Ls.RefreshStudies" DefaultValue="Refresh Studies"/>
+        <bt:String id="Ls.PanelTreePane" DefaultValue="Panel Tree"/>
+        <bt:String id="Ls.Output" DefaultValue="Report &amp; View"/>
+        <bt:String id="Ls.NewReport" DefaultValue="New Report"/>
+        <bt:String id="Ls.GoReport" DefaultValue="Go To Report"/>
+        <bt:String id="Ls.GoRecon" DefaultValue="Reconciliation"/>
+        <bt:String id="Ls.ToggleSizing" DefaultValue="Toggle Sizing Columns"/>
+        <bt:String id="Ls.ToggleMatrix" DefaultValue="Toggle Load Matrix"/>
       </bt:ShortStrings>
       <bt:LongStrings>
-        <bt:String id="GoTo.Tip" DefaultValue="Jump to a PowerCalc sheet, or offer to create it if it is missing."/>
-        <bt:String id="PanelTree.Tip" DefaultValue="Open the source-to-load panel tree."/>
-        <bt:String id="GetStarted.Desc" DefaultValue="Click SAZAN Tools then Panel Tree to open the pane."/>
+        <bt:String id="Ld.GetStarted" DefaultValue="Open the SAZAN PowerCalc tab to build load calcs, panel schedules and studies."/>
+        <bt:String id="Ld.NewProject" DefaultValue="New Project — SAZAN PowerCalc."/>
+        <bt:String id="Ld.GoInstructions" DefaultValue="Instructions — SAZAN PowerCalc."/>
+        <bt:String id="Ld.GoDashboard" DefaultValue="Dashboard — SAZAN PowerCalc."/>
+        <bt:String id="Ld.LoadCalc" DefaultValue="Load Calc — SAZAN PowerCalc."/>
+        <bt:String id="Ld.NewLoadCalc" DefaultValue="New Load Calc — SAZAN PowerCalc."/>
+        <bt:String id="Ld.GoLoadCalc" DefaultValue="Go To Load Calc — SAZAN PowerCalc."/>
+        <bt:String id="Ld.AddSectionRow" DefaultValue="Adds one row to the Load Calc section your cursor is in — works on any of the twelve sections."/>
+        <bt:String id="Ld.TrimSectionRows" DefaultValue="Removes empty rows from the bottom of the Load Calc section your cursor is in."/>
+        <bt:String id="Ld.ToggleSection" DefaultValue="Switches a Load Calc section off or back on. A section that is off collapses out of view and drops out of every roll-up — the panel space counter, the service load summary, and the generator and UPS matrices. Choose 0 to switch every section back on."/>
+        <bt:String id="Ld.ExistDemand" DefaultValue="Existing Demand — SAZAN PowerCalc."/>
+        <bt:String id="Ld.NewUtility" DefaultValue="New Utility Demand (12 mo) — SAZAN PowerCalc."/>
+        <bt:String id="Ld.GoUtility" DefaultValue="Go To Utility Demand — SAZAN PowerCalc."/>
+        <bt:String id="Ld.NewLogging" DefaultValue="New Logging Demand (30 day) — SAZAN PowerCalc."/>
+        <bt:String id="Ld.GoLogging" DefaultValue="Go To Logging Demand — SAZAN PowerCalc."/>
+        <bt:String id="Ld.AddMeter" DefaultValue="Add Meter — SAZAN PowerCalc."/>
+        <bt:String id="Ld.Panels" DefaultValue="Panel Schedules — SAZAN PowerCalc."/>
+        <bt:String id="Ld.NewPanelboard" DefaultValue="New Panelboard — SAZAN PowerCalc."/>
+        <bt:String id="Ld.NewSwitchboard" DefaultValue="New Switchboard — SAZAN PowerCalc."/>
+        <bt:String id="Ld.NewMCC" DefaultValue="New MCC — SAZAN PowerCalc."/>
+        <bt:String id="Ld.Link" DefaultValue="Link Equipment — SAZAN PowerCalc."/>
+        <bt:String id="Ld.SubFeed" DefaultValue="Sub-Feed — SAZAN PowerCalc."/>
+        <bt:String id="Ld.FeedThru" DefaultValue="Feed-Through — SAZAN PowerCalc."/>
+        <bt:String id="Ld.Resize" DefaultValue="Resize Panel — SAZAN PowerCalc."/>
+      <bt:String id="Ld.AddEquipRows" DefaultValue="Add rows to a Load Calc, Generator or UPS table — SAZAN PowerCalc."/>
+      <bt:String id="Ld.TrimEquipRows" DefaultValue="Trim rows from a Load Calc, Generator or UPS table — SAZAN PowerCalc."/>
+        <bt:String id="Ld.RebuildGeo" DefaultValue="Rebuild GEO_MAP — SAZAN PowerCalc."/>
+        <bt:String id="Ld.Backup" DefaultValue="Backup Power — SAZAN PowerCalc."/>
+        <bt:String id="Ld.NewGenerator" DefaultValue="New Generator — SAZAN PowerCalc."/>
+        <bt:String id="Ld.GoGenerator" DefaultValue="Go To Generator — SAZAN PowerCalc."/>
+        <bt:String id="Ld.NewUPS" DefaultValue="New UPS — SAZAN PowerCalc."/>
+        <bt:String id="Ld.GoUPS" DefaultValue="Go To UPS — SAZAN PowerCalc."/>
+        <bt:String id="Ld.NewTransformers" DefaultValue="New Transformers — SAZAN PowerCalc."/>
+        <bt:String id="Ld.GoTransformers" DefaultValue="Go To Transformers — SAZAN PowerCalc."/>
+        <bt:String id="Ld.Studies" DefaultValue="Studies — SAZAN PowerCalc."/>
+        <bt:String id="Ld.NewShortCircuit" DefaultValue="New Short Circuit — SAZAN PowerCalc."/>
+        <bt:String id="Ld.GoShortCircuit" DefaultValue="Go To Short Circuit — SAZAN PowerCalc."/>
+        <bt:String id="Ld.NewVoltageDrop" DefaultValue="New Voltage Drop — SAZAN PowerCalc."/>
+        <bt:String id="Ld.GoVoltageDrop" DefaultValue="Go To Voltage Drop — SAZAN PowerCalc."/>
+        <bt:String id="Ld.NewArcFlash" DefaultValue="New Arc Flash — SAZAN PowerCalc."/>
+        <bt:String id="Ld.GoArcFlash" DefaultValue="Go To Arc Flash — SAZAN PowerCalc."/>
+        <bt:String id="Ld.NewFeederSchedule" DefaultValue="New Feeder Schedule — SAZAN PowerCalc."/>
+        <bt:String id="Ld.GoFeederSchedule" DefaultValue="Go To Feeder Schedule — SAZAN PowerCalc."/>
+        <bt:String id="Ld.GoStudiesView" DefaultValue="Go To Combined Studies — the read-only view joining Feeder Schedule, Short Circuit and Voltage Drop by bus."/>
+        <bt:String id="Ld.RefreshFeeders" DefaultValue="Recalculate and validate the Feeder Schedule — it derives its own rows from the equipment registry."/>
+        <bt:String id="Ld.RefreshStudies" DefaultValue="Rebuild the Arc Flash bus table — Short Circuit and Voltage Drop derive themselves and are not modified."/>
+        <bt:String id="Ld.PanelTreePane" DefaultValue="Panel Tree — SAZAN PowerCalc."/>
+        <bt:String id="Ld.Output" DefaultValue="Report &amp; View — SAZAN PowerCalc."/>
+        <bt:String id="Ld.NewReport" DefaultValue="New Report — SAZAN PowerCalc."/>
+        <bt:String id="Ld.GoReport" DefaultValue="Go To Report — SAZAN PowerCalc."/>
+        <bt:String id="Ld.GoRecon" DefaultValue="Reconciliation — SAZAN PowerCalc."/>
+        <bt:String id="Ld.ToggleSizing" DefaultValue="Toggle Sizing Columns — SAZAN PowerCalc."/>
+        <bt:String id="Ld.ToggleMatrix" DefaultValue="Toggle Load Matrix — SAZAN PowerCalc."/>
       </bt:LongStrings>
     </Resources>
   </VersionOverrides>

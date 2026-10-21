@@ -2,19 +2,12 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>SAZAN PowerCalc - commands</title>
-
-  <!-- Function file. Never displayed. Office loads it headless when a
-       ribbon button with an ExecuteFunction action is clicked, runs the
-       named function, then tears the page down once event.completed()
-       fires. Nothing in the body element is ever rendered. -->
-
-  <script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
-
-  <script src="js/core/excel.js"></script>
-  <script src="js/core/dialog.js"></script>
-  <script src="js/commands/navigate.js"></script>
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <title>SAZAN PowerCalc commands</title>
+  <!-- This page is never displayed. It exists only to host the ribbon
+       command handlers declared as <FunctionFile> in the manifest. -->
+  <script src="https://appsforoffice.microsoft.com/lib/1.1/hosted/office.js"></script>
+  <script src="commands.js"></script>
 </head>
-<body>
-</body>
+<body></body>
 </html>

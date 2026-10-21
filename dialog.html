@@ -1,84 +1,95 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>SAZAN PowerCalc</title>
-  <link rel="stylesheet" href="css/sazan.css" />
-  <script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
-  <style>
-    body { display: flex; flex-direction: column; height: 100vh; }
-    #msg { padding: 10px; flex: 1 1 auto; }
-    #ctl { padding: 0 10px; }
-    #bar { padding: 10px; display: flex; gap: 8px; justify-content: flex-end; }
-  </style>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>SAZAN PowerCalc</title>
+<script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
+<style>
+  :root{ --teal:#458A96; --gold:#F1B92A; --grey:#606262; --mid:#7E868C; }
+  *{ box-sizing:border-box; }
+  body{ margin:0; font-family:"Segoe UI",sans-serif; font-size:10pt; color:#000; }
+  #band{ height:30px; background:#000; color:#fff; font-size:16px;
+         display:flex; align-items:center; justify-content:flex-end; padding:0 12px; }
+  #sub{ height:30px; background:var(--teal); color:#fff; font-size:14px;
+        display:flex; align-items:center; justify-content:flex-end; padding:0 12px; }
+  #wrap{ padding:14px 16px; }
+  #msg{ white-space:pre-wrap; line-height:1.45; margin-bottom:12px; }
+  label{ display:block; color:var(--grey); margin-bottom:4px; }
+  input[type=text]{ width:100%; height:28px; padding:4px 8px; font-family:"Segoe UI",sans-serif;
+         font-size:10pt; color:#0000FF; background:#D9D9D9; border:1px solid var(--mid); }
+  #err{ color:#CA7F39; min-height:16px; margin-top:6px; }
+  #btns{ display:flex; gap:8px; justify-content:flex-end; padding:0 16px 16px; }
+  button{ font-family:"Segoe UI",sans-serif; font-size:10pt; height:28px; padding:0 18px;
+         border:1px solid var(--teal); background:#fff; color:var(--teal); cursor:pointer; }
+  button.primary{ background:var(--teal); color:#fff; }
+  button:hover{ outline:2px solid var(--gold); outline-offset:-2px; }
+</style>
 </head>
 <body>
-  <div class="saz-header" id="title"></div>
-  <div id="msg"></div>
-  <div id="ctl"></div>
-  <div id="bar">
-    <button class="saz-btn" id="cancel">Cancel</button>
-    <button class="saz-btn saz-btn-primary" id="ok">OK</button>
+  <div id="band">SÄZÄN POWERCALC</div>
+  <div id="sub"><span id="sub-t"></span></div>
+  <div id="wrap">
+    <div id="msg"></div>
+    <div id="field" style="display:none">
+      <label id="lbl"></label>
+      <input type="text" id="val" autocomplete="off"/>
+      <div id="err"></div>
+    </div>
   </div>
-
+  <div id="btns">
+    <button id="cancel">Cancel</button>
+    <button id="ok" class="primary">OK</button>
+  </div>
 <script>
-/* Generic dialog host. The caller passes a spec in the URL fragment:
-   { kind: "confirm" | "alert" | "prompt" | "pick", title, message, ... }
-   The reply goes back through messageParent as { ok, value }. */
+(function(){
+  var P = new URLSearchParams(location.search);
+  var mode  = P.get("mode")  || "notify";
+  var title = P.get("title") || "SAZAN PowerCalc";
+  var text  = P.get("text")  || "";
+  var label = P.get("label") || "Value";
+  var dflt  = P.get("default") || "";
+  var req   = P.get("required") === "1";
 
-var spec = { kind: "alert", title: "SAZAN", message: "" };
-try {
-  spec = JSON.parse(decodeURIComponent(window.location.hash.substring(1)));
-} catch (e) { /* keep the default */ }
+  document.getElementById("sub-t").textContent = title;
+  document.getElementById("msg").textContent   = text;
 
-Office.onReady(function () {
-  document.getElementById("title").textContent = spec.title || "SAZAN PowerCalc";
-  document.getElementById("msg").textContent = spec.message || "";
+  var isPrompt = (mode === "prompt");
+  if (isPrompt) {
+    document.getElementById("field").style.display = "block";
+    document.getElementById("lbl").textContent = label;
+    document.getElementById("val").value = dflt;
+  }
+  if (mode === "notify") {
+    document.getElementById("cancel").style.display = "none";
+  }
 
-  var ctl = document.getElementById("ctl");
-  var ok = document.getElementById("ok");
-  var cancel = document.getElementById("cancel");
-  var field = null;
+  function send(payload){
+    try { Office.context.ui.messageParent(JSON.stringify(payload)); }
+    catch(e) { }
+  }
 
-  if (spec.kind === "prompt") {
-    field = document.createElement("input");
-    field.className = "saz-input";
-    field.type = "text";
-    field.value = spec.value || "";
-    ctl.appendChild(field);
-  } else if (spec.kind === "pick") {
-    field = document.createElement("select");
-    field.className = "saz-select";
-    (spec.options || []).forEach(function (o) {
-      var opt = document.createElement("option");
-      opt.value = o.value;
-      opt.textContent = o.label;
-      field.appendChild(opt);
+  function submit(){
+    if (!isPrompt) { send({ ok:true }); return; }
+    var v = document.getElementById("val").value.trim();
+    if (req && !v) {
+      document.getElementById("err").textContent = "A value is required.";
+      return;
+    }
+    send({ ok:true, value:v });
+  }
+
+  Office.onReady(function(){
+    document.getElementById("ok").onclick     = submit;
+    document.getElementById("cancel").onclick = function(){ send({ ok:false }); };
+    document.addEventListener("keydown", function(e){
+      if (e.key === "Enter")  { e.preventDefault(); submit(); }
+      if (e.key === "Escape") { send({ ok:false }); }
     });
-    ctl.appendChild(field);
-  }
-
-  if (spec.kind === "alert") { cancel.style.display = "none"; }
-  if (spec.ok) { ok.textContent = spec.ok; }
-
-  function send(payload) {
-    Office.context.ui.messageParent(JSON.stringify(payload));
-  }
-
-  ok.addEventListener("click", function () {
-    send({ ok: true, value: field ? field.value : null });
+    var f = document.getElementById(isPrompt ? "val" : "ok");
+    if (f) { f.focus(); if (isPrompt) f.select(); }
   });
-  cancel.addEventListener("click", function () {
-    send({ ok: false, value: null });
-  });
-
-  document.addEventListener("keydown", function (ev) {
-    if (ev.key === "Enter") { ok.click(); }
-    if (ev.key === "Escape" && spec.kind !== "alert") { cancel.click(); }
-  });
-
-  if (field) { field.focus(); } else { ok.focus(); }
-});
+})();
 </script>
 </body>
 </html>

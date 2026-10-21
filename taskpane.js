@@ -1,10 +1,24 @@
 /*  SAZAN Panel Tree - Excel task pane
-    Reads and writes the equipment registry on  Dashboard!A75:J114
+    Reads and writes the equipment registry named  Equip_Registry  (Dashboard!A75:J324)
     Columns (0-based):  0 Tag  1 Type  2 Voltage  3 Fed From  5 Demand kVA
                         6 Sheet  8 Feed Type  9 Ckt / space                */
 
 var REG_SHEET = "Dashboard";
-var REG_RANGE = "A75:J114";
+var REG_RANGE = "A75:J324";   /* fallback only - see regRange() below */
+var REG_NAME  = "Equip_Registry";   /* authoritative - resolved at runtime */
+
+/*  Resolve the registry from its defined name so this file cannot drift out of
+    sync when the registry is resized in the master. REG_RANGE is used only if
+    the name is missing.                                                     */
+function regRange(ctx) {
+  var n = ctx.workbook.names.getItemOrNullObject(REG_NAME);
+  n.load("isNullObject");
+  return ctx.sync().then(function () {
+    return n.isNullObject
+      ? ctx.workbook.worksheets.getItem(REG_SHEET).getRange(REG_RANGE)
+      : n.getRange();
+  });
+}
 var C_TAG = 0, C_TYPE = 1, C_VOLT = 2, C_FED = 3, C_KVA = 5, C_SHEET = 6, C_FT = 8, C_CKT = 9;
 var MAXDEPTH = 12;
 
@@ -45,9 +59,9 @@ function setStatus(msg) { document.getElementById("status").textContent = msg ||
 /*  ---------- read the registry ---------- */
 function refresh() {
   return Excel.run(function (ctx) {
-    var rg = ctx.workbook.worksheets.getItem(REG_SHEET).getRange(REG_RANGE);
-    rg.load("values");
-    return ctx.sync().then(function () {
+    return regRange(ctx).then(function (rg) {
+      rg.load("values");
+      return ctx.sync().then(function () {
       items = [];
       rg.values.forEach(function (row, i) {
         var tag = String(row[C_TAG] === null ? "" : row[C_TAG]).trim();
@@ -68,6 +82,7 @@ function refresh() {
       fillFedList();
       if (selTag) select(selTag); else clearProps();
       setStatus("");
+    });
     });
   }).catch(function (e) { setStatus("Read failed: " + e.message); });
 }
@@ -253,14 +268,14 @@ function gotoSheet() {
 /*  adds a placeholder row fed from the current selection - rename it on the Dashboard */
 function addEquipment() {
   return Excel.run(function (ctx) {
-    var base = ctx.workbook.worksheets.getItem(REG_SHEET).getRange(REG_RANGE);
-    base.load("values");
-    return ctx.sync().then(function () {
+    return regRange(ctx).then(function (base) {
+      base.load("values");
+      return ctx.sync().then(function () {
       var free = -1;
       for (var i = 0; i < base.values.length; i++) {
         if (String(base.values[i][C_TAG] || "").trim() === "") { free = i; break; }
       }
-      if (free < 0) { setStatus("Registry is full - extend Dashboard!A75:J114."); return; }
+      if (free < 0) { setStatus("Registry is full - extend the Equip_Registry name and Cfg_MaxNodes."); return; }
       var n = 1, tag;
       do { tag = "NEW-" + n++; } while (byTag(tag));
       base.getCell(free, C_TAG).values = [[tag]];
@@ -270,6 +285,7 @@ function addEquipment() {
         selTag = tag;
         return refresh();
       });
+    });
     });
   }).catch(function (e) { setStatus("Add failed: " + e.message); });
 }

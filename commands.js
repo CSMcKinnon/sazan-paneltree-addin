@@ -189,6 +189,40 @@ SAZ.goOrCreate = function (ctx, sheetName) {
   });
 };
 
+/* Copy a sheet whatever its visibility. Excel refuses to copy a veryHidden
+   sheet (InvalidOperation - "not permitted for the current object") and a copy
+   of a hidden sheet arrives hidden, which cannot be activated (InvalidReference -
+   "reference is invalid"). New Project leaves TPL_* veryHidden and every module
+   hidden, so every New command hit one or the other. Fix: lift the source to
+   visible, copy, show the copy, then put the source back - on failure too.
+   Resolves to the new sheet's name. */
+SAZ.cloneSheet = function (ctx, srcName, newName) {
+  var src = ctx.workbook.worksheets.getItem(srcName);
+  src.load("visibility");
+  return ctx.sync().then(function () {
+    var was = src.visibility;
+    var restore = function () {
+      if (was !== Excel.SheetVisibility.visible) { src.visibility = was; }
+      return ctx.sync();
+    };
+    if (was !== Excel.SheetVisibility.visible) {
+      src.visibility = Excel.SheetVisibility.visible;
+    }
+    return ctx.sync().then(function () {
+      var copy = src.copy(Excel.WorksheetPositionType.end);
+      return ctx.sync().then(function () {
+        copy.name = newName;
+        copy.visibility = Excel.SheetVisibility.visible;
+        return ctx.sync();
+      });
+    }).then(function () {
+      return restore().then(function () { return newName; });
+    }, function (err) {
+      return restore().then(function () { throw err; }, function () { throw err; });
+    });
+  });
+};
+
 SAZ.uiCreate = function (ctx, tplName, typeLabel) {
   return SAZ.requireSheets(ctx, SAZ.CLONE_REQUIRES).then(function (ok) { if (!ok) { return null; }
   return SAZ.prompt("New " + typeLabel, "Equipment tag", "", true).then(function (ans) {
@@ -197,16 +231,9 @@ SAZ.uiCreate = function (ctx, tplName, typeLabel) {
     if (!tag) { return SAZ.notify("Invalid tag", "That tag contains no usable characters."); }
     return SAZ.ensureTemplate(ctx, tplName).then(function (tpl) {
       return SAZ.uniqueSheetName(ctx, tag).then(function (finalName) {
-        var srcSheet = ctx.workbook.worksheets.getItem(tpl);
-        var copy = srcSheet.copy(Excel.WorksheetPositionType.end);
-        copy.load("name");
-        return ctx.sync().then(function () {
-          copy.name = finalName;
-          copy.visibility = Excel.SheetVisibility.visible;
-          return ctx.sync();
-        }).then(function () {
-          return SAZ.registerFromGeo(ctx, finalName, typeLabel);
-        }).then(function () {
+        return SAZ.cloneSheet(ctx, tpl, finalName);
+      }).then(function (finalName) {
+        return SAZ.registerFromGeo(ctx, finalName, typeLabel).then(function () {
           ctx.workbook.worksheets.getItem(finalName).activate();
           return ctx.sync();
         }).then(function () {
@@ -222,11 +249,13 @@ SAZ.uiCreate = function (ctx, tplName, typeLabel) {
 };
 
 SAZ.createModule = function (ctx, sheetName) {
-  /*  Duplicates an existing module sheet, or pulls it from the hosted library
-      if this workbook has never had one. Cross-sheet formulas inside a
-      duplicated module still need review per module - see PORT_Audit. */
+  /*  First use in a project: New Project put the module away hidden, so New
+      simply reveals it - the scaffold notice promises "its tab will appear".
+      Once it is showing, New makes a further copy (Generator (2), ...).
+      Cross-sheet formulas inside a duplicated module still need review per
+      module - see PORT_Audit. */
   var sheets = ctx.workbook.worksheets;
-  sheets.load("items/name");
+  sheets.load("items/name,items/visibility");
   return ctx.sync().then(function () {
     var hit = sheets.items.filter(function (s) {
       return s.name.toLowerCase() === sheetName.toLowerCase();
@@ -234,15 +263,20 @@ SAZ.createModule = function (ctx, sheetName) {
     if (!hit) {
       return SAZ.notify("Module not in this workbook",
         "\"" + sheetName + "\" does not exist here yet.\n\n" +
-        "Porting of CreateModule is still open - see the PORT_Audit tab.");
+        "Run New Project from a blank workbook to bring in the full scaffold.");
     }
-    return SAZ.uniqueSheetName(ctx, sheetName).then(function (finalName) {
-      var copy = hit.copy(Excel.WorksheetPositionType.end);
+    if (hit.visibility !== Excel.SheetVisibility.visible) {
+      hit.visibility = Excel.SheetVisibility.visible;
       return ctx.sync().then(function () {
-        copy.name = finalName;
-        copy.activate();
+        hit.activate();
         return ctx.sync();
       });
+    }
+    return SAZ.uniqueSheetName(ctx, hit.name).then(function (finalName) {
+      return SAZ.cloneSheet(ctx, hit.name, finalName);
+    }).then(function (finalName) {
+      ctx.workbook.worksheets.getItem(finalName).activate();
+      return ctx.sync();
     });
   });
 };

@@ -5,7 +5,7 @@
            xmlns:ov="http://schemas.microsoft.com/office/taskpaneappversionoverrides"
            xsi:type="TaskPaneApp">
   <Id>8f1a2c34-5b6d-4e7f-9a01-2b3c4d5e6f70</Id>
-  <Version>2.0.2.0</Version>
+  <Version>2.1.0.0</Version>
   <ProviderName>Säzän Group</ProviderName>
   <DefaultLocale>en-US</DefaultLocale>
   <DisplayName DefaultValue="SAZAN PowerCalc"/>
@@ -31,7 +31,7 @@
             <CustomTab id="Sazan.Tab">
               <Group id="Sazan.Group">
                 <Label resid="Ls.Group"/>
-                <Icon><bt:Image size="16" resid="Mso.PivotTableInsert.16"/><bt:Image size="32" resid="Mso.PivotTableInsert.32"/><bt:Image size="80" resid="Mso.PivotTableInsert.80"/></Icon>
+                <Icon><bt:Image size="16" resid="Mso.FileNew.16"/><bt:Image size="32" resid="Mso.FileNew.32"/><bt:Image size="80" resid="Mso.FileNew.80"/></Icon>
                 <Control xsi:type="Button" id="Sazan.NewProject">
                   <Label resid="Ls.NewProject"/>
                   <Supertip><Title resid="Ls.NewProject"/><Description resid="Ld.NewProject"/></Supertip>
@@ -50,6 +50,10 @@
                   <Icon><bt:Image size="16" resid="Mso.PivotTableInsert.16"/><bt:Image size="32" resid="Mso.PivotTableInsert.32"/><bt:Image size="80" resid="Mso.PivotTableInsert.80"/></Icon>
                   <Action xsi:type="ExecuteFunction"><FunctionName>GoDashboard</FunctionName></Action>
                 </Control>
+              </Group>
+              <Group id="Sazan.GrpCalc">
+                <Label resid="Ls.GrpCalc"/>
+                <Icon><bt:Image size="16" resid="Mso.FunctionWizard.16"/><bt:Image size="32" resid="Mso.FunctionWizard.32"/><bt:Image size="80" resid="Mso.FunctionWizard.80"/></Icon>
                 <Control xsi:type="Menu" id="Sazan.LoadCalc">
                   <Label resid="Ls.LoadCalc"/>
                   <Supertip><Title resid="Ls.LoadCalc"/><Description resid="Ld.LoadCalc"/></Supertip>
@@ -191,6 +195,10 @@
                     </Item>
                   </Items>
                 </Control>
+              </Group>
+              <Group id="Sazan.GrpBackup">
+                <Label resid="Ls.GrpBackup"/>
+                <Icon><bt:Image size="16" resid="Mso.MacroPlay.16"/><bt:Image size="32" resid="Mso.MacroPlay.32"/><bt:Image size="80" resid="Mso.MacroPlay.80"/></Icon>
                 <Control xsi:type="Menu" id="Sazan.Backup">
                   <Label resid="Ls.Backup"/>
                   <Supertip><Title resid="Ls.Backup"/><Description resid="Ld.Backup"/></Supertip>
@@ -222,25 +230,26 @@
                     </Item>
                   </Items>
                 </Control>
-                <Control xsi:type="Menu" id="Sazan.Xfmr">
-                  <Label resid="Ls.Xfmr"/>
-                  <Supertip><Title resid="Ls.Xfmr"/><Description resid="Ld.Xfmr"/></Supertip>
-                  <Icon><bt:Image size="16" resid="Mso.Transformer.16"/><bt:Image size="32" resid="Mso.Transformer.32"/><bt:Image size="80" resid="Mso.Transformer.80"/></Icon>
-                  <Items>
-                    <Item id="Sazan.NewTransformers">
-                      <Label resid="Ls.NewTransformers"/>
-                      <Supertip><Title resid="Ls.NewTransformers"/><Description resid="Ld.NewTransformers"/></Supertip>
-                      <Icon><bt:Image size="16" resid="Mso.TableInsert.16"/><bt:Image size="32" resid="Mso.TableInsert.32"/><bt:Image size="80" resid="Mso.TableInsert.80"/></Icon>
-                      <Action xsi:type="ExecuteFunction"><FunctionName>NewTransformers</FunctionName></Action>
-                    </Item>
-                    <Item id="Sazan.GoTransformers">
-                      <Label resid="Ls.GoTransformers"/>
-                      <Supertip><Title resid="Ls.GoTransformers"/><Description resid="Ld.GoTransformers"/></Supertip>
-                      <Icon><bt:Image size="16" resid="Mso.TableDesign.16"/><bt:Image size="32" resid="Mso.TableDesign.32"/><bt:Image size="80" resid="Mso.TableDesign.80"/></Icon>
-                      <Action xsi:type="ExecuteFunction"><FunctionName>GoTransformers</FunctionName></Action>
-                    </Item>
-                  </Items>
+              </Group>
+              <Group id="Sazan.GrpXfmr">
+                <Label resid="Ls.Xfmr"/>
+                <Icon><bt:Image size="16" resid="Mso.Transformer.16"/><bt:Image size="32" resid="Mso.Transformer.32"/><bt:Image size="80" resid="Mso.Transformer.80"/></Icon>
+                <Control xsi:type="Button" id="Sazan.NewTransformers">
+                  <Label resid="Ls.NewTransformers"/>
+                  <Supertip><Title resid="Ls.NewTransformers"/><Description resid="Ld.NewTransformers"/></Supertip>
+                  <Icon><bt:Image size="16" resid="Mso.TableInsert.16"/><bt:Image size="32" resid="Mso.TableInsert.32"/><bt:Image size="80" resid="Mso.TableInsert.80"/></Icon>
+                  <Action xsi:type="ExecuteFunction"><FunctionName>NewTransformers</FunctionName></Action>
                 </Control>
+                <Control xsi:type="Button" id="Sazan.GoTransformers">
+                  <Label resid="Ls.GoTransformers"/>
+                  <Supertip><Title resid="Ls.GoTransformers"/><Description resid="Ld.GoTransformers"/></Supertip>
+                  <Icon><bt:Image size="16" resid="Mso.TableDesign.16"/><bt:Image size="32" resid="Mso.TableDesign.32"/><bt:Image size="80" resid="Mso.TableDesign.80"/></Icon>
+                  <Action xsi:type="ExecuteFunction"><FunctionName>GoTransformers</FunctionName></Action>
+                </Control>
+              </Group>
+              <Group id="Sazan.GrpStudies">
+                <Label resid="Ls.GrpStudies"/>
+                <Icon><bt:Image size="16" resid="Mso.FormulaEvaluate.16"/><bt:Image size="32" resid="Mso.FormulaEvaluate.32"/><bt:Image size="80" resid="Mso.FormulaEvaluate.80"/></Icon>
                 <Control xsi:type="Menu" id="Sazan.Studies">
                   <Label resid="Ls.Studies"/>
                   <Supertip><Title resid="Ls.Studies"/><Description resid="Ld.Studies"/></Supertip>
@@ -308,6 +317,25 @@
                     </Item>
                   </Items>
                 </Control>
+                <Control xsi:type="Button" id="Sazan.RefreshStudies">
+                  <Label resid="Ls.RefreshStudies"/>
+                  <Supertip><Title resid="Ls.RefreshStudies"/><Description resid="Ld.RefreshStudies"/></Supertip>
+                  <Icon><bt:Image size="16" resid="Mso.RefreshAll.16"/><bt:Image size="32" resid="Mso.RefreshAll.32"/><bt:Image size="80" resid="Mso.RefreshAll.80"/></Icon>
+                  <Action xsi:type="ExecuteFunction"><FunctionName>RefreshStudies</FunctionName></Action>
+                </Control>
+                <Control xsi:type="Button" id="Sazan.PanelTreePane">
+                  <Label resid="Ls.PanelTreePane"/>
+                  <Supertip><Title resid="Ls.PanelTreePane"/><Description resid="Ld.PanelTreePane"/></Supertip>
+                  <Icon><bt:Image size="16" resid="Mso.PanelTree.16"/><bt:Image size="32" resid="Mso.PanelTree.32"/><bt:Image size="80" resid="Mso.PanelTree.80"/></Icon>
+                  <Action xsi:type="ShowTaskpane">
+                    <TaskpaneId>Sazan.PanelTree.Pane</TaskpaneId>
+                    <SourceLocation resid="Url.Taskpane"/>
+                  </Action>
+                </Control>
+              </Group>
+              <Group id="Sazan.GrpReport">
+                <Label resid="Ls.GrpReport"/>
+                <Icon><bt:Image size="16" resid="Mso.PrintPreviewAndPrint.16"/><bt:Image size="32" resid="Mso.PrintPreviewAndPrint.32"/><bt:Image size="80" resid="Mso.PrintPreviewAndPrint.80"/></Icon>
                 <Control xsi:type="Menu" id="Sazan.Output">
                   <Label resid="Ls.Output"/>
                   <Supertip><Title resid="Ls.Output"/><Description resid="Ld.Output"/></Supertip>
@@ -344,21 +372,6 @@
                       <Action xsi:type="ExecuteFunction"><FunctionName>ToggleMatrix</FunctionName></Action>
                     </Item>
                   </Items>
-                </Control>
-                <Control xsi:type="Button" id="Sazan.RefreshStudies">
-                  <Label resid="Ls.RefreshStudies"/>
-                  <Supertip><Title resid="Ls.RefreshStudies"/><Description resid="Ld.RefreshStudies"/></Supertip>
-                  <Icon><bt:Image size="16" resid="Mso.RefreshAll.16"/><bt:Image size="32" resid="Mso.RefreshAll.32"/><bt:Image size="80" resid="Mso.RefreshAll.80"/></Icon>
-                  <Action xsi:type="ExecuteFunction"><FunctionName>RefreshStudies</FunctionName></Action>
-                </Control>
-                <Control xsi:type="Button" id="Sazan.PanelTreePane">
-                  <Label resid="Ls.PanelTreePane"/>
-                  <Supertip><Title resid="Ls.PanelTreePane"/><Description resid="Ld.PanelTreePane"/></Supertip>
-                  <Icon><bt:Image size="16" resid="Mso.PanelTree.16"/><bt:Image size="32" resid="Mso.PanelTree.32"/><bt:Image size="80" resid="Mso.PanelTree.80"/></Icon>
-                  <Action xsi:type="ShowTaskpane">
-                    <TaskpaneId>Sazan.PanelTree.Pane</TaskpaneId>
-                    <SourceLocation resid="Url.Taskpane"/>
-                  </Action>
                 </Control>
               </Group>
               <Label resid="Ls.Tab"/>
@@ -470,7 +483,7 @@
       </bt:Urls>
       <bt:ShortStrings>
         <bt:String id="Ls.Tab" DefaultValue="SAZAN PowerCalc"/>
-        <bt:String id="Ls.Group" DefaultValue="SÄZÄN PowerCalc Tools"/>
+        <bt:String id="Ls.Group" DefaultValue="Project"/>
         <bt:String id="Ls.GetStarted" DefaultValue="SAZAN PowerCalc is ready"/>
         <bt:String id="Ls.NewProject" DefaultValue="New Project"/>
         <bt:String id="Ls.GoInstructions" DefaultValue="Instructions"/>
@@ -506,6 +519,10 @@
         <bt:String id="Ls.NewTransformers" DefaultValue="New Transformers"/>
         <bt:String id="Ls.GoTransformers" DefaultValue="Go To Transformers"/>
         <bt:String id="Ls.Xfmr" DefaultValue="Transformers"/>
+        <bt:String id="Ls.GrpCalc" DefaultValue="Calculations"/>
+        <bt:String id="Ls.GrpBackup" DefaultValue="Backup Power"/>
+        <bt:String id="Ls.GrpStudies" DefaultValue="Studies"/>
+        <bt:String id="Ls.GrpReport" DefaultValue="Report"/>
         <bt:String id="Ls.Studies" DefaultValue="Studies"/>
         <bt:String id="Ls.NewShortCircuit" DefaultValue="New Short Circuit"/>
         <bt:String id="Ls.GoShortCircuit" DefaultValue="Go To Short Circuit"/>

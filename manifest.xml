@@ -5,7 +5,7 @@
            xmlns:ov="http://schemas.microsoft.com/office/taskpaneappversionoverrides"
            xsi:type="TaskPaneApp">
   <Id>8f1a2c34-5b6d-4e7f-9a01-2b3c4d5e6f70</Id>
-  <Version>2.0.0.0</Version>
+  <Version>2.0.1.0</Version>
   <ProviderName>Säzän Group</ProviderName>
   <DefaultLocale>en-US</DefaultLocale>
   <DisplayName DefaultValue="SAZAN PowerCalc"/>
@@ -460,7 +460,7 @@
       </bt:Urls>
       <bt:ShortStrings>
         <bt:String id="Ls.Tab" DefaultValue="SAZAN PowerCalc"/>
-        <bt:String id="Ls.Group" DefaultValue="PowerCalc"/>
+        <bt:String id="Ls.Group" DefaultValue="SÄZÄN PowerCalc Tools"/>
         <bt:String id="Ls.GetStarted" DefaultValue="SAZAN PowerCalc is ready"/>
         <bt:String id="Ls.NewProject" DefaultValue="New Project"/>
         <bt:String id="Ls.GoInstructions" DefaultValue="Instructions"/>

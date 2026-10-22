@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>SAZAN PowerCalc - ribbon icon builder</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<style>
+  body { font-family: "Segoe UI", Arial, sans-serif; margin: 0; background: #f3f3f3; color: #222; }
+  .b1 { background: #000; color: #fff; font-size: 16px; padding: 8px 14px; text-align: right; }
+  .b2 { background: #45858F; color: #fff; font-size: 14px; padding: 6px 14px; text-align: right; }
+  main { padding: 14px; }
+  button { background: #45858F; color: #fff; border: 0; padding: 8px 16px; font-size: 14px; cursor: pointer; margin-right: 8px; }
+  #msg { margin-top: 10px; font-size: 13px; }
+  #grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 8px; margin-top: 14px; }
+  .cell { background: #fff; padding: 8px; font-size: 12px; }
+  .cell canvas { margin-right: 6px; vertical-align: middle; background: #c8c8c8; }
+</style>
+</head>
+<body>
+<div class="b1">SÄZÄN POWERCALC</div>
+<div class="b2">Ribbon icon builder</div>
+<main>
+  <button id="zip">Download all as ZIP</button>
+  <button id="each">Download one by one</button>
+  <div id="msg">Unzip, then upload every PNG to the repo ROOT with github.com - Add file - Upload files.</div>
+  <div id="grid"></div>
+</main>
+<script>
+/* Draws every ribbon icon on a canvas and saves real PNGs. Replaces the VBA
+   IconExport macro, whose GDI+ output would not open. File names match the
+   bt:Image URLs in manifest.xml exactly: <name>-<size>.png */
+var INK = "#2B2B2B", TEAL = "#45858F", AMBER = "#E8A317", RED = "#C0392B", WHITE = "#FFFFFF";
+var SIZES = [16, 32, 80];
+
+function line(c, p) { c.beginPath(); c.moveTo(p[0], p[1]); for (var i = 2; i < p.length; i += 2) { c.lineTo(p[i], p[i + 1]); } c.stroke(); }
+function poly(c, p, fill) { c.beginPath(); c.moveTo(p[0], p[1]); for (var i = 2; i < p.length; i += 2) { c.lineTo(p[i], p[i + 1]); } c.closePath(); if (fill) { c.fillStyle = fill; c.fill(); } c.stroke(); }
+function rect(c, x, y, w, h, fill) { if (fill) { c.fillStyle = fill; c.fillRect(x, y, w, h); } c.strokeRect(x, y, w, h); }
+function circ(c, x, y, r, fill) { c.beginPath(); c.arc(x, y, r, 0, Math.PI * 2); if (fill) { c.fillStyle = fill; c.fill(); } c.stroke(); }
+function doc(c) { poly(c, [7, 3, 19, 3, 25, 9, 25, 29, 7, 29], WHITE); line(c, [19, 3, 19, 9, 25, 9]); }
+function grid(c) { rect(c, 4, 6, 24, 20, WHITE); c.fillStyle = TEAL; c.fillRect(4, 6, 24, 6); c.strokeRect(4, 6, 24, 20);
+  line(c, [4, 12, 28, 12]); line(c, [4, 19, 28, 19]); line(c, [12, 6, 12, 26]); line(c, [20, 6, 20, 26]); }
+function badge(c, kind, col) { var x = 24, y = 24; c.save(); circ(c, x, y, 7, col || TEAL); c.strokeStyle = WHITE;
+  line(c, [x - 3.5, y, x + 3.5, y]); if (kind === "+") { line(c, [x, y - 3.5, x, y + 3.5]); } c.restore(); }
+function bolt(c, x, y, k, fill) { k = k || 1;
+  poly(c, [x + 2 * k, y, x - 5 * k, y + 11 * k, x, y + 11 * k, x - 2 * k, y + 20 * k, x + 6 * k, y + 7 * k, x + 1 * k, y + 7 * k], fill || AMBER); }
+function refresh(c, col) { c.save(); c.strokeStyle = col; c.lineWidth *= 1.3;
+  c.beginPath(); c.arc(16, 16, 10, Math.PI * 1.1, Math.PI * 1.85); c.stroke();
+  c.beginPath(); c.arc(16, 16, 10, Math.PI * 0.1, Math.PI * 0.85); c.stroke(); c.restore();
+  c.save(); c.strokeStyle = col; poly(c, [27, 4, 28, 13, 19, 11], col); poly(c, [5, 28, 4, 19, 13, 21], col); c.restore(); }
+function magnifier(c, x, y, r) { circ(c, x, y, r, WHITE); c.save(); c.lineWidth *= 1.8; line(c, [x + r * 0.7, y + r * 0.7, x + r * 1.5, y + r * 1.5]); c.restore(); }
+function tree(c) { rect(c, 11, 3, 10, 7, TEAL); rect(c, 3, 22, 8, 7, WHITE); rect(c, 12, 22, 8, 7, WHITE); rect(c, 21, 22, 8, 7, WHITE);
+  line(c, [16, 10, 16, 16]); line(c, [7, 16, 25, 16]); line(c, [7, 16, 7, 22]); line(c, [16, 16, 16, 22]); line(c, [25, 16, 25, 22]); }
+
+var ICONS = {
+  "icon":                  function (c) { c.fillStyle = TEAL; c.fillRect(2, 2, 28, 28); c.strokeRect(2, 2, 28, 28); bolt(c, 17, 6, 1, WHITE); },
+  "filenew":               function (c) { doc(c); badge(c, "+"); },
+  "info":                  function (c) { circ(c, 16, 16, 12, TEAL); c.fillStyle = WHITE; c.fillRect(14.5, 14, 3, 9); c.beginPath(); c.arc(16, 10, 1.9, 0, 7); c.fill(); },
+  "pivottableinsert":      function (c) { rect(c, 4, 4, 11, 11, TEAL); rect(c, 17, 4, 11, 11, WHITE); rect(c, 4, 17, 11, 11, WHITE); rect(c, 17, 17, 11, 11, AMBER); },
+  "functionwizard":        function (c) { rect(c, 3, 5, 26, 22, WHITE); c.fillStyle = TEAL; c.font = "italic bold 15px Georgia, serif";
+                                          c.textAlign = "center"; c.textBaseline = "middle"; c.fillText("fx", 16, 16.5); },
+  "calculator":            function (c) { rect(c, 7, 3, 18, 26, WHITE); rect(c, 10, 6, 12, 6, TEAL); c.fillStyle = INK;
+                                          for (var r = 0; r < 3; r++) { for (var k = 0; k < 3; k++) { c.fillRect(10 + k * 4.5, 15 + r * 4.5, 2.6, 2.6); } } },
+  "tablerowsinsertabove":  function (c) { rect(c, 3, 6, 20, 18, WHITE); line(c, [3, 12, 23, 12]); line(c, [3, 18, 23, 18]); badge(c, "+"); },
+  "tablerowsdeleterows":   function (c) { rect(c, 3, 6, 20, 18, WHITE); line(c, [3, 12, 23, 12]); line(c, [3, 18, 23, 18]); badge(c, "-", RED); },
+  "filtertogglefilter":    function (c) { poly(c, [4, 5, 28, 5, 19, 16, 19, 26, 13, 29, 13, 16], TEAL); },
+  "chartinsert":           function (c) { line(c, [4, 4, 4, 28, 28, 28]); rect(c, 8, 16, 5, 12, TEAL); rect(c, 15, 9, 5, 19, AMBER); rect(c, 22, 13, 5, 15, TEAL); },
+  "chartlineinsert":       function (c) { line(c, [4, 4, 4, 28, 28, 28]); c.save(); c.strokeStyle = TEAL; c.lineWidth *= 1.5; line(c, [7, 23, 13, 15, 18, 19, 27, 7]); c.restore(); },
+  "sheetinsert":           function (c) { doc(c); line(c, [10, 13, 15, 13]); line(c, [17, 13, 22, 13]); line(c, [10, 18, 15, 18]); line(c, [17, 18, 22, 18]); badge(c, "+"); },
+  "link":                  function (c) { c.save(); c.lineWidth *= 1.4; rect(c, 3, 13, 14, 7); c.strokeStyle = TEAL; rect(c, 15, 12, 14, 7); c.restore(); },
+  "linkednotespaneopen":   function (c) { tree(c); },
+  "tableautofitwindow":    function (c) { rect(c, 4, 8, 24, 16, WHITE); c.save(); c.strokeStyle = TEAL; c.lineWidth *= 1.3;
+                                          line(c, [8, 16, 24, 16]); line(c, [11, 13, 8, 16, 11, 19]); line(c, [21, 13, 24, 16, 21, 19]); c.restore(); },
+  "repair":                function (c) { c.save(); c.lineWidth *= 2.4; line(c, [18, 14, 6, 26]); c.restore(); circ(c, 22, 10, 6, TEAL); c.fillStyle = WHITE; c.fillRect(21, 4, 4, 6); },
+  "macroplay":             function (c) { circ(c, 16, 16, 12, WHITE); c.save(); c.strokeStyle = TEAL; c.lineWidth *= 1.5; c.beginPath();
+                                          for (var x = 0; x <= 16; x++) { var X = 8 + x, Y = 16 - 5 * Math.sin(x / 16 * Math.PI * 2); if (x) { c.lineTo(X, Y); } else { c.moveTo(X, Y); } }
+                                          c.stroke(); c.restore(); },
+  "macrosecurity":         function (c) { circ(c, 14, 15, 11, WHITE); bolt(c, 15, 5, 1); badge(c, "+"); },
+  "tableinsert":           function (c) { grid(c); badge(c, "+"); },
+  "tabledesign":           function (c) { grid(c); },
+  "formulaevaluate":       function (c) { bolt(c, 13, 3, 1); magnifier(c, 19, 18, 6); },
+  "errorchecking":         function (c) { poly(c, [16, 3, 30, 28, 2, 28], AMBER); bolt(c, 17, 10, 0.75, INK); },
+  "filterbyselection":     function (c) { poly(c, [16, 4, 29, 10, 16, 16, 3, 10], TEAL); line(c, [3, 16, 16, 22, 29, 16]); line(c, [3, 22, 16, 28, 29, 22]); },
+  "recordsrefreshall":     function (c) { refresh(c, TEAL); },
+  "printpreviewandprint":  function (c) { rect(c, 9, 3, 14, 8, WHITE); rect(c, 3, 11, 26, 11, TEAL); rect(c, 9, 18, 14, 11, WHITE); line(c, [12, 22, 20, 22]); line(c, [12, 25, 20, 25]); },
+  "zoomprintpreviewexcel": function (c) { doc(c); magnifier(c, 15, 16, 5.5); },
+  "reviewacceptchange":    function (c) { circ(c, 16, 16, 12, TEAL); c.save(); c.strokeStyle = WHITE; c.lineWidth *= 1.7; line(c, [10, 16, 14.5, 21, 22, 11]); c.restore(); },
+  "columnwidth":           function (c) { rect(c, 4, 4, 8, 24, WHITE); rect(c, 20, 4, 8, 24, WHITE); c.save(); c.strokeStyle = TEAL; c.lineWidth *= 1.3;
+                                          line(c, [13, 16, 19, 16]); line(c, [15, 14, 13, 16, 15, 18]); line(c, [17, 14, 19, 16, 17, 18]); c.restore(); },
+  "tablestylesgallery":    function (c) { var f = [TEAL, WHITE, AMBER, WHITE, TEAL, WHITE, AMBER, WHITE, TEAL];
+                                          for (var i = 0; i < 9; i++) { rect(c, 4 + (i % 3) * 8, 4 + Math.floor(i / 3) * 8, 8, 8, f[i]); } },
+  "refreshall":            function (c) { refresh(c, INK); bolt(c, 17, 10, 0.6); },
+  "paneltree":             function (c) { tree(c); },
+  "transformer":           function (c) { c.save(); c.lineWidth *= 1.3; circ(c, 12, 16, 8, WHITE); c.strokeStyle = TEAL; circ(c, 20, 16, 8); c.restore();
+                                          line(c, [12, 2, 12, 8]); line(c, [20, 24, 20, 30]); }
+};
+
+function render(name, size) {
+  var cv = document.createElement("canvas");
+  cv.width = size; cv.height = size;
+  var c = cv.getContext("2d");
+  c.scale(size / 32, size / 32);
+  c.lineJoin = "round"; c.lineCap = "round"; c.strokeStyle = INK;
+  c.lineWidth = size <= 16 ? 2.4 : (size <= 32 ? 1.6 : 1.4);
+  ICONS[name](c);
+  return cv;
+}
+
+var files = [];
+var gridEl = document.getElementById("grid");
+Object.keys(ICONS).forEach(function (name) {
+  var cell = document.createElement("div"); cell.className = "cell";
+  SIZES.forEach(function (s) {
+    var cv = render(name, s);
+    files.push({ file: name + "-" + s + ".png", cv: cv });
+    cell.appendChild(cv);
+  });
+  cell.appendChild(document.createTextNode(name));
+  gridEl.appendChild(cell);
+});
+
+function msg(t) { document.getElementById("msg").textContent = t; }
+function blobOf(cv) { return new Promise(function (res) { cv.toBlob(res, "image/png"); }); }
+function save(blob, name) {
+  var a = document.createElement("a");
+  a.href = URL.createObjectURL(blob); a.download = name;
+  document.body.appendChild(a); a.click();
+  setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 1500);
+}
+
+document.getElementById("zip").onclick = function () {
+  if (!window.JSZip) { msg("The ZIP library did not load. Use Download one by one instead."); return; }
+  var z = new JSZip();
+  Promise.all(files.map(function (f) { return blobOf(f.cv).then(function (b) { z.file(f.file, b); }); }))
+    .then(function () { return z.generateAsync({ type: "blob" }); })
+    .then(function (b) { save(b, "sazan-icons.zip"); msg(files.length + " PNGs zipped. Unzip, then upload them all to the repo root."); });
+};
+
+document.getElementById("each").onclick = function () {
+  var i = 0;
+  (function next() {
+    if (i >= files.length) { msg(files.length + " PNGs saved to your Downloads folder."); return; }
+    var f = files[i++];
+    blobOf(f.cv).then(function (b) { save(b, f.file); setTimeout(next, 200); });
+  })();
+};
+msg(files.length + " icons ready. Unzip, then upload every PNG to the repo ROOT with github.com - Add file - Upload files.");
+</script>
+</body>
+</html>

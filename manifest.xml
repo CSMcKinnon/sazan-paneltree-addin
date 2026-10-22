@@ -5,7 +5,7 @@
            xmlns:ov="http://schemas.microsoft.com/office/taskpaneappversionoverrides"
            xsi:type="TaskPaneApp">
   <Id>8f1a2c34-5b6d-4e7f-9a01-2b3c4d5e6f70</Id>
-  <Version>2.0.1.0</Version>
+  <Version>2.0.2.0</Version>
   <ProviderName>Säzän Group</ProviderName>
   <DefaultLocale>en-US</DefaultLocale>
   <DisplayName DefaultValue="SAZAN PowerCalc"/>
@@ -220,6 +220,13 @@
                       <Icon><bt:Image size="16" resid="Mso.MacroPlay.16"/><bt:Image size="32" resid="Mso.MacroPlay.32"/><bt:Image size="80" resid="Mso.MacroPlay.80"/></Icon>
                       <Action xsi:type="ExecuteFunction"><FunctionName>GoUPS</FunctionName></Action>
                     </Item>
+                  </Items>
+                </Control>
+                <Control xsi:type="Menu" id="Sazan.Xfmr">
+                  <Label resid="Ls.Xfmr"/>
+                  <Supertip><Title resid="Ls.Xfmr"/><Description resid="Ld.Xfmr"/></Supertip>
+                  <Icon><bt:Image size="16" resid="Mso.Transformer.16"/><bt:Image size="32" resid="Mso.Transformer.32"/><bt:Image size="80" resid="Mso.Transformer.80"/></Icon>
+                  <Items>
                     <Item id="Sazan.NewTransformers">
                       <Label resid="Ls.NewTransformers"/>
                       <Supertip><Title resid="Ls.NewTransformers"/><Description resid="Ld.NewTransformers"/></Supertip>
@@ -452,6 +459,9 @@
         <bt:Image id="Mso.PanelTree.16" DefaultValue="https://csmckinnon.github.io/sazan-paneltree-addin/paneltree-16.png"/>
         <bt:Image id="Mso.PanelTree.32" DefaultValue="https://csmckinnon.github.io/sazan-paneltree-addin/paneltree-32.png"/>
         <bt:Image id="Mso.PanelTree.80" DefaultValue="https://csmckinnon.github.io/sazan-paneltree-addin/paneltree-80.png"/>
+        <bt:Image id="Mso.Transformer.16" DefaultValue="https://csmckinnon.github.io/sazan-paneltree-addin/transformer-16.png"/>
+        <bt:Image id="Mso.Transformer.32" DefaultValue="https://csmckinnon.github.io/sazan-paneltree-addin/transformer-32.png"/>
+        <bt:Image id="Mso.Transformer.80" DefaultValue="https://csmckinnon.github.io/sazan-paneltree-addin/transformer-80.png"/>
       </bt:Images>
       <bt:Urls>
         <bt:Url id="Url.Taskpane" DefaultValue="https://csmckinnon.github.io/sazan-paneltree-addin/taskpane.html"/>
@@ -495,6 +505,7 @@
         <bt:String id="Ls.GoUPS" DefaultValue="Go To UPS"/>
         <bt:String id="Ls.NewTransformers" DefaultValue="New Transformers"/>
         <bt:String id="Ls.GoTransformers" DefaultValue="Go To Transformers"/>
+        <bt:String id="Ls.Xfmr" DefaultValue="Transformers"/>
         <bt:String id="Ls.Studies" DefaultValue="Studies"/>
         <bt:String id="Ls.NewShortCircuit" DefaultValue="New Short Circuit"/>
         <bt:String id="Ls.GoShortCircuit" DefaultValue="Go To Short Circuit"/>
@@ -544,6 +555,7 @@
       <bt:String id="Ld.TrimEquipRows" DefaultValue="Trim rows from a Load Calc, Generator or UPS table — SAZAN PowerCalc."/>
         <bt:String id="Ld.RebuildGeo" DefaultValue="Rebuild GEO_MAP — SAZAN PowerCalc."/>
         <bt:String id="Ld.Backup" DefaultValue="Backup Power — SAZAN PowerCalc."/>
+        <bt:String id="Ld.Xfmr" DefaultValue="Transformers — new transformer schedule or jump to the existing one. SAZAN PowerCalc."/>
         <bt:String id="Ld.NewGenerator" DefaultValue="New Generator — SAZAN PowerCalc."/>
         <bt:String id="Ld.GoGenerator" DefaultValue="Go To Generator — SAZAN PowerCalc."/>
         <bt:String id="Ld.NewUPS" DefaultValue="New UPS — SAZAN PowerCalc."/>

@@ -11,7 +11,7 @@ var CFG = {
      Two files holding the same 2,787 formulas would inevitably drift. */
   projectFile: "sazan-project-template.xlsx",   /* Artifact A - the full 19-sheet seed */
   regSheet:    "Dashboard",   regName: "Equip_Registry",
-  regRange:    "A75:J324"   /* fallback only - resolved from Equip_Registry at runtime */
+  regRange:    "A100:J349"   /* fallback only - resolved from Equip_Registry at runtime */
 };
 
 var SAZ = {};
@@ -146,7 +146,30 @@ SAZ.registryRange = function (ctx) {
   });
 };
 
+/* Registry row style - committed to every row the ribbon writes so a paste
+   or a manual clear can never leave an unformatted row behind.
+   Dashboard legend: red = auto-filled, no fill; grid via conditional format. */
+SAZ.REG_ALIGN = ["Left","Left","Center","Left","Center","Center","Left","Left","Center","Center"];
+SAZ.formatRegistryRow = function (row) {
+  var f = row.format;
+  f.font.name = "Segoe UI"; f.font.size = 10; f.font.color = "#FF0000";
+  f.font.bold = false; f.font.italic = false;
+  f.fill.clear(); f.verticalAlignment = "Center";
+  /* borders + grey/blue input cells (Feed Type, Feeder Ckt) come from the
+     registry's conditional formats - they appear only once a Tag is entered */
+  SAZ.REG_ALIGN.forEach(function (a, j) {
+    row.getCell(0, j).format.horizontalAlignment = a;
+  });
+  row.getCell(0, 5).numberFormat = [["#,##0.0;(#,##0.0);-"]];
+  f.protection.locked = false;
+};
+
 SAZ.registerEquipment = function (ctx, rec) {
+  /* Dashboard is a PROTECTED sheet and the registry cells were locked, so this
+     write used to fail with AccessDenied AFTER the schedule had been cloned -
+     the sheet appeared but never reached the registry or the Panel Tree.
+     Fixed 2026-10-22: registry A:J unlocked on the Dashboard AND the write runs
+     inside withUnprotected, so either fix alone is sufficient. */
   return SAZ.registryRange(ctx).then(function (rg) {
     rg.load("values,rowIndex,columnIndex,rowCount,worksheet/name");
     return ctx.sync().then(function () {
@@ -159,11 +182,15 @@ SAZ.registerEquipment = function (ctx, rec) {
           " rows on " + rg.worksheet.name + "). Extend the Equip_Registry" +
           " defined name and Cfg_MaxNodes, then reload the add-in.");
       }
-      var row = rg.worksheet.getRangeByIndexes(rg.rowIndex + free, rg.columnIndex, 1, 10);
-      row.formulas = [[ rec.tag, rec.type, rec.volts || "", rec.fed || "", rec.mains || "",
-                      rec.kva || "", rec.sheet || rec.tag, rec.notes || "",
-                      rec.feedType || "", rec.ckt || "" ]];
-      return ctx.sync();
+      var sheet = ctx.workbook.worksheets.getItem(rg.worksheet.name);
+      return SAZ.withUnprotected(ctx, sheet, function () {
+        var row = sheet.getRangeByIndexes(rg.rowIndex + free, rg.columnIndex, 1, 10);
+        row.formulas = [[ rec.tag, rec.type, rec.volts || "", rec.fed || "", rec.mains || "",
+                        rec.kva || "", rec.sheet || rec.tag, rec.notes || "",
+                        rec.feedType || "", rec.ckt || "" ]];
+        SAZ.formatRegistryRow(row);
+        return ctx.sync();
+      });
     });
   });
 };
@@ -280,6 +307,137 @@ SAZ.createModule = function (ctx, sheetName) {
     });
   });
 };
+
+/* ---------- v1.2 project modules: Generator / UPS ----------
+   Neither module is in a project by default. New Generator / New UPS deploys
+   it: the Dashboard status cell (Tog_Gen / Tog_UPS) reads ON, the Gen or UPS
+   column appears in every Load Calc section, the matching connected-loads
+   block appears at the foot of the Load Calc, and the module tab is shown.
+   Pressed again it offers go-to / remove / add-another-copy. Removal is
+   refused while any load is still tagged to the module. */
+SAZ.MODULES = {
+  Generator: { tog: "Tog_Gen", col: "R:R", banner: "GENERATOR-CONNECTED LOADS", total: "LC_GenTotal", byCat: "LC_GenByCategory", tag: "Gen" },
+  UPS:       { tog: "Tog_UPS", col: "S:S", banner: "UPS-CONNECTED LOADS",       total: "LC_UPSTotal", byCat: "LC_UPSByCategory", tag: "UPS" }
+};
+
+/* Row bands of the two connected-loads blocks on the Load Calc, found by
+   banner text: banner row through the row before the next banner. */
+SAZ.moduleBands = function (ctx, sheet) {
+  var used = sheet.getUsedRange(true);
+  used.load("rowIndex,rowCount");
+  var colA = sheet.getRange("A1:A400");
+  colA.load("values");
+  return ctx.sync().then(function () {
+    var last = used.rowIndex + used.rowCount;
+    var heads = [];
+    colA.values.forEach(function (r, i) { if (String(r[0] || "").trim() !== "") { heads.push({ row: i + 1, text: String(r[0]) }); } });
+    var out = {};
+    Object.keys(SAZ.MODULES).forEach(function (k) {
+      var n = heads.findIndex(function (h) { return h.text.indexOf(SAZ.MODULES[k].banner) === 0; });
+      if (n < 0) { return; }
+      out[k] = { first: heads[n].row, last: n + 1 < heads.length ? heads[n + 1].row - 1 : last };
+    });
+    return out;
+  });
+};
+
+SAZ.moduleState = function (ctx) {
+  var out = {}, rs = {};
+  Object.keys(SAZ.MODULES).forEach(function (k) {
+    var nm = ctx.workbook.names.getItemOrNullObject(SAZ.MODULES[k].tog);
+    nm.load("isNullObject");
+    rs[k] = nm;
+  });
+  return ctx.sync().then(function () {
+    var cells = {};
+    Object.keys(rs).forEach(function (k) { if (!rs[k].isNullObject) { cells[k] = rs[k].getRange(); cells[k].load("values"); } });
+    return ctx.sync().then(function () {
+      Object.keys(SAZ.MODULES).forEach(function (k) {
+        out[k] = cells[k] ? String(cells[k].values[0][0]).toUpperCase() === "ON" : true;   /* no status cell = legacy workbook, treat as deployed */
+      });
+      return out;
+    });
+  });
+};
+
+SAZ.setModuleDeployed = function (ctx, key, on) {
+  var m = SAZ.MODULES[key];
+  var lc = ctx.workbook.worksheets.getItem(SAZ.EQUIP_REGISTRY_SHEET);
+  var dash = ctx.workbook.worksheets.getItemOrNullObject("Dashboard");
+  var mod = ctx.workbook.worksheets.getItemOrNullObject(key);
+  dash.load("isNullObject"); mod.load("isNullObject,visibility");
+  return ctx.sync().then(function () {
+    /* status first - the roll-up helper reads it to decide what it may unhide */
+    if (dash.isNullObject) { return null; }
+    return SAZ.withUnprotected(ctx, dash, function () {
+      ctx.workbook.names.getItem(m.tog).getRange().values = [[on ? "ON" : "OFF"]];
+      return ctx.sync();
+    });
+  }).then(function () {
+    return SAZ.moduleBands(ctx, lc);
+  }).then(function (bands) {
+    lc.getRange(m.col).columnHidden = !on;
+    var b = bands[key];
+    if (b) { lc.getRange(b.first + ":" + b.last).rowHidden = !on; }
+    return ctx.sync().then(function () {
+      if (!on || !b) { return null; }
+      /* re-hide the roll-up lines of sections that are switched off */
+      return SAZ.sectionRegistry(ctx).then(function (list) {
+        var chain = Promise.resolve();
+        list.forEach(function (e) {
+          if (String(e.state).toUpperCase() === "NO") {
+            chain = chain.then(function () { return SAZ.setRollupRows(ctx, lc, e.label, false); });
+          }
+        });
+        return chain;
+      });
+    });
+  }).then(function () {
+    if (mod.isNullObject) { return null; }
+    if (on) {
+      mod.visibility = Excel.SheetVisibility.visible;
+      mod.activate();
+    } else {
+      lc.activate();
+      mod.visibility = Excel.SheetVisibility.hidden;
+    }
+    return ctx.sync();
+  });
+};
+
+SAZ.uiModule = function (ctx, key) {
+  var m = SAZ.MODULES[key];
+  return SAZ.moduleState(ctx).then(function (st) {
+    if (!st[key]) { return SAZ.setModuleDeployed(ctx, key, true); }
+    return SAZ.prompt(key + " is in this project",
+      "1 = go to " + key + "\n2 = remove " + key + " from the project\n3 = add another " + key + " sheet (copy)", "1", true)
+      .then(function (ans) {
+        var pick = parseInt(String(ans || "").trim(), 10);
+        if (pick === 1) { return SAZ.goOrCreate(ctx, key); }
+        if (pick === 3) { return SAZ.createModule(ctx, key); }
+        if (pick !== 2) { return null; }
+        var tot = ctx.workbook.names.getItem(m.total).getRange();
+        var cat = ctx.workbook.names.getItem(m.byCat).getRange();
+        tot.load("values"); cat.load("values,rowIndex,columnIndex");
+        return ctx.sync().then(function () {
+          if (Number(tot.values[0][0]) > 0) {
+            var lc = ctx.workbook.worksheets.getItem(SAZ.EQUIP_REGISTRY_SHEET);
+            var lab = lc.getRangeByIndexes(cat.rowIndex, cat.columnIndex - 1, cat.values.length, 1);
+            lab.load("values");
+            return ctx.sync().then(function () {
+              var lines = [];
+              cat.values.forEach(function (r, i) { if (Number(r[0]) > 0) { lines.push("  " + lab.values[i][0] + ": " + Number(r[0]).toFixed(1) + " kVA"); } });
+              return SAZ.notify(key + " not removed",
+                Number(tot.values[0][0]).toFixed(1) + " kVA is still tagged " + m.tag + " in the Load Calc:\n\n" + lines.join("\n") +
+                "\n\nClear those " + m.tag + " tags first, then run this again.");
+            });
+          }
+          return SAZ.setModuleDeployed(ctx, key, false);
+        });
+      });
+  });
+};
+
 
 SAZ.todo = function (label, worker) {
   return SAZ.notify(label + " - not ported yet",
@@ -428,13 +586,13 @@ function RebuildGeo (event) { SAZ.run("Rebuild GEO_MAP", function (ctx) {
   return SAZ.uiRebuildGeoMap(ctx);
 })(event); }
 function NewGenerator (event) { SAZ.run("New Generator", function (ctx) {
-  return SAZ.createModule(ctx, "Generator");
+  return SAZ.uiModule(ctx, "Generator");
 })(event); }
 function GoGenerator (event) { SAZ.run("Go To Generator", function (ctx) {
   return SAZ.goOrCreate(ctx, "Generator");
 })(event); }
 function NewUPS (event) { SAZ.run("New UPS", function (ctx) {
-  return SAZ.createModule(ctx, "UPS");
+  return SAZ.uiModule(ctx, "UPS");
 })(event); }
 function GoUPS (event) { SAZ.run("Go To UPS", function (ctx) {
   return SAZ.goOrCreate(ctx, "UPS");
@@ -553,6 +711,7 @@ Office.actions.associate("ToggleSection", ToggleSection);
 SAZ.lcSections = [
   { table: "LC_Areas",   label: "Baseline Square Footage" },
   { table: "LC_WSF",     label: "Watts per Square Foot" },
+  { table: "LC_Site",    label: "Site / Exterior" },
   { table: "LC_House",   label: "House / Miscellaneous Equipment" },
   { table: "LC_Dept",    label: "Departmental Equipment" },
   { table: "LC_Refrig",  label: "Refrigeration" },
@@ -560,7 +719,10 @@ SAZ.lcSections = [
   { table: "LC_Plumb",   label: "Plumbing" },
   { table: "LC_Kitchen", label: "Kitchen" },
   { table: "LC_Elev",    label: "Elevators" },
-  { table: "LC_EV",      label: "EV Charging" }
+  { table: "LC_EV",      label: "EV Charging" },
+  { table: "LC_Data",    label: "Data / IT" },
+  { table: "LC_Fire",    label: "Fire / Life Safety" },
+  { table: "LC_Process", label: "Process / Industrial" }
 ];
 
 /* Which section is the cursor sitting in? Returns null if none. */
@@ -652,6 +814,12 @@ SAZ.lcAddRowFullWidth = function (ctx, found) {
     var sheet = ctx.workbook.worksheets.getActiveWorksheet();
     sheet.getRange(lastRow + ":" + lastRow).insert(Excel.InsertShiftDirection.down);
     return ctx.sync().then(function () {
+      /* the new sheet row sits at lastRow; the old last row is now lastRow + 1.
+         Paint the whole new row from it so every column keeps its look. */
+      sheet.getRange(lastRow + ":" + lastRow)
+        .copyFrom(sheet.getRange((lastRow + 1) + ":" + (lastRow + 1)), Excel.RangeCopyType.formats);
+      return ctx.sync();
+    }).then(function () {
       var after = found.table.getDataBodyRange();
       after.load("rowCount");
       return ctx.sync().then(function () {
@@ -664,6 +832,25 @@ SAZ.lcAddRowFullWidth = function (ctx, found) {
   });
 };
 
+/* Restore the section's look on rows a table insert just created. A table row
+   insert takes the table STYLE's formatting, not the hand-applied fill, font
+   colour, borders and number formats of the rows above - which is what blew
+   the formatting out. Paint the new rows from the FIRST data row (the section's
+   pattern row) with a formats-only copy, so values and formulas are untouched.
+   Spans the table's own columns only, so neighbouring tables are never touched. */
+SAZ.matchTableRowFormats = function (ctx, table, added) {
+  var body = table.getDataBodyRange();
+  body.load("rowCount");
+  return ctx.sync().then(function () {
+    if (body.rowCount <= 1 || added < 1) { return null; }
+    var pattern = body.getRow(0);
+    var from = Math.max(1, body.rowCount - added);
+    var target = body.getRow(from).getResizedRange(body.rowCount - 1 - from, 0);
+    target.copyFrom(pattern, Excel.RangeCopyType.formats);
+    return ctx.sync();
+  });
+};
+
 /* Add one blank row to the section under the cursor. Try the normal table insert,
    and if Excel refuses because the section is narrower than the tables below it,
    fall back to a full worksheet row. */
@@ -672,6 +859,8 @@ SAZ.lcAddRow = function (ctx) {
     if (!found) return SAZ.lcNoSection();
     found.table.rows.add();
     return ctx.sync().then(function () {
+      return SAZ.matchTableRowFormats(ctx, found.table, 1);
+    }).then(function () {
       var after = found.table.getDataBodyRange();
       after.load("rowCount");
       return ctx.sync().then(function () {
@@ -698,7 +887,7 @@ SAZ.lcAddRow = function (ctx) {
    any results formula. Template geometry is taken from the FIRST block so the
    command keeps working if the sheet is edited. */
 
-SAZ.UD_BLOCK_ROWS = 19;
+SAZ.UD_BLOCK_ROWS = 20;   /* v1.2: +1 spacer row under the Source / Utility lines */
 /* Utility Demand is a PROTECTED sheet (house standard: all thirteen allowances
    false, selectionMode Normal). Row inserts, copyFrom and clears of locked cells
    all fail under protection, so the core runs inside an unprotect/reprotect pair
@@ -798,7 +987,7 @@ SAZ.udAddMeterCore = function (ctx) {
    block 1, so it is rewritten against the new block row. */
 SAZ.udCleanMeterBlock = function (ctx, sheet, firstBanner, newBanner, offset, meterNo) {
   sheet.getRange("A" + newBanner).values = [["METER " + meterNo]];
-  /* inputs on the identity row: meter #, utility, rate schedule, serves */
+  /* inputs on the identity row: meter #, source (utility name below it is a Dashboard link), rate schedule, serves */
   var idRow = newBanner + 2;
   sheet.getRange("C" + idRow).clear(Excel.ClearApplyTo.contents);
   sheet.getRange("F" + idRow).clear(Excel.ClearApplyTo.contents);
@@ -806,18 +995,18 @@ SAZ.udCleanMeterBlock = function (ctx, sheet, firstBanner, newBanner, offset, me
   sheet.getRange("L" + idRow).clear(Excel.ClearApplyTo.contents);
   /* twelve billing cycles: clear the entered columns only, keeping Cycle numbers,
      PF Used defaults and every calculated column intact */
-  var firstCycle = newBanner + 5;
+  var firstCycle = newBanner + 6;
   var lastCycle = firstCycle + 11;
   sheet.getRange("C" + firstCycle + ":I" + lastCycle).clear(Excel.ClearApplyTo.contents);
   /* repoint the peak-row label at this block own meter number */
-  var peakRow = newBanner + 17;
+  var peakRow = newBanner + 18;
   sheet.getRange("C" + peakRow).formulas =
     [["=IF($C$" + idRow + "=\"\",\"(enter meter #)\",\"Meter \"&$C$" + idRow + ")"]];
   return ctx.sync().then(function () {
     sheet.getRange("C" + idRow).select();
     return ctx.sync().then(function () {
       return SAZ.notify("Meter " + meterNo + " added",
-        "A blank meter block was added below the last one. Enter the meter number, utility, rate schedule and twelve billing cycles.\n\nThe NEC 220.87 results below update on their own \u2014 they count and sum every METER PEAK row, so nothing needs rewiring.");
+        "A blank meter block was added below the last one. Enter the meter number, pick its Source (the utility name follows the Dashboard), the rate schedule and twelve billing cycles.\n\nThe NEC 220.87 results below update on their own \u2014 they count and sum every METER PEAK row, so nothing needs rewiring.");
     });
   });
 };
@@ -917,7 +1106,37 @@ SAZ.arrangeScaffold = function (ctx, before) {
                          : Excel.SheetVisibility.hidden;
     });
     anchor.activate();
-    return ctx.sync();
+    return ctx.sync().then(function () { return SAZ.removeBlankStarters(ctx, before); });   /* v1.2: drop the blank workbook's own empty Sheet1 */
+  });
+};
+
+/* v1.2: after New Project lands in a blank workbook, delete the sheets that
+   were there BEFORE the seed (Sheet1, or its localised name) - but only if
+   they are truly empty: no cells, no formatting, no charts, no shapes.
+   Anything the user already put in the workbook is left alone. */
+SAZ.removeBlankStarters = function (ctx, before) {
+  var probes = (before || []).map(function (n) {
+    var s = ctx.workbook.worksheets.getItemOrNullObject(n);
+    var u = s.getUsedRangeOrNullObject(false);
+    var ch = s.charts; ch.load("count");
+    s.load("isNullObject");
+    return { s: s, u: u, ch: ch };
+  });
+  probes.forEach(function (p) { p.u.load("isNullObject"); });
+  return ctx.sync().then(function () {
+    var shapeProbes = probes.map(function (p) {
+      if (p.s.isNullObject) { return null; }
+      try { var sh = p.s.shapes; sh.load("count"); return sh; } catch (e) { return null; }
+    });
+    return ctx.sync().catch(function () { return null; }).then(function () {
+      probes.forEach(function (p, i) {
+        if (p.s.isNullObject || !p.u.isNullObject || p.ch.count > 0) { return; }
+        var sh = shapeProbes[i];
+        if (sh && sh.count > 0) { return; }
+        p.s.delete();
+      });
+      return ctx.sync();
+    });
   });
 };
 
@@ -1090,9 +1309,13 @@ SAZ.updateRegistryFedFrom = function (ctx, childTag, parentTag) {
     return ctx.sync().then(function () {
       for (var i = 0; i < rg.values.length; i++) {
         if (String(rg.values[i][0] || "").toLowerCase() === childTag.toLowerCase()) {
-          rg.worksheet.getRangeByIndexes(rg.rowIndex + i, rg.columnIndex + 3, 1, 1)
-            .values = [[parentTag]];
-          return ctx.sync().then(function () { return true; });
+          var sheet = ctx.workbook.worksheets.getItem(rg.worksheet.name);
+          var at = i;
+          return SAZ.withUnprotected(ctx, sheet, function () {
+            sheet.getRangeByIndexes(rg.rowIndex + at, rg.columnIndex + 3, 1, 1)
+              .values = [[parentTag]];
+            return ctx.sync().then(function () { return true; });
+          });
         }
       }
       return false;   /* child not registered - caller decides whether that matters */
@@ -1894,8 +2117,9 @@ SAZ.tableByName = function (ctx, tableName) {
 };
 
 
-/* Add N rows to the chosen table. Table row insertion carries column formats
-   and calculated-column formulas with it, so nothing needs copying down. */
+/* Add N rows to the chosen table. Table row insertion carries calculated-column
+   formulas but NOT hand-applied formatting, so the new rows are repainted from
+   the pattern row by matchTableRowFormats. */
 SAZ.uiEquipAddRows = function (ctx) {
   return SAZ.pickEquipTable(ctx, "add rows to").then(function (pickd) {
     if (!pickd) { return null; }
@@ -1909,6 +2133,8 @@ SAZ.uiEquipAddRows = function (ctx) {
         return SAZ.tableByName(ctx, pickd.table).then(function (t) {
           for (var i = 0; i < n; i++) { t.rows.add(); }
           return ctx.sync().then(function () {
+            return SAZ.matchTableRowFormats(ctx, t, n);
+          }).then(function () {
             var body = t.getDataBodyRange();
             body.load("rowCount,address");
             return ctx.sync().then(function () {
@@ -2019,73 +2245,219 @@ SAZ.sectionRegistry = function (ctx) {
   });
 };
 
+/* REWORKED 2026-10-22 - optional sections.
+   Baseline sections are always on. A section whose registry label (column W)
+   ends "(optional)" starts OFF and is added from the ribbon when the project
+   needs it. OFF = Include flag "No" (every total already honours it) AND the
+   whole block - banner through its demand-factor subtotal row - collapsed in
+   a row group. The spacer row under each block is left OUT of the group so
+   neighbouring optional sections stay separate groups (Excel merges touching
+   groups into one, which is what broke the Transformers columns earlier).
+   Rows are never deleted, so no table, name or fixed reference can break. */
+SAZ.SECTION_OPTIONAL_TAG = /\(optional\)\s*$/i;
+
+SAZ.sectionBand = function (ctx, sheet, table) {
+  var hdr = table.getHeaderRowRange();
+  var whole = table.getRange();
+  hdr.load("rowIndex");
+  whole.load("rowIndex,rowCount");
+  return ctx.sync().then(function () {
+    var headerRow = hdr.rowIndex + 1;                      /* 1-based */
+    var tableEnd  = whole.rowIndex + whole.rowCount;       /* 1-based last row */
+    var probe = sheet.getRange("B" + (tableEnd + 1) + ":B" + (tableEnd + 6));
+    probe.load("values");
+    return ctx.sync().then(function () {
+      var sub = tableEnd;
+      for (var i = 0; i < probe.values.length; i++) {
+        if (String(probe.values[i][0] || "").toUpperCase().indexOf("NEC DEMAND FACTOR") === 0) {
+          sub = tableEnd + 1 + i; break;
+        }
+      }
+      return { first: Math.max(1, headerRow - 2), last: sub, banner: headerRow - 2 };
+    });
+  });
+};
+
+/* Collapse or expand a block of rows as ONE outline group. Normalise first
+   (ungroup, then group) so repeated toggles never stack outline levels. */
+SAZ.setBandState = function (ctx, sheet, first, last, turnOn) {
+  var band = sheet.getRange(first + ":" + last);
+  band.ungroup(Excel.GroupOption.byRows);
+  return ctx.sync().catch(function () { return null; }).then(function () {
+    band.group(Excel.GroupOption.byRows);
+    return ctx.sync().catch(function () { return null; });
+  }).then(function () {
+    band.rowHidden = !turnOn;
+    return ctx.sync();
+  });
+};
+
 SAZ.setSectionState = function (ctx, entry, turnOn) {
   var sheet = ctx.workbook.worksheets.getItem(SAZ.EQUIP_REGISTRY_SHEET);
   var t = sheet.tables.getItemOrNullObject(entry.table);
   t.load("isNullObject");
   return ctx.sync().then(function () {
     if (t.isNullObject) { return false; }   /* section not built yet - skip quietly */
-    var hdr = t.getHeaderRowRange();
-    var whole = t.getRange();
-    hdr.load("rowIndex");
-    whole.load("rowIndex,rowCount");
-    return ctx.sync().then(function () {
-      var firstRow = hdr.rowIndex + 1;
-      var lastRow  = whole.rowIndex + whole.rowCount + 1;
-      var bannerRow = firstRow - 2;
+    return SAZ.sectionBand(ctx, sheet, t).then(function (b) {
       sheet.getRange("Y" + entry.flagRow).values = [[turnOn ? "Yes" : "No"]];
-      var band = sheet.getRange(firstRow + ":" + lastRow);
-      return ctx.sync().then(function () {
-        band.ungroup(Excel.GroupOption.byRows);
-        return ctx.sync().catch(function () { return null; });
-      }).then(function () {
-        band.group(Excel.GroupOption.byRows);
-        return ctx.sync().catch(function () { return null; });
-      }).then(function () {
-        band.rowHidden = !turnOn;
-        if (bannerRow >= 1) {
-          sheet.getRange("A" + bannerRow).format.font.color =
+      return SAZ.setBandState(ctx, sheet, b.first, b.last + 1, turnOn  /* +1: trailing spacer row */).then(function () {
+        if (b.banner >= 1) {
+          sheet.getRange("A" + b.banner).format.font.color =
             turnOn ? SAZ.SECTION_ON_COLOUR : SAZ.SECTION_OFF_COLOUR;
         }
-        return ctx.sync().then(function () { return true; });
+        return SAZ.setRollupRows(ctx, sheet, entry.label, turnOn).then(function () { return SAZ.setSectionLists(ctx, entry.label, turnOn); }).then(function () { return true; });
+      });
+    });
+  });
+};
+
+/* v1.2: hide/show an excluded section's one-line roll-ups (service summary,
+   generator and UPS breakdowns). Rows are found from the TOTAL SERVICE LOAD
+   SUMMARY banner down, by the section number leading the label in B or D. */
+SAZ.setRollupRows = function (ctx, sheet, label, turnOn) {
+  var name = String(label || "").replace(/^\s*\d+\s+/, "").replace(/\(optional\)/i, "").trim().toLowerCase();
+  if (!name) { return ctx.sync(); }
+  var used = sheet.getUsedRange(true);
+  used.load("rowCount,rowIndex");
+  var colA = sheet.getRange("A1:A400");
+  colA.load("values");
+  return ctx.sync().then(function () { return SAZ.moduleState(ctx); }).then(function (ms) { return SAZ.moduleBands(ctx, sheet).then(function (bd) { return [ms, bd]; }); }).then(function (mb) {
+    var start = 0;
+    colA.values.forEach(function (r, i) { if (!start && String(r[0]).indexOf("TOTAL SERVICE LOAD SUMMARY") === 0) { start = i + 1; } });
+    if (!start) { start = 145; }
+    var last = used.rowIndex + used.rowCount;
+    var bd = sheet.getRange("B" + start + ":D" + last);
+    bd.load("values");
+    return ctx.sync().then(function () {
+      var same = function (v) { return String(v || "").trim().toLowerCase() === name; };
+      bd.values.forEach(function (r, i) {
+        if (same(r[0]) || same(r[2])) {
+          var n = start + i;
+          var skip = Object.keys(mb[1]).some(function (k) { return !mb[0][k] && n >= mb[1][k].first && n <= mb[1][k].last; });   /* never surface a line inside an undeployed Generator/UPS block */
+          if (!skip) { sheet.getRange(n + ":" + n).rowHidden = !turnOn; }
+        }
+      });
+      return ctx.sync();
+    });
+  });
+};
+SAZ.setSectionLists = function (ctx, label, turnOn) {
+  /* v1.2: Generator and UPS section lists follow the Load Calc include state. */
+  var name = String(label || "").replace(/^\s*\d+\s+/, "").replace(/\(optional\)/i, "").trim().toLowerCase();
+  if (!name) { return ctx.sync(); }
+  var sheets = ["Generator", "UPS"].map(function (n) { var w = ctx.workbook.worksheets.getItemOrNullObject(n); w.load("isNullObject"); return w; });
+  return ctx.sync().then(function () {
+    var cols = sheets.map(function (w) { if (w.isNullObject) { return null; } var r = w.getRange("B1:B40"); r.load("values"); return r; });
+    return ctx.sync().then(function () {
+      cols.forEach(function (r, k) {
+        if (!r) { return; }
+        for (var i = 0; i < r.values.length; i++) {
+          var t = String(r.values[i][0] || "").trim().toLowerCase();
+          if (t.indexOf("total included") === 0) { break; }
+          if (t === name) { sheets[k].getRange((i + 1) + ":" + (i + 1)).rowHidden = !turnOn; }
+        }
+      });
+      return ctx.sync();
+    });
+  });
+};
+
+
+/* Logging Demand: the interval-data approach is three blocks - the interval
+   SUMMARY, the DEMAND PROFILE (load duration curve + chart) and the RAW DATA
+   paste area. Found by banner text, never by fixed row. */
+SAZ.LD_SHEET = "Logging Demand";
+SAZ.LD_INTERVAL_MODE = "Raw Interval Data";
+SAZ.LD_MANUAL_MODE = "Manual Peak Entry";
+SAZ.LD_BANNERS = ["RAW INTERVAL DATA \u2014 SUMMARY", "DEMAND PROFILE", "RAW INTERVAL DATA \u2014 PASTE"];
+
+SAZ.ldBands = function (ctx, sheet) {
+  var col = sheet.getRange("A1:A200");
+  var used = sheet.getUsedRange();
+  col.load("values");
+  used.load("rowIndex,rowCount");
+  return ctx.sync().then(function () {
+    var banners = [];
+    col.values.forEach(function (r, i) {
+      var v = String(r[0] || "");
+      /* a banner is a row whose first 12 characters are all capitals - the
+         logger-export banner carries lowercase "kVAR" later in its text */
+      var head = v.slice(0, 12);
+      if (v.length > 6 && /[A-Z]/.test(head) && head === head.toUpperCase()) { banners.push({ row: i + 1, text: v }); }
+    });
+    var lastUsed = used.rowIndex + used.rowCount;
+    var out = [];
+    SAZ.LD_BANNERS.forEach(function (key) {
+      var k = banners.findIndex(function (b) { return b.text.indexOf(key) === 0; });
+      if (k < 0) { return; }
+      var first = banners[k].row;
+      var last = k + 1 < banners.length ? banners[k + 1].row - 1 : lastUsed   /* -1: band includes its trailing spacer row */;
+      if (last < first) { last = first; }
+      out.push({ key: key, first: first, last: last });
+    });
+    return out;
+  });
+};
+
+SAZ.uiToggleInterval = function (ctx) {
+  var sheet = ctx.workbook.worksheets.getItem(SAZ.LD_SHEET);
+  var mode = sheet.getRange("C6");
+  mode.load("values");
+  return ctx.sync().then(function () {
+    var isOn = String(mode.values[0][0] || "") === SAZ.LD_INTERVAL_MODE;
+    var turnOn = !isOn;
+    return SAZ.ldBands(ctx, sheet).then(function (bands) {
+      if (bands.length === 0) {
+        return SAZ.notify("Layout not recognised", "The interval-data blocks on " + SAZ.LD_SHEET + " could not be found.");
+      }
+      var chain = Promise.resolve();
+      bands.forEach(function (b) {
+        chain = chain.then(function () { return SAZ.setBandState(ctx, sheet, b.first, b.last, turnOn); });
+      });
+      return chain.then(function () {
+        mode.values = [[turnOn ? SAZ.LD_INTERVAL_MODE : SAZ.LD_MANUAL_MODE]];
+        return ctx.sync();
+      }).then(function () {
+        return SAZ.notify(turnOn ? "Interval data added" : "Interval data removed",
+          turnOn ? "Data Source is now Raw Interval Data. The interval summary, load duration curve and raw-data paste area are showing - paste the logger export under the Timestamp header."
+                 : "Data Source is back to Manual Peak Entry. The interval blocks are collapsed (any pasted data is kept, not deleted).");
       });
     });
   });
 };
 
 SAZ.uiToggleSection = function (ctx) {
-  return SAZ.sectionRegistry(ctx).then(function (list) {
-    var menu = list.map(function (e) {
-      return e.label + "   [" + (e.state || "-") + "]";
-    }).join("\n") + "\n\n0 = switch every section back on";
-    return SAZ.prompt("Which section do you want to switch on or off?", menu, "0", true)
-      .then(function (a) {
-        if (!a.ok) { return null; }
-        var pick = parseInt(String(a.value).replace(/[^0-9]/g, ""), 10);
-        if (isNaN(pick)) { return SAZ.notify("Invalid choice", "Enter a number from the list."); }
-        if (pick === 0) {
-          var chain = Promise.resolve();
-          list.forEach(function (e) {
-            chain = chain.then(function () { return SAZ.setSectionState(ctx, e, true); });
+  /* Same ribbon button, context-aware: on Logging Demand it adds/removes the
+     interval-data approach; everywhere else it manages Load Calc sections. */
+  var active = ctx.workbook.worksheets.getActiveWorksheet();
+  active.load("name");
+  return ctx.sync().then(function () {
+    if (active.name.toLowerCase() === SAZ.LD_SHEET.toLowerCase()) { return SAZ.uiToggleInterval(ctx); }
+    return SAZ.sectionRegistry(ctx).then(function (list) {
+      var opt = list.filter(function (e) { return SAZ.SECTION_OPTIONAL_TAG.test(e.label); });
+      if (opt.length === 0) { return SAZ.notify("No optional sections", "No Load Calc section is marked (optional)."); }
+      var menu = opt.map(function (e) {
+        return e.label.replace(SAZ.SECTION_OPTIONAL_TAG, "").trim() + "   [" +
+          (String(e.state).toUpperCase() === "YES" ? "IN" : "not added") + "]";
+      }).join("\n") + "\n\nBaseline sections are always included.";
+      return SAZ.prompt("Add or remove a Load Calc section - enter its number", menu, "", true)
+        .then(function (a) {
+          if (!a.ok) { return null; }
+          var pick = parseInt(String(a.value).replace(/[^0-9]/g, ""), 10);
+          var hit = opt.filter(function (e) { return e.num === pick; })[0];
+          if (!hit) { return SAZ.notify("Not an optional section", "Enter one of the numbers listed."); }
+          var turnOn = String(hit.state).toUpperCase() !== "YES";
+          var name = hit.label.replace(SAZ.SECTION_OPTIONAL_TAG, "").trim();
+          return SAZ.setSectionState(ctx, hit, turnOn).then(function (did) {
+            if (!did) {
+              return SAZ.notify("Section not built", "Table \"" + hit.table + "\" does not exist in this workbook.");
+            }
+            return SAZ.notify(turnOn ? "Section added" : "Section removed",
+              name + (turnOn ? " is now included in the load calc." :
+                " is collapsed and excluded from every total. Its rows are kept, so adding it back restores any entries."));
           });
-          return chain.then(function () {
-            return SAZ.notify("All sections on", list.length + " sections switched back on.");
-          });
-        }
-        var hit = list.filter(function (e) { return e.num === pick; })[0];
-        if (!hit) {
-          return SAZ.notify("No such section", "Nothing is numbered " + pick + ".");
-        }
-        var turnOn = hit.state.toUpperCase() !== "YES";
-        return SAZ.setSectionState(ctx, hit, turnOn).then(function (did) {
-          if (!did) {
-            return SAZ.notify("Section not built",
-              "Table \"" + hit.table + "\" does not exist yet, so there is nothing to toggle.");
-          }
-          return SAZ.notify("Section " + (turnOn ? "on" : "off"),
-            hit.label + " switched " + (turnOn ? "on" : "off") + ".");
         });
-      });
+    });
   });
 };
 
@@ -2332,6 +2704,12 @@ SAZ.afDefaultClass = function (busType) {
   }
 };
 
+/* Default working distance (in) by equipment class - IEEE 1584-2002 Table 3
+   typicals: LV switchgear 24, MCC / panelboard / cable 18, >1 kV 36. */
+SAZ.afWorkDistFormula = function (r) {
+  return "=IF($D" + r + "=\"\",\"\",IF(N($B" + r + ")>1000,36,IF($D" + r + "=\"LV Switchgear\",24,18)))";
+};
+
 SAZ.refreshStudies = function (ctx) {
   var sheets = ctx.workbook.worksheets;
   sheets.load("items/name,items/visibility");
@@ -2389,13 +2767,17 @@ SAZ.refreshStudies = function (ctx) {
                 var afLast = nr === 0 ? afFirst + 1 : nr;
                 /* preserve existing user inputs, keyed by node tag */
                 var keep = afSheet.getRange("A" + afFirst + ":Q" + (afLast - 1));
-                keep.load("values");
+                keep.load("values,formulas");
                 return ctx.sync().then(function () {
                   var saved = {};
-                  keep.values.forEach(function (row) {
+                  keep.values.forEach(function (row, k) {
                     var t = String(row[0] || "").trim();
                     if (t && !saved[t]) {
-                      saved[t] = { D: row[3], F: row[5], H: row[7], I: row[8], Q: row[16] };
+                      /* G (working distance) is a DEFAULT FORMULA by equipment class
+                         unless the user typed a number over it - keep only overrides */
+                      var gF = String(keep.formulas[k][6] || "");
+                      saved[t] = { D: row[3], F: row[5], H: row[7], I: row[8], Q: row[16],
+                                   G: gF.charAt(0) === "=" ? null : row[6] };
                     }
                   });
                   return SAZ.sizeStudyTable(ctx, SAZ.AF_SHEET, afFirst,
@@ -2410,6 +2792,11 @@ SAZ.refreshStudies = function (ctx) {
                       var r = afFirst + i;
                       afSheet.getRange("A" + r).values = [[b.tag]];
                       var s = saved[b.tag];
+                      if (s && s.G !== null && s.G !== "" && s.G !== undefined) {
+                        afSheet.getRange("G" + r).values = [[s.G]];
+                      } else {
+                        afSheet.getRange("G" + r).formulas = [[SAZ.afWorkDistFormula(r)]];
+                      }
                       if (s) {
                         afSheet.getRange("D" + r).values = [[s.D]];
                         afSheet.getRange("F" + r).values = [[s.F]];

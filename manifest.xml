@@ -5,10 +5,10 @@
            xmlns:ov="http://schemas.microsoft.com/office/taskpaneappversionoverrides"
            xsi:type="TaskPaneApp">
   <Id>8f1a2c34-5b6d-4e7f-9a01-2b3c4d5e6f70</Id>
-  <Version>2.1.0.0</Version>
+  <Version>2.2.0.0</Version>
   <ProviderName>Säzän Group</ProviderName>
   <DefaultLocale>en-US</DefaultLocale>
-  <DisplayName DefaultValue="SAZAN PowerCalc"/>
+  <DisplayName DefaultValue="S&#196;Z&#196;N PowerCalc"/>
   <Description DefaultValue="Electrical load calculation, panel schedule and study tools."/>
   <IconUrl DefaultValue="https://csmckinnon.github.io/sazan-paneltree-addin/icon-32.png"/>
   <HighResolutionIconUrl DefaultValue="https://csmckinnon.github.io/sazan-paneltree-addin/icon-80.png"/>
@@ -482,9 +482,9 @@
         <bt:Url id="Url.Support"  DefaultValue="https://csmckinnon.github.io/sazan-paneltree-addin/"/>
       </bt:Urls>
       <bt:ShortStrings>
-        <bt:String id="Ls.Tab" DefaultValue="SAZAN PowerCalc"/>
+        <bt:String id="Ls.Tab" DefaultValue="S&#196;Z&#196;N PowerCalc"/>
         <bt:String id="Ls.Group" DefaultValue="Project"/>
-        <bt:String id="Ls.GetStarted" DefaultValue="SAZAN PowerCalc is ready"/>
+        <bt:String id="Ls.GetStarted" DefaultValue="S&#196;Z&#196;N PowerCalc is ready"/>
         <bt:String id="Ls.NewProject" DefaultValue="New Project"/>
         <bt:String id="Ls.GoInstructions" DefaultValue="Instructions"/>
         <bt:String id="Ls.GoDashboard" DefaultValue="Dashboard"/>
@@ -493,7 +493,7 @@
         <bt:String id="Ls.GoLoadCalc" DefaultValue="Go To Load Calc"/>
         <bt:String id="Ls.AddSectionRow" DefaultValue="Add Row"/>
         <bt:String id="Ls.TrimSectionRows" DefaultValue="Trim Empty Rows"/>
-        <bt:String id="Ls.ToggleSection" DefaultValue="Toggle Section"/>
+        <bt:String id="Ls.ToggleSection" DefaultValue="Add / Remove Section"/>
         <bt:String id="Ls.ExistDemand" DefaultValue="Existing Demand"/>
         <bt:String id="Ls.NewUtility" DefaultValue="New Utility Demand (12 mo)"/>
         <bt:String id="Ls.GoUtility" DefaultValue="Go To Utility Demand"/>
@@ -544,60 +544,60 @@
         <bt:String id="Ls.ToggleMatrix" DefaultValue="Toggle Load Matrix"/>
       </bt:ShortStrings>
       <bt:LongStrings>
-        <bt:String id="Ld.GetStarted" DefaultValue="Open the SAZAN PowerCalc tab to build load calcs, panel schedules and studies."/>
-        <bt:String id="Ld.NewProject" DefaultValue="New Project — SAZAN PowerCalc."/>
-        <bt:String id="Ld.GoInstructions" DefaultValue="Instructions — SAZAN PowerCalc."/>
-        <bt:String id="Ld.GoDashboard" DefaultValue="Dashboard — SAZAN PowerCalc."/>
-        <bt:String id="Ld.LoadCalc" DefaultValue="Load Calc — SAZAN PowerCalc."/>
-        <bt:String id="Ld.NewLoadCalc" DefaultValue="New Load Calc — SAZAN PowerCalc."/>
-        <bt:String id="Ld.GoLoadCalc" DefaultValue="Go To Load Calc — SAZAN PowerCalc."/>
-        <bt:String id="Ld.AddSectionRow" DefaultValue="Adds one row to the Load Calc section your cursor is in — works on any of the twelve sections."/>
+        <bt:String id="Ld.GetStarted" DefaultValue="Open the S&#196;Z&#196;N PowerCalc tab to build load calcs, panel schedules and studies."/>
+        <bt:String id="Ld.NewProject" DefaultValue="New Project — S&#196;Z&#196;N PowerCalc."/>
+        <bt:String id="Ld.GoInstructions" DefaultValue="Instructions — S&#196;Z&#196;N PowerCalc."/>
+        <bt:String id="Ld.GoDashboard" DefaultValue="Dashboard — S&#196;Z&#196;N PowerCalc."/>
+        <bt:String id="Ld.LoadCalc" DefaultValue="Load Calc — S&#196;Z&#196;N PowerCalc."/>
+        <bt:String id="Ld.NewLoadCalc" DefaultValue="New Load Calc — S&#196;Z&#196;N PowerCalc."/>
+        <bt:String id="Ld.GoLoadCalc" DefaultValue="Go To Load Calc — S&#196;Z&#196;N PowerCalc."/>
+        <bt:String id="Ld.AddSectionRow" DefaultValue="Adds one row to the Load Calc section your cursor is in, keeping the section formatting."/>
         <bt:String id="Ld.TrimSectionRows" DefaultValue="Removes empty rows from the bottom of the Load Calc section your cursor is in."/>
-        <bt:String id="Ld.ToggleSection" DefaultValue="Switches a Load Calc section off or back on. A section that is off collapses out of view and drops out of every roll-up — the panel space counter, the service load summary, and the generator and UPS matrices. Choose 0 to switch every section back on."/>
-        <bt:String id="Ld.ExistDemand" DefaultValue="Existing Demand — SAZAN PowerCalc."/>
-        <bt:String id="Ld.NewUtility" DefaultValue="New Utility Demand (12 mo) — SAZAN PowerCalc."/>
-        <bt:String id="Ld.GoUtility" DefaultValue="Go To Utility Demand — SAZAN PowerCalc."/>
-        <bt:String id="Ld.NewLogging" DefaultValue="New Logging Demand (30 day) — SAZAN PowerCalc."/>
-        <bt:String id="Ld.GoLogging" DefaultValue="Go To Logging Demand — SAZAN PowerCalc."/>
-        <bt:String id="Ld.AddMeter" DefaultValue="Add Meter — SAZAN PowerCalc."/>
-        <bt:String id="Ld.Panels" DefaultValue="Panel Schedules — SAZAN PowerCalc."/>
-        <bt:String id="Ld.NewPanelboard" DefaultValue="New Panelboard — SAZAN PowerCalc."/>
-        <bt:String id="Ld.NewSwitchboard" DefaultValue="New Switchboard — SAZAN PowerCalc."/>
-        <bt:String id="Ld.NewMCC" DefaultValue="New MCC — SAZAN PowerCalc."/>
-        <bt:String id="Ld.Link" DefaultValue="Link Equipment — SAZAN PowerCalc."/>
-        <bt:String id="Ld.SubFeed" DefaultValue="Sub-Feed — SAZAN PowerCalc."/>
-        <bt:String id="Ld.FeedThru" DefaultValue="Feed-Through — SAZAN PowerCalc."/>
-        <bt:String id="Ld.Resize" DefaultValue="Resize Panel — SAZAN PowerCalc."/>
-      <bt:String id="Ld.AddEquipRows" DefaultValue="Add rows to a Load Calc, Generator or UPS table — SAZAN PowerCalc."/>
-      <bt:String id="Ld.TrimEquipRows" DefaultValue="Trim rows from a Load Calc, Generator or UPS table — SAZAN PowerCalc."/>
-        <bt:String id="Ld.RebuildGeo" DefaultValue="Rebuild GEO_MAP — SAZAN PowerCalc."/>
-        <bt:String id="Ld.Backup" DefaultValue="Backup Power — SAZAN PowerCalc."/>
-        <bt:String id="Ld.Xfmr" DefaultValue="Transformers — new transformer schedule or jump to the existing one. SAZAN PowerCalc."/>
-        <bt:String id="Ld.NewGenerator" DefaultValue="New Generator — SAZAN PowerCalc."/>
-        <bt:String id="Ld.GoGenerator" DefaultValue="Go To Generator — SAZAN PowerCalc."/>
-        <bt:String id="Ld.NewUPS" DefaultValue="New UPS — SAZAN PowerCalc."/>
-        <bt:String id="Ld.GoUPS" DefaultValue="Go To UPS — SAZAN PowerCalc."/>
-        <bt:String id="Ld.NewTransformers" DefaultValue="New Transformers — SAZAN PowerCalc."/>
-        <bt:String id="Ld.GoTransformers" DefaultValue="Go To Transformers — SAZAN PowerCalc."/>
-        <bt:String id="Ld.Studies" DefaultValue="Studies — SAZAN PowerCalc."/>
-        <bt:String id="Ld.NewShortCircuit" DefaultValue="New Short Circuit — SAZAN PowerCalc."/>
-        <bt:String id="Ld.GoShortCircuit" DefaultValue="Go To Short Circuit — SAZAN PowerCalc."/>
-        <bt:String id="Ld.NewVoltageDrop" DefaultValue="New Voltage Drop — SAZAN PowerCalc."/>
-        <bt:String id="Ld.GoVoltageDrop" DefaultValue="Go To Voltage Drop — SAZAN PowerCalc."/>
-        <bt:String id="Ld.NewArcFlash" DefaultValue="New Arc Flash — SAZAN PowerCalc."/>
-        <bt:String id="Ld.GoArcFlash" DefaultValue="Go To Arc Flash — SAZAN PowerCalc."/>
-        <bt:String id="Ld.NewFeederSchedule" DefaultValue="New Feeder Schedule — SAZAN PowerCalc."/>
-        <bt:String id="Ld.GoFeederSchedule" DefaultValue="Go To Feeder Schedule — SAZAN PowerCalc."/>
+        <bt:String id="Ld.ToggleSection" DefaultValue="Load Calc: adds or removes an optional section (Refrigeration, Kitchen, Elevators, EV, Fire, Process). Logging Demand: adds or removes the interval-data blocks and load duration curve."/>
+        <bt:String id="Ld.ExistDemand" DefaultValue="Existing Demand — S&#196;Z&#196;N PowerCalc."/>
+        <bt:String id="Ld.NewUtility" DefaultValue="New Utility Demand (12 mo) — S&#196;Z&#196;N PowerCalc."/>
+        <bt:String id="Ld.GoUtility" DefaultValue="Go To Utility Demand — S&#196;Z&#196;N PowerCalc."/>
+        <bt:String id="Ld.NewLogging" DefaultValue="New Logging Demand (30 day) — S&#196;Z&#196;N PowerCalc."/>
+        <bt:String id="Ld.GoLogging" DefaultValue="Go To Logging Demand — S&#196;Z&#196;N PowerCalc."/>
+        <bt:String id="Ld.AddMeter" DefaultValue="Add Meter — S&#196;Z&#196;N PowerCalc."/>
+        <bt:String id="Ld.Panels" DefaultValue="Panel Schedules — S&#196;Z&#196;N PowerCalc."/>
+        <bt:String id="Ld.NewPanelboard" DefaultValue="New Panelboard — S&#196;Z&#196;N PowerCalc."/>
+        <bt:String id="Ld.NewSwitchboard" DefaultValue="New Switchboard — S&#196;Z&#196;N PowerCalc."/>
+        <bt:String id="Ld.NewMCC" DefaultValue="New MCC — S&#196;Z&#196;N PowerCalc."/>
+        <bt:String id="Ld.Link" DefaultValue="Link Equipment — S&#196;Z&#196;N PowerCalc."/>
+        <bt:String id="Ld.SubFeed" DefaultValue="Sub-Feed — S&#196;Z&#196;N PowerCalc."/>
+        <bt:String id="Ld.FeedThru" DefaultValue="Feed-Through — S&#196;Z&#196;N PowerCalc."/>
+        <bt:String id="Ld.Resize" DefaultValue="Resize Panel — S&#196;Z&#196;N PowerCalc."/>
+      <bt:String id="Ld.AddEquipRows" DefaultValue="Add rows to a Load Calc, Generator or UPS table — S&#196;Z&#196;N PowerCalc."/>
+      <bt:String id="Ld.TrimEquipRows" DefaultValue="Trim rows from a Load Calc, Generator or UPS table — S&#196;Z&#196;N PowerCalc."/>
+        <bt:String id="Ld.RebuildGeo" DefaultValue="Rebuild GEO_MAP — S&#196;Z&#196;N PowerCalc."/>
+        <bt:String id="Ld.Backup" DefaultValue="Backup Power — S&#196;Z&#196;N PowerCalc."/>
+        <bt:String id="Ld.Xfmr" DefaultValue="Transformers — new transformer schedule or jump to the existing one. S&#196;Z&#196;N PowerCalc."/>
+        <bt:String id="Ld.NewGenerator" DefaultValue="New Generator — S&#196;Z&#196;N PowerCalc."/>
+        <bt:String id="Ld.GoGenerator" DefaultValue="Go To Generator — S&#196;Z&#196;N PowerCalc."/>
+        <bt:String id="Ld.NewUPS" DefaultValue="New UPS — S&#196;Z&#196;N PowerCalc."/>
+        <bt:String id="Ld.GoUPS" DefaultValue="Go To UPS — S&#196;Z&#196;N PowerCalc."/>
+        <bt:String id="Ld.NewTransformers" DefaultValue="New Transformers — S&#196;Z&#196;N PowerCalc."/>
+        <bt:String id="Ld.GoTransformers" DefaultValue="Go To Transformers — S&#196;Z&#196;N PowerCalc."/>
+        <bt:String id="Ld.Studies" DefaultValue="Studies — S&#196;Z&#196;N PowerCalc."/>
+        <bt:String id="Ld.NewShortCircuit" DefaultValue="New Short Circuit — S&#196;Z&#196;N PowerCalc."/>
+        <bt:String id="Ld.GoShortCircuit" DefaultValue="Go To Short Circuit — S&#196;Z&#196;N PowerCalc."/>
+        <bt:String id="Ld.NewVoltageDrop" DefaultValue="New Voltage Drop — S&#196;Z&#196;N PowerCalc."/>
+        <bt:String id="Ld.GoVoltageDrop" DefaultValue="Go To Voltage Drop — S&#196;Z&#196;N PowerCalc."/>
+        <bt:String id="Ld.NewArcFlash" DefaultValue="New Arc Flash — S&#196;Z&#196;N PowerCalc."/>
+        <bt:String id="Ld.GoArcFlash" DefaultValue="Go To Arc Flash — S&#196;Z&#196;N PowerCalc."/>
+        <bt:String id="Ld.NewFeederSchedule" DefaultValue="New Feeder Schedule — S&#196;Z&#196;N PowerCalc."/>
+        <bt:String id="Ld.GoFeederSchedule" DefaultValue="Go To Feeder Schedule — S&#196;Z&#196;N PowerCalc."/>
         <bt:String id="Ld.GoStudiesView" DefaultValue="Go To Combined Studies — the read-only view joining Feeder Schedule, Short Circuit and Voltage Drop by bus."/>
         <bt:String id="Ld.RefreshFeeders" DefaultValue="Recalculate and validate the Feeder Schedule — it derives its own rows from the equipment registry."/>
         <bt:String id="Ld.RefreshStudies" DefaultValue="Rebuild the Arc Flash bus table — Short Circuit and Voltage Drop derive themselves and are not modified."/>
-        <bt:String id="Ld.PanelTreePane" DefaultValue="Panel Tree — SAZAN PowerCalc."/>
-        <bt:String id="Ld.Output" DefaultValue="Report &amp; View — SAZAN PowerCalc."/>
-        <bt:String id="Ld.NewReport" DefaultValue="New Report — SAZAN PowerCalc."/>
-        <bt:String id="Ld.GoReport" DefaultValue="Go To Report — SAZAN PowerCalc."/>
-        <bt:String id="Ld.GoRecon" DefaultValue="Reconciliation — SAZAN PowerCalc."/>
-        <bt:String id="Ld.ToggleSizing" DefaultValue="Toggle Sizing Columns — SAZAN PowerCalc."/>
-        <bt:String id="Ld.ToggleMatrix" DefaultValue="Toggle Load Matrix — SAZAN PowerCalc."/>
+        <bt:String id="Ld.PanelTreePane" DefaultValue="Panel Tree — S&#196;Z&#196;N PowerCalc."/>
+        <bt:String id="Ld.Output" DefaultValue="Report &amp; View — S&#196;Z&#196;N PowerCalc."/>
+        <bt:String id="Ld.NewReport" DefaultValue="New Report — S&#196;Z&#196;N PowerCalc."/>
+        <bt:String id="Ld.GoReport" DefaultValue="Go To Report — S&#196;Z&#196;N PowerCalc."/>
+        <bt:String id="Ld.GoRecon" DefaultValue="Reconciliation — S&#196;Z&#196;N PowerCalc."/>
+        <bt:String id="Ld.ToggleSizing" DefaultValue="Toggle Sizing Columns — S&#196;Z&#196;N PowerCalc."/>
+        <bt:String id="Ld.ToggleMatrix" DefaultValue="Toggle Load Matrix — S&#196;Z&#196;N PowerCalc."/>
       </bt:LongStrings>
     </Resources>
   </VersionOverrides>

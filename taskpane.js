@@ -1,10 +1,10 @@
 /*  SAZAN Panel Tree - Excel task pane
-    Reads and writes the equipment registry named  Equip_Registry  (Dashboard!A75:J324)
+    Reads and writes the equipment registry named  Equip_Registry  (Dashboard!A100:J349)
     Columns (0-based):  0 Tag  1 Type  2 Voltage  3 Fed From  5 Demand kVA
                         6 Sheet  8 Feed Type  9 Ckt / space                */
 
 var REG_SHEET = "Dashboard";
-var REG_RANGE = "A75:J324";   /* fallback only - see regRange() below */
+var REG_RANGE = "A100:J349";   /* fallback only - see regRange() below */
 var REG_NAME  = "Equip_Registry";   /* authoritative - resolved at runtime */
 
 /*  Resolve the registry from its defined name so this file cannot drift out of
@@ -61,28 +61,50 @@ function refresh() {
   return Excel.run(function (ctx) {
     return regRange(ctx).then(function (rg) {
       rg.load("values");
+      /* Utility service transformers live on the Dashboard (Util_Tags row, up to
+         four sources), not in the registry. Each is shown as a tree root so main
+         boards can be linked to it; a Fed From equal to any source tag resolves
+         to 'Source' in the Feeder Schedule.  */
+      var uN = ["Util_Tags", "Util_KVA", "Cfg_Volt"].map(function (nm) {
+        var n = ctx.workbook.names.getItemOrNullObject(nm); n.load("isNullObject"); return n;
+      });
       return ctx.sync().then(function () {
-      items = [];
-      rg.values.forEach(function (row, i) {
-        var tag = String(row[C_TAG] === null ? "" : row[C_TAG]).trim();
-        if (!tag) return;
-        items.push({
-          tag: tag,
-          type: String(row[C_TYPE] || "").trim(),
-          volt: String(row[C_VOLT] || "").trim(),
-          fed: String(row[C_FED] || "").trim(),
-          kva: Number(row[C_KVA]) || 0,
-          sheet: String(row[C_SHEET] || "").trim(),
-          ft: String(row[C_FT] || "").trim(),
-          ckt: String(row[C_CKT] || "").trim(),
-          row: i                                   // offset inside REG_RANGE
+        var uR = uN.map(function (n) {
+          if (n.isNullObject) return null;
+          var r = n.getRange(); r.load("values"); return r;
+        });
+        return ctx.sync().then(function () {
+          var uT = uR[0] ? uR[0].values[0] : [], uK = uR[1] ? uR[1].values[0] : [];
+          var uVolt = uR[2] ? String(uR[2].values[0][0] || "") : "";
+          var utils = uT.map(function (t, k) {
+            return { tag: String(t || "").trim(), kva: Number(uK[k]) || 0, volt: uVolt };
+          }).filter(function (u) { return u.tag; });
+          items = [];
+          rg.values.forEach(function (row, i) {
+            var tag = String(row[C_TAG] === null ? "" : row[C_TAG]).trim();
+            if (!tag) return;
+            items.push({
+              tag: tag,
+              type: String(row[C_TYPE] || "").trim(),
+              volt: String(row[C_VOLT] || "").trim(),
+              fed: String(row[C_FED] || "").trim(),
+              kva: Number(row[C_KVA]) || 0,
+              sheet: String(row[C_SHEET] || "").trim(),
+              ft: String(row[C_FT] || "").trim(),
+              ckt: String(row[C_CKT] || "").trim(),
+              row: i                                   // offset inside the registry
+            });
+          });
+          utils.slice().reverse().forEach(function (util) {
+            if (!byTag(util.tag)) items.unshift({ tag: util.tag, type: "Utility Transformer", volt: util.volt,
+              fed: "", kva: util.kva, sheet: "Dashboard", ft: "", ckt: "", row: -1, head: true });
+          });
+          render();
+          fillFedList();
+          if (selTag) select(selTag); else clearProps();
+          setStatus("");
         });
       });
-      render();
-      fillFedList();
-      if (selTag) select(selTag); else clearProps();
-      setStatus("");
-    });
     });
   }).catch(function (e) { setStatus("Read failed: " + e.message); });
 }
@@ -219,20 +241,54 @@ function fillFedList() {
 }
 
 /*  ---------- writes ---------- */
+/*  The Dashboard is a PROTECTED sheet. Every registry write runs inside an
+    unprotect/reprotect pair (house options, restored on failure too) and
+    resolves the registry from Equip_Registry rather than a fixed address.  */
+var PROTECT_OPTS = {
+  allowAutoFilter: false, allowDeleteColumns: false, allowDeleteRows: false,
+  allowEditObjects: false, allowEditScenarios: false, allowFormatCells: false,
+  allowFormatColumns: false, allowFormatRows: false, allowInsertColumns: false,
+  allowInsertHyperlinks: false, allowInsertRows: false, allowPivotTables: false,
+  allowSort: false, selectionMode: "Normal"
+};
+function withUnprotected(ctx, sheet, fn) {
+  sheet.protection.load("protected");
+  return ctx.sync().then(function () {
+    var was = sheet.protection.protected;
+    var re = function () {
+      if (!was) return Promise.resolve();
+      sheet.protection.protect(PROTECT_OPTS);
+      return ctx.sync();
+    };
+    if (was) sheet.protection.unprotect();
+    return ctx.sync().then(fn).then(function (out) {
+      return re().then(function () { return out; });
+    }, function (err) {
+      return re().then(function () { throw err; }, function () { throw err; });
+    });
+  });
+}
 function writeCells(rowOffset, pairs) {
   return Excel.run(function (ctx) {
-    var ws = ctx.workbook.worksheets.getItem(REG_SHEET);
-    var base = ws.getRange(REG_RANGE);
-    pairs.forEach(function (p) {
-      base.getCell(rowOffset, p.col).values = [[p.val]];
+    return regRange(ctx).then(function (base) {
+      base.load("worksheet/name");
+      return ctx.sync().then(function () {
+        var ws = ctx.workbook.worksheets.getItem(base.worksheet.name);
+        return withUnprotected(ctx, ws, function () {
+          pairs.forEach(function (p) {
+            base.getCell(rowOffset, p.col).values = [[p.val]];
+          });
+          return ctx.sync();
+        });
+      });
     });
-    return ctx.sync();
   });
 }
 
 function applyLink() {
   var it = byTag(selTag);
   if (!it) { setStatus("Select a piece of equipment first."); return; }
+  if (it.head) { setStatus(it.tag + " is the utility head end - edit it on the Dashboard."); return; }
   var fed = document.getElementById("selFed").value;
   var ft = document.getElementById("selFT").value;
   var ckt = document.getElementById("txtCkt").value;
@@ -245,6 +301,7 @@ function applyLink() {
 function unlink() {
   var it = byTag(selTag);
   if (!it) { setStatus("Select a piece of equipment first."); return; }
+  if (it.head) { setStatus(it.tag + " is the utility head end - it has no parent."); return; }
   writeCells(it.row, [{ col: C_FED, val: "" }, { col: C_FT, val: "" }, { col: C_CKT, val: "" }])
     .then(function () { setStatus(it.tag + " is now an unlinked source."); return refresh(); })
     .catch(function (e) { setStatus("Write failed: " + e.message); });
@@ -265,6 +322,20 @@ function gotoSheet() {
   }).catch(function (e) { setStatus("Could not activate sheet: " + e.message); });
 }
 
+/*  registry row style (same as commands.js SAZ.formatRegistryRow) - applied to every row we write */
+var REG_ALIGN = ["Left","Left","Center","Left","Center","Center","Left","Left","Center","Center"];
+function formatRegistryRow(row) {
+  var f = row.format;
+  f.font.name = "Segoe UI"; f.font.size = 10; f.font.color = "#FF0000";
+  f.font.bold = false; f.font.italic = false;
+  f.fill.clear(); f.verticalAlignment = "Center";
+  /* borders + grey/blue input cells (Feed Type, Feeder Ckt) come from the
+     registry's conditional formats - they appear only once a Tag is entered */
+  REG_ALIGN.forEach(function (a, j) { row.getCell(0, j).format.horizontalAlignment = a; });
+  row.getCell(0, 5).numberFormat = [["#,##0.0;(#,##0.0);-"]];
+  f.protection.locked = false;
+}
+
 /*  adds a placeholder row fed from the current selection - rename it on the Dashboard */
 function addEquipment() {
   return Excel.run(function (ctx) {
@@ -278,9 +349,16 @@ function addEquipment() {
       if (free < 0) { setStatus("Registry is full - extend the Equip_Registry name and Cfg_MaxNodes."); return; }
       var n = 1, tag;
       do { tag = "NEW-" + n++; } while (byTag(tag));
-      base.getCell(free, C_TAG).values = [[tag]];
-      if (selTag) base.getCell(free, C_FED).values = [[selTag]];
+      base.load("worksheet/name");
       return ctx.sync().then(function () {
+        var ws = ctx.workbook.worksheets.getItem(base.worksheet.name);
+        return withUnprotected(ctx, ws, function () {
+          base.getCell(free, C_TAG).values = [[tag]];
+          if (selTag) base.getCell(free, C_FED).values = [[selTag]];
+          formatRegistryRow(base.getRow(free));
+          return ctx.sync();
+        });
+      }).then(function () {
         setStatus("Added " + tag + (selTag ? " fed from " + selTag : "") + " - rename it on the Dashboard.");
         selTag = tag;
         return refresh();

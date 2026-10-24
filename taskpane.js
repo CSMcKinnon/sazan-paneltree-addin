@@ -39,6 +39,7 @@ Office.onReady(function (info) {
   document.getElementById("btnUnlink").onclick = unlink;
   document.getElementById("btnGoto").onclick = gotoSheet;
   document.getElementById("btnAdd").onclick = addEquipment;
+  document.getElementById("btnRename").onclick = renameSelected;
   refresh();
 });
 
@@ -99,6 +100,7 @@ function refresh() {
             if (!byTag(util.tag)) items.unshift({ tag: util.tag, type: "Utility Transformer", volt: util.volt,
               fed: "", kva: util.kva, sheet: "Dashboard", ft: "", ckt: "", row: -1, head: true });
           });
+          addTransformerNodes();
           render();
           fillFedList();
           if (selTag) select(selTag); else clearProps();
@@ -109,13 +111,35 @@ function refresh() {
   }).catch(function (e) { setStatus("Read failed: " + e.message); });
 }
 
+/*  v2.3: a transformer sits between a parent and a child whose line voltages
+    differ. The Transformers schedule derives a T-<child> row from exactly that
+    registry edge, so the tree shows the same node: parent -> T-<child> -> child.
+    The node is display-only (row -1, virtual); the child's real Fed From in the
+    registry stays the parent, which is what the schedule's detection reads.  */
+function leadVolts(s) { var m = /([0-9]+(?:\.[0-9]+)?)/.exec(String(s || "")); return m ? Number(m[1]) : 0; }
+function addTransformerNodes() {
+  items.slice().forEach(function (it) {
+    if (it.virtual || !it.fed) return;
+    var p = byTag(it.fed);
+    if (!p) return;
+    var pv = leadVolts(p.volt), cv = leadVolts(it.volt);
+    if (!pv || !cv || Math.abs(pv - cv) <= 1) return;
+    var t = "T-" + it.tag;
+    if (!byTag(t)) {
+      items.push({ tag: t, type: "Transformer", volt: pv + "V \u2192 " + cv + "V", fed: it.fed,
+        kva: 0, sheet: "Transformers", ft: "auto", ckt: it.ckt, row: -1, virtual: true });
+    }
+    it.treeFed = t;
+  });
+}
+
 /*  ---------- tree helpers ---------- */
 function byTag(tag) {
   for (var i = 0; i < items.length; i++) if (items[i].tag === tag) return items[i];
   return null;
 }
 function childrenOf(tag) {
-  return items.filter(function (it) { return it.fed === tag; });
+  return items.filter(function (it) { return (it.treeFed || it.fed) === tag; });
 }
 function hasChildren(tag) { return childrenOf(tag).length > 0; }
 function isRoot(it) { return !it.fed || !byTag(it.fed); }
@@ -134,6 +158,7 @@ function downstreamKva(tag) {
   return descendants(tag).reduce(function (s, c) { return s + c.kva; }, 0);
 }
 function statusOf(it) {
+  if (it.virtual) return "\u2714 Auto (Transformers schedule)";
   if (!it.fed) return "\u25C6 Source";
   if (!byTag(it.fed)) return "\u26A0 Parent not in registry";
   var chain = [], p = it, guard = 0;
@@ -200,6 +225,7 @@ function clearProps() {
   ["vTV", "vKVA", "vDown", "vStat"].forEach(function (id) { document.getElementById(id).textContent = ""; });
   document.getElementById("selFT").value = "";
   document.getElementById("txtCkt").value = "";
+  document.getElementById("txtRename").value = "";
 }
 
 function select(tag) {
@@ -213,6 +239,7 @@ function select(tag) {
   document.getElementById("vStat").textContent = statusOf(it);
   document.getElementById("selFT").value = it.ft || "";
   document.getElementById("txtCkt").value = it.ckt || "";
+  document.getElementById("txtRename").value = it.tag;
   fillFedList();
   document.getElementById("selFed").value = it.fed || "";
   render();
@@ -232,7 +259,7 @@ function fillFedList() {
   blank.value = ""; blank.textContent = "\u2014 utility / source";
   sel.appendChild(blank);
   items.forEach(function (it) {
-    if (bad[it.tag]) return;
+    if (bad[it.tag] || it.virtual) return;
     var o = document.createElement("option");
     o.value = it.tag; o.textContent = it.tag;
     sel.appendChild(o);
@@ -289,6 +316,7 @@ function applyLink() {
   var it = byTag(selTag);
   if (!it) { setStatus("Select a piece of equipment first."); return; }
   if (it.head) { setStatus(it.tag + " is the utility head end - edit it on the Dashboard."); return; }
+  if (it.virtual) { setStatus(it.tag + " is derived automatically - link its secondary board instead."); return; }
   var fed = document.getElementById("selFed").value;
   var ft = document.getElementById("selFT").value;
   var ckt = document.getElementById("txtCkt").value;
@@ -302,6 +330,7 @@ function unlink() {
   var it = byTag(selTag);
   if (!it) { setStatus("Select a piece of equipment first."); return; }
   if (it.head) { setStatus(it.tag + " is the utility head end - it has no parent."); return; }
+  if (it.virtual) { setStatus(it.tag + " is derived automatically - unlink its secondary board instead."); return; }
   writeCells(it.row, [{ col: C_FED, val: "" }, { col: C_FT, val: "" }, { col: C_CKT, val: "" }])
     .then(function () { setStatus(it.tag + " is now an unlinked source."); return refresh(); })
     .catch(function (e) { setStatus("Write failed: " + e.message); });
@@ -367,3 +396,206 @@ function addEquipment() {
     });
   }).catch(function (e) { setStatus("Add failed: " + e.message); });
 }
+
+/*  Rename the selected board everywhere (tab, schedule name, registry, every
+    text reference). Uses SAZ_RENAME below - identical copy of the commands.js core. */
+function renameSelected() {
+  var it = byTag(selTag);
+  if (!it) { setStatus("Select a piece of equipment first."); return; }
+  if (it.head) { setStatus(it.tag + " is a utility source - rename it on the Dashboard."); return; }
+  if (it.virtual) { setStatus(it.tag + " is derived automatically - rename its secondary board instead."); return; }
+  var nv = document.getElementById("txtRename").value;
+  if (!String(nv || "").trim()) { setStatus("Type the new tag in Rename to."); return; }
+  Excel.run(function (ctx) { return SAZ_RENAME.run(ctx, it.tag, nv); })
+    .then(function (res) {
+      setStatus("Renamed " + res.from + " to " + res.to + " - " + res.cells + " reference(s) updated.");
+      selTag = res.to;
+      return refresh();
+    })
+    .catch(function (e) { setStatus("Rename not done: " + (e.message || e)); });
+}
+
+/* ==========================================================
+   RENAME EQUIPMENT  (v2.4)  -  IDENTICAL COPY in commands.js and taskpane.js.
+   Edit both together.
+   Renames a board everywhere its tag is stored as TEXT. Formula links (registry
+   Voltage / Demand kVA, parent circuit kVA, feed-through links) follow the tab
+   automatically when it is renamed; the text copies do not, so they are
+   rewritten here:
+     - the sheet tab and the schedule's own name cell (GEO NAME_CELL, locked)
+     - the equipment registry: Tag, Fed From and Sheet columns
+     - every other schedule: circuit descriptions, feed-through descriptions and
+       the Fed From cell, including the "T-TAG" and "P via T-TAG" forms
+   Registry row ORDER is unchanged, so study rows keep their typed inputs.
+   Resolves to { from, to, sheetRenamed, cells }.
+   ========================================================== */
+var SAZ_RENAME = (function () {
+  var OPTS = {
+    allowAutoFilter: false, allowDeleteColumns: false, allowDeleteRows: false,
+    allowEditObjects: false, allowEditScenarios: false, allowFormatCells: false,
+    allowFormatColumns: false, allowFormatRows: false, allowInsertColumns: false,
+    allowInsertHyperlinks: false, allowInsertRows: false, allowPivotTables: false,
+    allowSort: false, selectionMode: "Normal"
+  };
+  var REG_NAME = "Equip_Registry", REG_SHEET = "Dashboard", REG_RANGE = "A100:J349";
+  var C_TAG = 0, C_FED = 3, C_SHEET = 6;
+
+  function esc(s) { return String(s).replace(/[.*+?^${}()|[\]\\]/g, "\\$&"); }
+  function tokenRe(t) { return new RegExp("(^|[\\s(,]|T-)" + esc(t) + "(?=$|[\\s),])", "gi"); }
+  function swap(text, oldT, newT) {
+    var s = String(text == null ? "" : text);
+    if (!s || !tokenRe(oldT).test(s)) { return null; }
+    return s.replace(tokenRe(oldT), function (m, pre) { return pre + newT; });
+  }
+  function clean(raw) {
+    return String(raw || "").replace(/[:\\\/\?\*\[\]]/g, "").trim().substring(0, 31);
+  }
+  function check(oldT, newT, names) {
+    if (!newT) { return "The new tag contains no usable characters."; }
+    if (/^'|'$/.test(newT)) { return "A tag cannot start or end with an apostrophe."; }
+    if (newT.toLowerCase() === "history") { return "\"History\" is reserved by Excel."; }
+    if (newT === oldT) { return "The new tag is the same as the current one."; }
+    var clash = names.filter(function (n) {
+      return n.toLowerCase() === newT.toLowerCase() && n.toLowerCase() !== oldT.toLowerCase();
+    })[0];
+    if (clash) { return "\"" + clash + "\" is already in use. Pick another tag."; }
+    return "";
+  }
+  function letters(a) { var m = /^\$?([A-Z]+)\$?(\d+)$/i.exec(String(a || "")); return m ? [m[1].toUpperCase(), Number(m[2])] : null; }
+  function usable(v) { var s = String(v == null ? "" : v).trim(); return (s && s !== "-") ? s : ""; }
+
+  function withUnprot(ctx, sheet, fn) {
+    sheet.protection.load("protected");
+    return ctx.sync().then(function () {
+      var was = sheet.protection.protected;
+      var re = function () { if (!was) { return Promise.resolve(); } sheet.protection.protect(OPTS); return ctx.sync(); };
+      if (was) { sheet.protection.unprotect(); }
+      return ctx.sync().then(fn).then(function (o) { return re().then(function () { return o; }); },
+        function (e) { return re().then(function () { throw e; }, function () { throw e; }); });
+    });
+  }
+
+  function registry(ctx) {
+    var n = ctx.workbook.names.getItemOrNullObject(REG_NAME);
+    n.load("isNullObject");
+    return ctx.sync().then(function () {
+      var sh = ctx.workbook.worksheets.getItemOrNullObject(REG_SHEET);
+      sh.load("isNullObject");
+      return ctx.sync().then(function () {
+        if (!n.isNullObject) { return n.getRange(); }
+        return sh.isNullObject ? null : sh.getRange(REG_RANGE);
+      });
+    });
+  }
+
+  function run(ctx, oldRaw, newRaw) {
+    var oldT = String(oldRaw || "").trim(), newT = clean(newRaw);
+    var sheets = ctx.workbook.worksheets;
+    sheets.load("items/name");
+    return ctx.sync().then(function () {
+      var names = sheets.items.map(function (s) { return s.name; });
+      return registry(ctx).then(function (reg) {
+        if (reg) { reg.load("values,rowIndex,columnIndex,worksheet/name"); }
+        return ctx.sync().then(function () {
+          var regTags = reg ? reg.values.map(function (r) { return String(r[C_TAG] || "").trim(); }).filter(Boolean) : [];
+          var target = sheets.items.filter(function (s) { return s.name.toLowerCase() === oldT.toLowerCase(); })[0];
+          var inReg = regTags.some(function (t) { return t.toLowerCase() === oldT.toLowerCase(); });
+          if (!target && !inReg) { throw new Error("\"" + oldT + "\" is not a schedule sheet or a registry tag."); }
+          if (target) { oldT = target.name; }
+          var err = check(oldT, newT, names.concat(regTags));
+          if (err) { throw new Error(err); }
+
+          /* sheet-scoped GEO_MAP on every sheet = the set of schedules */
+          var geoNames = sheets.items.map(function (s) {
+            var nm = s.names.getItemOrNullObject("GEO_MAP"); nm.load("isNullObject"); return nm;
+          });
+          return ctx.sync().then(function () {
+            var geoRanges = geoNames.map(function (nm) {
+              if (nm.isNullObject) { return null; }
+              var r = nm.getRange(); r.load("values"); return r;
+            });
+            return ctx.sync().then(function () {
+              var boards = [];
+              geoRanges.forEach(function (r, i) {
+                if (!r) { return; }
+                var g = {};
+                r.values.forEach(function (row) { var k = String(row[0] || "").trim(); if (k && k !== "GEO_MAP") { g[k] = row[1]; } });
+                boards.push({ sheet: sheets.items[i], name: sheets.items[i].name, g: g });
+              });
+
+              /* 1. rename the tab first - formula links follow it */
+              var renamed = false;
+              if (target) { target.name = newT; renamed = true; }
+              return ctx.sync().then(function () {
+                /* 2. collect text cells on every schedule */
+                var scans = [];
+                boards.forEach(function (b) {
+                  var g = b.g, spans = [];
+                  var dc = usable(g.CKT_DESC_COL), f1 = Number(g.CKT_FIRST) || 0, l1 = Number(g.CKT_LAST) || 0;
+                  if (dc && f1 && l1 >= f1) { spans.push(dc + f1 + ":" + dc + l1); }
+                  var fd = usable(g.FEEDTHRU_DESC_COL), t1 = Number(g.FEEDTHRU_FIRST) || 0, t2 = Number(g.FEEDTHRU_LAST) || 0;
+                  if (fd && t1 && t2 >= t1) { spans.push(fd + t1 + ":" + fd + (t2 + 1)); }
+                  var nc = letters(usable(g.NAME_CELL));
+                  if (nc) { spans.push(nc[0] + (nc[1] + 1)); }          /* Fed From = cell below the name */
+                  var rs = spans.map(function (a) { var x = b.sheet.getRange(a); x.load("formulas,address"); return x; });
+                  scans.push({ b: b, rs: rs, nc: nc });
+                });
+                return ctx.sync().then(function () {
+                  var cells = 0, jobs = [];
+                  scans.forEach(function (sc) {
+                    var edits = [];
+                    sc.rs.forEach(function (x) {
+                      x.formulas.forEach(function (row, i) {
+                        var v = row[0];
+                        if (typeof v !== "string" || v.charAt(0) === "=") { return; }
+                        var nv = swap(v, oldT, newT);
+                        if (nv !== null) { edits.push({ r: x, i: i, v: nv }); }
+                      });
+                    });
+                    var isTarget = !!target && sc.b.name.toLowerCase() === oldT.toLowerCase();
+                    if (isTarget && sc.nc) { edits.push({ addr: sc.nc[0] + sc.nc[1], v: newT }); }
+                    if (!edits.length) { return; }
+                    cells += edits.length;
+                    jobs.push(function () {
+                      return withUnprot(ctx, sc.b.sheet, function () {
+                        edits.forEach(function (e) {
+                          var cell = e.addr ? sc.b.sheet.getRange(e.addr) : e.r.getCell(e.i, 0);
+                          cell.values = [[e.v]];
+                        });
+                        return ctx.sync();
+                      });
+                    });
+                  });
+                  /* 3. registry text columns */
+                  if (reg) {
+                    var redits = [];
+                    reg.values.forEach(function (row, i) {
+                      [C_TAG, C_FED, C_SHEET].forEach(function (c) {
+                        var v = String(row[c] || "").trim();
+                        if (v && v.toLowerCase() === oldT.toLowerCase()) { redits.push([i, c]); }
+                      });
+                    });
+                    if (redits.length) {
+                      cells += redits.length;
+                      var rsheet = ctx.workbook.worksheets.getItem(reg.worksheet.name);
+                      jobs.push(function () {
+                        return withUnprot(ctx, rsheet, function () {
+                          redits.forEach(function (e) { reg.getCell(e[0], e[1]).values = [[newT]]; });
+                          return ctx.sync();
+                        });
+                      });
+                    }
+                  }
+                  return jobs.reduce(function (p, j) { return p.then(j); }, Promise.resolve()).then(function () {
+                    return { from: oldT, to: newT, sheetRenamed: renamed, cells: cells };
+                  });
+                });
+              });
+            });
+          });
+        });
+      });
+    });
+  }
+  return { run: run, clean: clean };
+})();

@@ -25,7 +25,7 @@ SAZ.dialog = function (params) {
     }).join("&");
     var url = CFG.host + "/dialog.html?" + qs;
     Office.context.ui.displayDialogAsync(url,
-      { height: 42, width: 30, displayInIframe: true },
+      { height: params._h || 42, width: params._w || 30, displayInIframe: true },
       function (res) {
         if (res.status !== Office.AsyncResultStatus.Succeeded) { resolve({ ok: false }); return; }
         var dlg = res.value;
@@ -51,11 +51,57 @@ SAZ.prompt = function (title, label, dflt, required) {
                       "default": dflt || "", required: required ? "1" : "0", text: "" });
 };
 
+/* v2.3 multi-field form: fields = [{ id, label, type: text|number|select, options,
+   value, required, min, max, hint, list }]. Resolves { ok, values: { id: value } }.
+   err is shown in amber - callers re-open the form with the reason after a failed check. */
+SAZ.form = function (title, text, fields, err, heightPct) {
+  return SAZ.dialog({ mode: "form", title: title, text: text || "",
+                      form: JSON.stringify({ fields: fields, err: err || "" }),
+                      _h: heightPct || 60 });
+};
+
 /* ---------- run wrapper: guarantees event.completed() ---------- */
+
+/* Seed lock: the calculation tabs below ship protected so a deployed project
+   cannot be edited outside its input cells (grey fill / blue text). Every
+   ribbon command runs through SAZ.run, which unprotects these tabs for the
+   duration of the command and re-protects ALL of them afterwards, success or
+   failure. Sheets that do not exist yet are skipped. Panel, study and Dashboard
+   sheets keep their own withUnprotected handling. */
+SAZ.SEED_LOCKED = ["Instructions", "Load Calc", "Logging Demand", "Generator",
+  "UPS", "Report", "NEC_Data", "Energy_Code_Data"];
+SAZ.seedSheets = function (ctx) {
+  var out = SAZ.SEED_LOCKED.map(function (n) {
+    var w = ctx.workbook.worksheets.getItemOrNullObject(n);
+    w.load("isNullObject");
+    return w;
+  });
+  return ctx.sync().then(function () {
+    var live = out.filter(function (w) { return !w.isNullObject; });
+    live.forEach(function (w) { w.protection.load("protected"); });
+    return ctx.sync().then(function () { return live; });
+  });
+};
+SAZ.seedUnlock = function (ctx) {
+  return SAZ.seedSheets(ctx).then(function (live) {
+    live.forEach(function (w) { if (w.protection.protected) { w.protection.unprotect(); } });
+    return ctx.sync();
+  });
+};
+SAZ.seedRelock = function (ctx) {
+  return SAZ.seedSheets(ctx).then(function (live) {
+    live.forEach(function (w) { if (!w.protection.protected) { w.protection.protect(SAZ.PROTECT_OPTS); } });
+    return ctx.sync();
+  });
+};
 
 SAZ.run = function (name, body) {
   return function (event) {
-    Excel.run(function (ctx) { return body(ctx); })
+    Excel.run(function (ctx) {
+      return SAZ.seedUnlock(ctx).then(function () { return body(ctx); }).then(
+        function (out) { return SAZ.seedRelock(ctx).then(function () { return out; }); },
+        function (err) { return SAZ.seedRelock(ctx).then(function () { throw err; }, function () { throw err; }); });
+    })
       .then(function () { event.completed(); })
       .catch(function (err) {
         var msg = (err && err.message) ? err.message : String(err);
@@ -108,8 +154,7 @@ SAZ.ensureTemplate = function (ctx, tplName) {
     return fetch(CFG.host + "/" + CFG.projectFile).then(function (res) {
       if (!res.ok) {
         throw new Error("Project seed not reachable (" + res.status + "). " +
-          "Add " + tplName + " to this workbook, or check that " + CFG.projectFile +
-          " is published to " + CFG.host + ".");
+          "Add " + tplName + " to this workbook, or check your connection and try again.");
       }
       return res.arrayBuffer();
     }).then(function (buf) {
@@ -250,18 +295,96 @@ SAZ.cloneSheet = function (ctx, srcName, newName) {
   });
 };
 
-SAZ.uiCreate = function (ctx, tplName, typeLabel) {
+/* ---------- v2.3 deploy: one dialog commits name, voltage and size ----------
+   New Panelboard / Switchboard / MCC asks for all three at once. On OK the
+   schedule is cloned, the name is stamped into NAME_CELL and the voltage into
+   VOLT_CELL (a plain input - it stays editable from the cell's own dropdown),
+   the board is registered, and the circuit grid is trimmed or grown to the
+   requested size through the same resizePanel used by Resize Panel.
+   Voltage is pre-selected from the Dashboard project voltage (Cfg_Volt) when
+   one is set; the list is Volt_Sys, the same list the schedule cell uses. */
+SAZ.DEPLOY_DEFAULT_SPACES = { Panelboard: 42, Switchboard: 20, MCC: 20 };
+SAZ.DEPLOY_MAX_SPACES = 200;
+
+SAZ.voltChoices = function (ctx) {
+  var nm = ctx.workbook.names.getItemOrNullObject("Volt_Sys");
+  var pv = ctx.workbook.names.getItemOrNullObject("Cfg_Volt");
+  nm.load("isNullObject"); pv.load("isNullObject");
+  return ctx.sync().then(function () {
+    var a = nm.isNullObject ? null : nm.getRange(), b = pv.isNullObject ? null : pv.getRange();
+    if (a) { a.load("values"); }
+    if (b) { b.load("values"); }
+    return ctx.sync().then(function () {
+      var list = a ? a.values.map(function (r) { return String(r[0] || "").trim(); }).filter(Boolean) : [];
+      var proj = b ? String(b.values[0][0] || "").trim() : "";
+      return { list: list, project: (list.indexOf(proj) >= 0) ? proj : "" };
+    });
+  });
+};
+
+/* Spaces a board currently has, read from its GEO_MAP. */
+SAZ.currentSpaces = function (g) {
+  if (String(g.RESIZE_MODE || "").trim().toUpperCase() === "TWOBLOCK") {
+    return 2 * (Number(g.BLOCK_SIZE) || 0);
+  }
+  return (Number(g.CKT_LAST) || 0) - (Number(g.CKT_FIRST) || 0) + 1;
+};
+
+/* Write the deploy choices into the new schedule's header. */
+SAZ.stampHeader = function (ctx, sheetName, volt) {
+  return SAZ.geo(ctx, sheetName).then(function (g) {
+    var sheet = ctx.workbook.worksheets.getItem(sheetName);
+    var nc = SAZ.geoUsable(g.NAME_CELL), vc = SAZ.geoUsable(g.VOLT_CELL);
+    return SAZ.withUnprotected(ctx, sheet, function () {
+      if (nc) { sheet.getRange(nc).values = [[sheetName]]; }
+      if (vc && volt) { sheet.getRange(vc).values = [[volt]]; }
+      return ctx.sync();
+    });
+  });
+};
+
+SAZ.uiCreate = function (ctx, tplName, typeLabel, err, last) {
   return SAZ.requireSheets(ctx, SAZ.CLONE_REQUIRES).then(function (ok) { if (!ok) { return null; }
-  return SAZ.prompt("New " + typeLabel, "Equipment tag", "", true).then(function (ans) {
-    if (!ans.ok) { return null; }
-    var tag = SAZ.sanitise(ans.value);
-    if (!tag) { return SAZ.notify("Invalid tag", "That tag contains no usable characters."); }
-    return SAZ.ensureTemplate(ctx, tplName).then(function (tpl) {
-      return SAZ.uniqueSheetName(ctx, tag).then(function (finalName) {
-        return SAZ.cloneSheet(ctx, tpl, finalName);
+  return SAZ.voltChoices(ctx).then(function (vc) {
+    var dSp = SAZ.DEPLOY_DEFAULT_SPACES[typeLabel] || 42;
+    last = last || {};
+    var fields = [
+      { id: "tag", label: typeLabel + " name / tag", type: "text", value: last.tag || "", required: true,
+        hint: "Becomes the sheet tab, the name on the schedule and the Panel Tree tag." },
+      { id: "volt", label: "System voltage", type: "select", options: vc.list,
+        value: last.volt || vc.project, required: true,
+        hint: vc.project ? "Pre-selected from the Dashboard project voltage. Change it here, or later in the schedule."
+                         : "No project voltage on the Dashboard yet - pick one. It can be changed later in the schedule." },
+      { id: "spaces", label: (typeLabel === "Panelboard" ? "Spaces (circuits)" : (typeLabel === "MCC" ? "Units / buckets" : "Circuits / sections")),
+        type: "number", value: String(last.spaces || dSp), min: 1, max: SAZ.DEPLOY_MAX_SPACES, required: true,
+        hint: typeLabel === "Panelboard" ? "Odd counts round up to even (odd circuits left, even right)."
+                                         : "Can be changed later with Resize Panel." }
+    ];
+    return SAZ.form("New " + typeLabel, "", fields, err || "", 72).then(function (ans) {
+      if (!ans.ok) { return null; }
+      var v = ans.values || {};
+      var tag = SAZ.sanitise(v.tag);
+      if (!tag) { return SAZ.uiCreate(ctx, tplName, typeLabel, "That tag contains no usable characters.", v); }
+      if (vc.list.length && vc.list.indexOf(v.volt) < 0) {
+        return SAZ.uiCreate(ctx, tplName, typeLabel, "Pick a system voltage from the list.", v);
+      }
+      var spaces = parseInt(v.spaces, 10) || dSp;
+      if (typeLabel === "Panelboard" && spaces % 2) { spaces += 1; }
+      return SAZ.ensureTemplate(ctx, tplName).then(function (tpl) {
+        return SAZ.uniqueSheetName(ctx, tag).then(function (finalName) {
+          return SAZ.cloneSheet(ctx, tpl, finalName);
+        });
       }).then(function (finalName) {
-        return SAZ.registerFromGeo(ctx, finalName, typeLabel).then(function () {
+        return SAZ.stampHeader(ctx, finalName, v.volt).then(function () {
+          return SAZ.registerFromGeo(ctx, finalName, typeLabel);
+        }).then(function () {
+          return SAZ.geo(ctx, finalName);
+        }).then(function (g) {
+          if (SAZ.currentSpaces(g) === spaces) { return null; }
+          return SAZ.resizePanel(ctx, finalName, spaces);
+        }).then(function () {
           ctx.workbook.worksheets.getItem(finalName).activate();
+          ctx.workbook.worksheets.getItem(finalName).getRange("A1").select();
           return ctx.sync();
         }).then(function () {
           if (finalName !== tag) {
@@ -585,6 +708,9 @@ function TrimEquipRows (event) { SAZ.run("Trim Circuit Rows", function (ctx) {
 function RebuildGeo (event) { SAZ.run("Rebuild GEO_MAP", function (ctx) {
   return SAZ.uiRebuildGeoMap(ctx);
 })(event); }
+function RenameBoard (event) { SAZ.run("Rename Equipment", function (ctx) {
+  return SAZ.uiRename(ctx);
+})(event); }
 function NewGenerator (event) { SAZ.run("New Generator", function (ctx) {
   return SAZ.uiModule(ctx, "Generator");
 })(event); }
@@ -700,6 +826,7 @@ Office.actions.associate("ToggleSection", ToggleSection);
   Office.actions.associate("GoRecon", GoRecon);
   Office.actions.associate("ToggleSizing", ToggleSizing);
   Office.actions.associate("ToggleMatrix", ToggleMatrix);
+Office.actions.associate("RenameBoard", RenameBoard);
 });
 
 /* ---------- Load Calc section rows  (added: replaces the VBA Add/Trim Area Rows) ---------- */
@@ -1042,8 +1169,7 @@ SAZ.ensureProject = function (ctx, announce) {
     }
     return fetch(CFG.host + "/" + CFG.projectFile).then(function (res) {
       if (!res.ok) {
-        throw new Error("Project seed not reachable (" + res.status + "). Check that " +
-          CFG.projectFile + " is published to " + CFG.host + ".");
+        throw new Error("Project seed not reachable (" + res.status + "). The SÄZÄN PowerCalc template library could not be reached - check your connection and try again.");
       }
       return res.arrayBuffer();
     }).then(function (buf) {
@@ -1253,7 +1379,8 @@ SAZ.feedThruBlock = function (ctx, sheetName) {
       /* kVA column: the "kVA" label on the sub-header row */
       var kc = -1, subRow = v[hr + 1] || [];
       for (var c2 = hc; c2 < subRow.length; c2++) {
-        if (String(subRow[c2] || "").trim().toLowerCase() === "kva") { kc = c2; break; }
+        var lab = String(subRow[c2] || "").trim().toLowerCase();
+        if (lab === "demand kva" || lab === "kva") { kc = c2; break; }
       }
       if (kc < 0) {
         throw new Error("Found the FEED-THROUGH header on \"" + sheetName +
@@ -1268,7 +1395,7 @@ SAZ.feedThruBlock = function (ctx, sheetName) {
       var col = function (n) { return String.fromCharCode(65 + n); };
       return {
         descCol: col(hc), kvaCol: col(kc),
-        firstRow: hr + 3, lastRow: stop,
+        firstRow: hr + 3, lastRow: Math.min(stop, hr + 5),   /* 3 managed slots max - the manual row above the subtotal is never auto-filled */
         source: "derived"
       };
     });
@@ -1277,27 +1404,110 @@ SAZ.feedThruBlock = function (ctx, sheetName) {
 
 
 /* Write (or refresh) one feed-through row. Re-running with the same tag
-   updates that row in place rather than consuming another slot. */
-SAZ.feedThruAppend = function (ctx, sheetName, childTag, demandRef) {
+   updates that row in place rather than consuming another slot (the
+   same-tag search runs over ALL slots before an empty slot is taken, so
+   a gap left by a removal never creates a duplicate). The managed rows
+   are LOCKED on the template - writes go through withUnprotected. The
+   manual row below the managed slots is never touched by the command. */
+/* #245: besides the demand link, link the child's connected kVA, phase A/B/C
+   kVA and receptacle totals so the parent's connected total, phase balance
+   and combined receptacle demand factor include the downstream section.
+   Locations come from GEO keys FT_CONN_COL / FT_DETAIL_COL (parent) and
+   CONNECTED_CELL, PHASE_A/B/C_CELL, REC_TOT_CELL, REC_DEM_CELL (child).
+   Missing keys (boards made before #245) link 0 and are reported in warn. */
+SAZ.FT_DETAIL_KEYS = ["PHASE_A_CELL", "PHASE_B_CELL", "PHASE_C_CELL", "REC_TOT_CELL", "REC_DEM_CELL"];
+SAZ.feedThruDetail = function (sheet, slot, pg, cg, childSheet) {
+  var warn = [];
+  var link = function (key) {
+    var c = SAZ.geoUsable(cg[key]);
+    if (!c) { warn.push(childSheet + " " + key); return 0; }
+    return SAZ.sheetRef(childSheet, c);
+  };
+  var cc = SAZ.geoUsable(pg.FT_CONN_COL), dc = SAZ.geoUsable(pg.FT_DETAIL_COL);
+  if (cc) { sheet.getRange(cc + slot).formulas = [[ link("CONNECTED_CELL") ]]; }
+  if (dc) {
+    var c0 = SAZ.gridColNum(dc);
+    sheet.getRange(dc + slot + ":" + SAZ.gridColLet(c0 + 4) + slot).formulas =
+      [ SAZ.FT_DETAIL_KEYS.map(link) ];
+  }
+  if (!cc || !dc) { warn.push("parent layout (board predates #245)"); }
+  return warn;
+};
+
+SAZ.feedThruAppend = function (ctx, sheetName, childTag, demandRef, childSheet) {
+  return SAZ.feedThruBlock(ctx, sheetName).then(function (b) {
+    var gg = childSheet
+      ? SAZ.geo(ctx, sheetName).then(function (pg) {      /* sequential: one sync in flight */
+        return SAZ.geo(ctx, childSheet).then(function (cg) { return [pg, cg]; });
+      })
+      : Promise.resolve(null);
+    return gg.then(function (geos) {
+    var sheet = ctx.workbook.worksheets.getItem(sheetName);
+    var span = sheet.getRange(b.descCol + b.firstRow + ":" + b.descCol + b.lastRow);
+    span.load("values");
+    return ctx.sync().then(function () {
+      var slot = -1, i, key = childTag.toLowerCase();
+      for (i = 0; i < span.values.length && slot < 0; i++) {
+        if (String(span.values[i][0] || "").trim().toLowerCase() === key) { slot = b.firstRow + i; }
+      }
+      for (i = 0; i < span.values.length && slot < 0; i++) {
+        if (String(span.values[i][0] || "").trim() === "") { slot = b.firstRow + i; }
+      }
+      if (slot < 0) {
+        throw new Error("All " + (b.lastRow - b.firstRow + 1) + " feed-through slots on \"" +
+          sheetName + "\" are in use. Remove an entry (Feed-Through, type -TAG) first.");
+      }
+      var warn = [];
+      return SAZ.withUnprotected(ctx, sheet, function () {
+        sheet.getRange(b.descCol + slot).values  = [[childTag]];
+        sheet.getRange(b.kvaCol  + slot).formulas = [[demandRef]];
+        if (geos) { warn = SAZ.feedThruDetail(sheet, slot, geos[0], geos[1], childSheet); }
+        return ctx.sync();
+      }).then(function () { return { row: slot, block: b, warn: warn }; });
+    });
+    });
+  });
+};
+
+/* Clear every managed feed-through slot on sheetName that carries childTag.
+   Resolves to the number of rows cleared (0 = not found). */
+SAZ.feedThruRemove = function (ctx, sheetName, childTag) {
   return SAZ.feedThruBlock(ctx, sheetName).then(function (b) {
     var sheet = ctx.workbook.worksheets.getItem(sheetName);
     var span = sheet.getRange(b.descCol + b.firstRow + ":" + b.descCol + b.lastRow);
     span.load("values");
     return ctx.sync().then(function () {
-      var slot = -1;
+      var rows = [], key = childTag.toLowerCase();
       for (var i = 0; i < span.values.length; i++) {
-        var cur = String(span.values[i][0] || "").trim();
-        if (cur === "" || cur.toLowerCase() === childTag.toLowerCase()) {
-          slot = b.firstRow + i; break;
+        if (String(span.values[i][0] || "").trim().toLowerCase() === key) { rows.push(b.firstRow + i); }
+      }
+      if (!rows.length) { return 0; }
+      return SAZ.geo(ctx, sheetName).catch(function () { return {}; }).then(function (pg) {
+        var dc = SAZ.geoUsable(pg.FT_DETAIL_COL);
+        var dEnd = dc ? SAZ.gridColLet(SAZ.gridColNum(dc) + 4) : "";
+        return SAZ.withUnprotected(ctx, sheet, function () {
+          rows.forEach(function (r) {
+            sheet.getRange(b.descCol + r + ":" + b.kvaCol + r).clear(Excel.ClearApplyTo.contents);
+            if (dc) { sheet.getRange(dc + r + ":" + dEnd + r).clear(Excel.ClearApplyTo.contents); }
+          });
+          return ctx.sync();
+        }).then(function () { return rows.length; });
+      });
+    });
+  });
+};
+
+/* Read the child's current Fed From (registry column D). "" if unregistered. */
+SAZ.registryFedFrom = function (ctx, childTag) {
+  return SAZ.registryRange(ctx).then(function (rg) {
+    rg.load("values");
+    return ctx.sync().then(function () {
+      for (var i = 0; i < rg.values.length; i++) {
+        if (String(rg.values[i][0] || "").toLowerCase() === childTag.toLowerCase()) {
+          return String(rg.values[i][3] || "").trim();
         }
       }
-      if (slot < 0) {
-        throw new Error("All " + (b.lastRow - b.firstRow + 1) + " feed-through slots on \"" +
-          sheetName + "\" are in use. Resize the block or remove an entry.");
-      }
-      sheet.getRange(b.descCol + slot).values  = [[childTag]];
-      sheet.getRange(b.kvaCol  + slot).formulas = [[demandRef]];
-      return ctx.sync().then(function () { return { row: slot, block: b }; });
+      return "";
     });
   });
 };
@@ -1325,18 +1535,38 @@ SAZ.updateRegistryFedFrom = function (ctx, childTag, parentTag) {
 
 /* Run FROM the primary board. Prompts for the downstream board whose load
    feeds through to it. Demand is a LIVE LINK to the child's GEO DEMAND_CELL,
-   so the pass-through tracks the child as its circuits change. */
+   so the pass-through tracks the child as its circuits change.
+   Type -TAG to REMOVE a feed-through. When a board is pointed at a new
+   parent, its row on the OLD parent (registry Fed From) is cleared first so
+   its load is never counted twice. */
 SAZ.uiFeedThru = function (ctx) {
   var active = ctx.workbook.worksheets.getActiveWorksheet();
   active.load("name");
   return ctx.sync().then(function () {
     var primary = active.name;
     return SAZ.prompt("Feed-Through",
-      "Downstream board whose load feeds THROUGH to " + primary, "", true)
+      "Downstream board whose load feeds THROUGH to " + primary +
+      "  (type -TAG to remove one)", "", true)
       .then(function (ans) {
         if (!ans.ok) { return null; }
-        var childTag = SAZ.sanitise(ans.value);
+        var raw = String(ans.value || "").trim();
+        var removing = raw.charAt(0) === "-";
+        var childTag = SAZ.sanitise(removing ? raw.slice(1) : raw);
         if (!childTag) { return SAZ.notify("Invalid tag", "No usable characters in that tag."); }
+        if (removing) {
+          return SAZ.feedThruRemove(ctx, primary, childTag).then(function (n) {
+            if (!n) {
+              return SAZ.notify("Not found", "\"" + childTag + "\" is not a feed-through on " + primary + ".");
+            }
+            return SAZ.registryFedFrom(ctx, childTag).then(function (ff) {
+              var clr = ff.toLowerCase() === primary.toLowerCase()
+                ? SAZ.updateRegistryFedFrom(ctx, childTag, "") : Promise.resolve(false);
+              return clr.then(function () {
+                return SAZ.notify("Feed-through removed", childTag + " removed from " + primary + ".");
+              });
+            });
+          });
+        }
         if (childTag.toLowerCase() === primary.toLowerCase()) {
           return SAZ.notify("Cannot feed itself",
             "\"" + primary + "\" cannot be its own feed-through source.");
@@ -1344,9 +1574,10 @@ SAZ.uiFeedThru = function (ctx) {
         var sheets = ctx.workbook.worksheets;
         sheets.load("items/name");
         return ctx.sync().then(function () {
-          var child = sheets.items.filter(function (s) {
-            return s.name.toLowerCase() === childTag.toLowerCase();
-          })[0];
+          var find = function (nm) {
+            return sheets.items.filter(function (s) { return s.name.toLowerCase() === String(nm).toLowerCase(); })[0];
+          };
+          var child = find(childTag);
           if (!child) {
             return SAZ.notify("No such board",
               "There is no sheet named \"" + childTag + "\". Create it first.");
@@ -1356,13 +1587,24 @@ SAZ.uiFeedThru = function (ctx) {
               throw new Error("\"" + child.name + "\" has no DEMAND_CELL in its GEO_MAP.");
             }
             var ref = SAZ.sheetRef(child.name, cg.DEMAND_CELL);
-            return SAZ.feedThruAppend(ctx, primary, child.name, ref).then(function (res) {
-              return SAZ.updateRegistryFedFrom(ctx, child.name, primary).then(function (reg) {
-                return SAZ.notify("Feed-through added",
-                  child.name + " added to " + primary + " at row " + res.row +
-                  " (no breaker used)." +
-                  (reg ? "" : "\n\nNote: " + child.name +
-                   " is not in the equipment registry, so Fed From was not updated."));
+            return SAZ.registryFedFrom(ctx, child.name).then(function (oldParent) {
+              var old = find(oldParent);
+              var purge = (old && old.name.toLowerCase() !== primary.toLowerCase())
+                ? SAZ.feedThruRemove(ctx, old.name, child.name).catch(function () { return 0; })
+                : Promise.resolve(0);
+              return purge.then(function (moved) {
+                return SAZ.feedThruAppend(ctx, primary, child.name, ref, child.name).then(function (res) {
+                  return SAZ.updateRegistryFedFrom(ctx, child.name, primary).then(function (reg) {
+                    return SAZ.notify("Feed-through added",
+                      child.name + " added to " + primary + " at row " + res.row +
+                      " (no breaker used)." +
+                      (moved ? "\n\nRemoved from its previous parent " + old.name + " so it is not counted twice." : "") +
+                      (reg ? "" : "\n\nNote: " + child.name +
+                       " is not in the equipment registry, so Fed From was not updated.") +
+                      (res.warn && res.warn.length ? "\n\nOnly demand was linked for: " + res.warn.join(", ") +
+                       ". Recreate that board from the current template to carry connected, phase and receptacle loads." : ""));
+                  });
+                });
               });
             });
           });
@@ -1413,25 +1655,6 @@ SAZ.geoCellValue = function (ctx, sheetName, key) {
       var v = cell.values[0][0];
       return (typeof v === "number") ? v : (parseFloat(v) || 0);
     });
-  });
-};
-
-/* Write one circuit row on the parent. Column mappings live here only. */
-SAZ.addParentCircuitAt = function (ctx, parentTag, descTag, kvaRef, targetRow) {
-  return SAZ.geo(ctx, parentTag).then(function (g) {
-    var sheet = ctx.workbook.worksheets.getItem(parentTag);
-    var put = function (key, val, isFormula) {
-      var col = SAZ.geoUsable(g[key]);
-      if (!col) { return; }
-      var rg = sheet.getRange(col + targetRow);
-      if (isFormula) { rg.formulas = [[val]]; } else { rg.values = [[val]]; }
-    };
-    put("CKT_DESC_COL",  descTag, false);
-    put("CKT_KVA_COL",   kvaRef,  true);
-    put("CKT_QTY_COL",   1,       false);
-    put("CKT_POLES_COL", 3,       false);
-    put("CKT_CLASS_COL", "Panel", false);
-    return ctx.sync().then(function () { return targetRow; });
   });
 };
 
@@ -1488,126 +1711,419 @@ SAZ.txRowForTag = function (ctx, tag) {
    transformer row is created on the Transformers schedule and the child's
    source fault is fed from the transformer's secondary rather than the parent
    bus. Every cross-sheet value is a LIVE LINK, never a copied number. */
-SAZ.linkEquipment = function (ctx, parentTag, childTag, targetRow) {
+/* ==========================================================
+   v2.3 LINK EQUIPMENT  -  circuit-position aware
+   The child is placed in a real circuit position on the parent: the
+   description, pole count and a LIVE demand link land on the chosen row, and
+   multi-pole breakers tie the rows below through the template's own AN
+   continuation logic (writing the pole count on the first row is enough).
+   The slot dialog defaults to the first open position that fits the pole
+   count and refuses an occupied one - occupied means a description, any
+   connected load, or a row already tied into a multi-pole breaker above.
+   Every write to a schedule runs inside withUnprotected: the child's Source
+   Fault cell is a LOCKED formula, and writing it on a protected sheet was why
+   linking failed part-way before v2.3.
+   ========================================================== */
+
+/* Circuit grid of a board: one record per row with its circuit number,
+   description, poles, connected load and the row that owns it if it is tied
+   into a multi-pole breaker. TWOBLOCK panelboards are two independent blocks
+   (odd circuits, even circuits) - a breaker may never span across them. */
+SAZ.cktGrid = function (ctx, sheetName) {
+  return SAZ.geo(ctx, sheetName).then(function (g) {
+    var first = Number(g.CKT_FIRST) || 0, last = Number(g.CKT_LAST) || 0;
+    var dc = SAZ.geoUsable(g.CKT_DESC_COL), nc = SAZ.geoUsable(g.CKT_NUM_COL) || "B";
+    var pc = SAZ.geoUsable(g.CKT_POLES_COL), kc = SAZ.geoUsable(g.CKT_KVA_COL);
+    if (!first || last < first || !dc) {
+      throw new Error("GEO_MAP on \"" + sheetName + "\" is missing circuit-grid keys" +
+        " (CKT_FIRST, CKT_LAST, CKT_DESC_COL). Run Rebuild GEO_MAP.");
+    }
+    var blocks = [{ f: first, l: last }];
+    /* Only panelboards tie the rows below a multi-pole breaker (column AN
+       continuation logic). Switchboard and MCC rows are one device each,
+       whatever the pole count, so there a breaker always fills one row. */
+    var spans = String(g.RESIZE_MODE || "").trim().toUpperCase() === "TWOBLOCK";
+    if (spans) {
+      var b1F = Number(g.CKT_BLOCK1_FIRST) || first, b1L = Number(g.CKT_BLOCK1_LAST) || last;
+      var b2F = Number(g.CKT_BLOCK2_FIRST) || 0,     b2L = Number(g.CKT_BLOCK2_LAST) || last;
+      blocks = b2F ? [{ f: b1F, l: b1L }, { f: b2F, l: b2L }] : [{ f: b1F, l: b1L }];
+    }
+    var sh = ctx.workbook.worksheets.getItem(sheetName);
+    var hdr = sh.getRange("A" + (first - 1) + ":CZ" + (first - 1));
+    var rN = sh.getRange(nc + first + ":" + nc + last);
+    var rD = sh.getRange(dc + first + ":" + dc + last);
+    var rP = pc ? sh.getRange(pc + first + ":" + pc + last) : null;
+    hdr.load("values"); rN.load("values"); rD.load("values"); if (rP) { rP.load("values"); }
+    return ctx.sync().then(function () {
+      var hc = -1;
+      hdr.values[0].forEach(function (v, j) {
+        if (hc < 0 && String(v || "").trim().toLowerCase() === "conn. kva") { hc = j; }
+      });
+      var rH = null;
+      if (hc >= 0) {
+        rH = sh.getRangeByIndexes(first - 1, hc, last - first + 1, 1);
+        rH.load("values");
+      }
+      return ctx.sync().then(function () {
+        var rows = [], byNum = {};
+        for (var i = 0; i <= last - first; i++) {
+          var p = rP ? parseInt(rP.values[i][0], 10) : 1;
+          rows.push({
+            row: first + i,
+            num: Number(rN.values[i][0]) || 0,
+            desc: String(rD.values[i][0] == null ? "" : rD.values[i][0]).trim(),
+            poles: (p >= 1 && p <= 3) ? p : 1,
+            conn: rH ? String(rH.values[i][0] == null ? "" : rH.values[i][0]).trim() : "",
+            owner: 0
+          });
+        }
+        /* multi-pole ownership, walked block by block so nothing crosses a block edge */
+        if (spans) blocks.forEach(function (b) {
+          var left = 0, own = 0;
+          for (var r = b.f; r <= b.l; r++) {
+            var rec = rows[r - first];
+            if (!rec) { continue; }
+            if (left > 0) { rec.owner = own; left--; continue; }
+            if (rec.poles > 1 && (rec.desc || rec.conn)) { own = r; left = rec.poles - 1; }
+          }
+        });
+        rows.forEach(function (rec) { if (rec.num) { byNum[rec.num] = rec; } });
+        return { name: sheetName, g: g, first: first, last: last, blocks: blocks,
+                 rows: rows, byNum: byNum, spans: spans, cols: { dc: dc, pc: pc, kc: kc } };
+      });
+    });
+  });
+};
+
+/* Is circuit 'num' (and the rows a 'poles' breaker would tie below it) free?
+   'mine' lists descriptions that count as free - the child's own current
+   circuit, so re-linking to the same slot is not refused. */
+SAZ.slotCheck = function (grid, num, poles, mine) {
+  var start = grid.byNum[num];
+  var nums = Object.keys(grid.byNum).map(Number).sort(function (a, b) { return a - b; });
+  if (!start) {
+    return { ok: false, msg: "Circuit " + num + " does not exist on " + grid.name +
+      " (circuits " + nums[0] + "-" + nums[nums.length - 1] + ")." };
+  }
+  var blk = grid.blocks.filter(function (b) { return start.row >= b.f && start.row <= b.l; })[0];
+  var span = grid.spans ? poles : 1;
+  if (!blk || start.row + span - 1 > blk.l) {
+    return { ok: false, msg: "A " + poles + "-pole breaker at circuit " + num +
+      " would run past the bottom of the schedule. Pick a lower circuit or resize " + grid.name + "." };
+  }
+  var mineL = (mine || []).map(function (s) { return String(s).toLowerCase(); });
+  var isMine = function (rec) { return rec.desc && mineL.indexOf(rec.desc.toLowerCase()) >= 0; };
+  var used = [], rowsOut = [], numsOut = [];
+  for (var k = 0; k < span; k++) {
+    var rec = grid.rows[start.row + k - grid.first];
+    rowsOut.push(rec.row); numsOut.push(rec.num);
+    if (isMine(rec)) { continue; }
+    if (rec.owner) {
+      var o = grid.rows[rec.owner - grid.first];
+      if (!isMine(o)) { used.push(rec.num + " (tied to ckt " + o.num + (o.desc ? " \"" + o.desc + "\"" : "") + ")"); }
+    } else if (rec.desc || rec.conn) {
+      used.push(rec.num + (rec.desc ? " \"" + rec.desc + "\"" : " (has load)"));
+    }
+  }
+  if (used.length) {
+    return { ok: false, msg: "Occupied on " + grid.name + ": circuit " + used.join(", ") + ". Pick another position." };
+  }
+  return { ok: true, row: start.row, poles: poles, nums: numsOut, label: numsOut.join(",") };
+};
+
+/* Lowest circuit number where a 'poles' breaker fits, or 0. */
+SAZ.firstFit = function (grid, poles, mine) {
+  var nums = Object.keys(grid.byNum).map(Number).sort(function (a, b) { return a - b; });
+  for (var i = 0; i < nums.length; i++) {
+    if (SAZ.slotCheck(grid, nums[i], poles, mine).ok) { return nums[i]; }
+  }
+  return 0;
+};
+
+/* Default breaker poles for a child from its phase count and line voltage. */
+SAZ.defaultPoles = function (ph, vll) {
+  if (Number(ph) === 1) { return (Number(vll) > 0 && Number(vll) <= 120) ? 1 : 2; }
+  return 3;
+};
+
+/* Write one circuit on the parent at a chosen row. Column mappings live here only. */
+SAZ.addParentCircuitAt = function (ctx, parentTag, descTag, kvaRef, targetRow, poles) {
+  return SAZ.geo(ctx, parentTag).then(function (g) {
+    var sheet = ctx.workbook.worksheets.getItem(parentTag);
+    return SAZ.withUnprotected(ctx, sheet, function () {
+      var put = function (key, val, isFormula) {
+        var col = SAZ.geoUsable(g[key]);
+        if (!col) { return; }
+        var rg = sheet.getRange(col + targetRow);
+        if (isFormula) { rg.formulas = [[val]]; } else { rg.values = [[val]]; }
+      };
+      put("CKT_DESC_COL",  descTag, false);
+      put("CKT_KVA_COL",   kvaRef,  true);
+      put("CKT_QTY_COL",   1,       false);
+      put("CKT_POLES_COL", poles || 3, false);
+      put("CKT_CLASS_COL", "Panel", false);
+      return ctx.sync().then(function () { return targetRow; });
+    });
+  });
+};
+
+/* Remove a child's existing circuit(s) from a parent before it is re-linked,
+   so a move never leaves a stale feeder behind. Blanks by writing "" (the
+   description cells are merged; Range.clear() throws on them). */
+SAZ.clearParentCircuit = function (ctx, parentTag, descs) {
+  var want = descs.map(function (s) { return String(s).toLowerCase(); });
+  return SAZ.cktGrid(ctx, parentTag).then(function (grid) {
+    var hits = grid.rows.filter(function (r) { return r.desc && want.indexOf(r.desc.toLowerCase()) >= 0; });
+    if (!hits.length) { return 0; }
+    var sheet = ctx.workbook.worksheets.getItem(parentTag);
+    return SAZ.withUnprotected(ctx, sheet, function () {
+      hits.forEach(function (h) {
+        sheet.getRange(grid.cols.dc + h.row).values = [[""]];
+        if (grid.cols.kc) { sheet.getRange(grid.cols.kc + h.row).values = [[""]]; }
+        if (grid.cols.pc) { sheet.getRange(grid.cols.pc + h.row).values = [[""]]; }
+      });
+      return ctx.sync().then(function () { return hits.length; });
+    });
+  });
+};
+
+/* Registry rows as simple records. */
+SAZ.registryRecords = function (ctx) {
+  return SAZ.registryRange(ctx).then(function (rg) {
+    rg.load("values");
+    return ctx.sync().then(function () {
+      var out = [];
+      rg.values.forEach(function (r, i) {
+        var t = String(r[0] == null ? "" : r[0]).trim();
+        if (t) { out.push({ tag: t, type: String(r[1] || ""), fed: String(r[3] || "").trim(),
+                            ft: String(r[8] || "").trim(), ckt: String(r[9] || "").trim(), at: i }); }
+      });
+      return out;
+    });
+  });
+};
+
+/* Stamp Fed From (D), Feed Type (I, only if blank) and Feeder Ckt / Space (J). */
+SAZ.updateRegistryLink = function (ctx, childTag, parentTag, cktLabel) {
+  return SAZ.registryRange(ctx).then(function (rg) {
+    rg.load("values,rowIndex,columnIndex,worksheet/name");
+    return ctx.sync().then(function () {
+      for (var i = 0; i < rg.values.length; i++) {
+        if (String(rg.values[i][0] || "").toLowerCase() === childTag.toLowerCase()) {
+          var sheet = ctx.workbook.worksheets.getItem(rg.worksheet.name);
+          var at = i, ftBlank = String(rg.values[i][8] || "").trim() === "";
+          return SAZ.withUnprotected(ctx, sheet, function () {
+            sheet.getRangeByIndexes(rg.rowIndex + at, rg.columnIndex + 3, 1, 1).values = [[parentTag]];
+            if (ftBlank) { sheet.getRangeByIndexes(rg.rowIndex + at, rg.columnIndex + 8, 1, 1).values = [["Sub-Feed"]]; }
+            sheet.getRangeByIndexes(rg.rowIndex + at, rg.columnIndex + 9, 1, 1).values = [[cktLabel || ""]];
+            return ctx.sync().then(function () { return true; });
+          });
+        }
+      }
+      return false;
+    });
+  });
+};
+
+/* The child's Fed From cell: GEO key FEDFROM_CELL if a template defines one,
+   otherwise the cell directly below NAME_CELL (D5 -> D6 on all three templates). */
+SAZ.fedFromCell = function (g) {
+  var k = SAZ.geoUsable(g.FEDFROM_CELL);
+  if (k) { return k; }
+  var m = /^([A-Z]+)([0-9]+)$/i.exec(SAZ.geoUsable(g.NAME_CELL));
+  return m ? m[1] + (Number(m[2]) + 1) : "";
+};
+
+/* Link a child board to a parent at a slot { row, poles, label }.
+   slot may also be a bare row number (legacy callers) or omitted (first fit).
+   If parent and child line voltages differ by more than the tolerance, the
+   Transformers schedule derives a T-<child> row from the registry on its own;
+   this command reveals that schedule if it is put away, finds the row by tag
+   and points the child's source fault at its secondary. Every cross-sheet
+   value is a LIVE LINK, never a copied number. */
+SAZ.linkEquipment = function (ctx, parentTag, childTag, slot) {
   if (parentTag.toLowerCase() === childTag.toLowerCase()) {
-    return SAZ.notify("Cannot feed itself",
-      "\"" + parentTag + "\" cannot feed itself.");
+    return SAZ.notify("Cannot feed itself", "\"" + parentTag + "\" cannot feed itself.");
   }
   var sheets = ctx.workbook.worksheets;
-  sheets.load("items/name");
+  sheets.load("items/name,items/visibility");
   return ctx.sync().then(function () {
     var byName = function (t) {
-      return sheets.items.filter(function (s) {
-        return s.name.toLowerCase() === t.toLowerCase();
-      })[0];
+      return sheets.items.filter(function (s) { return s.name.toLowerCase() === t.toLowerCase(); })[0];
     };
     var p = byName(parentTag), c = byName(childTag);
     if (!p) { return SAZ.notify("Parent not found", "No sheet named \"" + parentTag + "\"."); }
     if (!c) { return SAZ.notify("Child not found",  "No sheet named \"" + childTag + "\"."); }
     var P = p.name, C = c.name;
-    return Promise.all([ SAZ.geo(ctx, P), SAZ.geo(ctx, C) ]).then(function (gs) {
-      var gp = gs[0], gc = gs[1];
+    var gs = [];
+    return SAZ.geo(ctx, P).then(function (x) { gs[0] = x; return SAZ.geo(ctx, C); })
+    .then(function (x) { gs[1] = x; return SAZ.registryRecords(ctx); })
+    .then(function (x) {
+      gs[2] = x;
+      var gp = gs[0], gc = gs[1], reg = gs[2];
       var childDemand = SAZ.geoUsable(gc.DEMAND_CELL);
       var childSrc    = SAZ.geoUsable(gc.SRCFAULT_CELL);
       var parentBus   = SAZ.geoUsable(gp.BUSFAULT_CELL);
+      var fedCell     = SAZ.fedFromCell(gc);
       if (!childDemand || !childSrc || !parentBus) {
         throw new Error("GEO_MAP incomplete: need DEMAND_CELL and SRCFAULT_CELL on \"" +
           C + "\" and BUSFAULT_CELL on \"" + P + "\".");
       }
       var demandRef = SAZ.sheetRef(C, childDemand);
-      return Promise.all([
-        SAZ.geoCellValue(ctx, P, "ENG_VLL_CELL"),
-        SAZ.geoCellValue(ctx, C, "ENG_VLL_CELL"),
-        SAZ.geoCellValue(ctx, C, "ENG_PH_CELL")
-      ]).then(function (vals) {
+      var mine = [C, "T-" + C];
+      var regC = reg.filter(function (r) { return r.tag.toLowerCase() === C.toLowerCase(); })[0];
+      var oldP = regC ? regC.fed : "";
+      if (oldP === "(unassigned)") { oldP = ""; }
+      var vals = [];
+      return SAZ.geoCellValue(ctx, P, "ENG_VLL_CELL").then(function (x) { vals[0] = x; return SAZ.geoCellValue(ctx, C, "ENG_VLL_CELL"); })
+      .then(function (x) { vals[1] = x; return SAZ.geoCellValue(ctx, C, "ENG_PH_CELL"); })
+      .then(function (x) {
+        vals[2] = x;
         var pV = vals[0] || 0, cV = vals[1] || 0, cPh = vals[2] || 0;
+        if (!pV || !cV) {
+          throw new Error("Set the System Voltage on " + (!pV ? "\"" + P + "\"" : "\"" + C + "\"") +
+            " first - the link needs both voltages to decide whether a transformer is required.");
+        }
         var needsTx = Math.abs(pV - cV) > SAZ.VOLT_MATCH_TOLERANCE;
+        var desc = needsTx ? "T-" + C : C;
         var childSheet = ctx.workbook.worksheets.getItem(C);
-        var place = function (desc) {
-          return (targetRow)
-            ? SAZ.addParentCircuitAt(ctx, P, desc, demandRef, targetRow)
-            : SAZ.addParentCircuit(ctx, P, desc, demandRef);
-        };
-        if (!needsTx) {
-          childSheet.getRange(childSrc).formulas = [[ SAZ.sheetRef(P, parentBus) ]];
-          return ctx.sync()
-            .then(function () { return place(C); })
-            .then(function (row) {
-              return SAZ.updateRegistryFedFrom(ctx, C, P).then(function () {
-                return SAZ.notify("Linked",
-                  C + " linked to " + P + " at the same voltage (row " + row + ").");
+
+        /* resolve the slot: explicit, legacy row, or first fit */
+        var resolveSlot = SAZ.cktGrid(ctx, P).then(function (grid) {
+          var poles = (slot && slot.poles) || SAZ.defaultPoles(cPh, cV);
+          if (slot && slot.row) {
+            var rec = grid.rows[slot.row - grid.first];
+            var chk = rec ? SAZ.slotCheck(grid, rec.num, poles, mine) : { ok: false, msg: "Row " + slot.row + " is not a circuit row." };
+            if (!chk.ok) { throw new Error(chk.msg); }
+            return chk;
+          }
+          if (typeof slot === "number") {
+            var rec2 = grid.rows[slot - grid.first];
+            var chk2 = rec2 ? SAZ.slotCheck(grid, rec2.num, poles, mine) : { ok: false, msg: "Row " + slot + " is not a circuit row." };
+            if (!chk2.ok) { throw new Error(chk2.msg); }
+            return chk2;
+          }
+          var n = SAZ.firstFit(grid, poles, mine);
+          if (!n) { throw new Error("No open " + poles + "-pole position on \"" + P + "\". Resize the panel first."); }
+          return SAZ.slotCheck(grid, n, poles, mine);
+        });
+
+        return resolveSlot.then(function (s) {
+          /* free the child's previous circuit wherever it was (old parent, or the same parent) */
+          var clearOld = oldP ? (byName(oldP) ? SAZ.clearParentCircuit(ctx, byName(oldP).name, mine) : Promise.resolve(0))
+                              : SAZ.clearParentCircuit(ctx, P, mine);
+          return clearOld.then(function (cleared) {
+            var txReady = Promise.resolve(0);
+            if (needsTx) {
+              var tx = byName(SAZ.TX_SHEET);
+              if (!tx) {
+                throw new Error("\"" + P + "\" is " + pV + "V and \"" + C + "\" is " + cV +
+                  "V, so a transformer is required, but this workbook has no " + SAZ.TX_SHEET +
+                  " schedule to put it on. Run New Project to bring in the full scaffold.");
+              }
+              if (tx.visibility !== Excel.SheetVisibility.visible) {
+                tx.visibility = Excel.SheetVisibility.visible;   /* deploy the schedule; do not move the user */
+              }
+              txReady = SAZ.updateRegistryLink(ctx, C, P, s.label).then(function () {
+                ctx.workbook.application.calculate(Excel.CalculationType.full);
+                return ctx.sync();
+              }).then(function () { return SAZ.txRowForTag(ctx, "T-" + C); }).then(function (tr) {
+                if (!tr) {
+                  throw new Error("\"" + C + "\" is " + cV + "V under \"" + P + "\" at " + pV +
+                    "V, but no transformer row appeared on " + SAZ.TX_SHEET +
+                    ". The usual cause is a registry voltage string the config list does " +
+                    "not recognise - see the check at " + SAZ.TX_SHEET + "!BS2.");
+                }
+                return tr;
+              });
+            }
+            return txReady.then(function (tr) {
+              var srcF = needsTx
+                ? "='" + SAZ.TX_SHEET.replace(/'/g, "''") + "'!$T$" + tr    /* T = Sec Fault Sym (A) */
+                : SAZ.sheetRef(P, parentBus);
+              return SAZ.withUnprotected(ctx, childSheet, function () {
+                childSheet.getRange(childSrc).formulas = [[ srcF ]];
+                if (fedCell) { childSheet.getRange(fedCell).values = [[ needsTx ? P + " via T-" + C : P ]]; }
+                return ctx.sync();
+              }).then(function () {
+                return SAZ.addParentCircuitAt(ctx, P, desc, demandRef, s.row, s.poles);
+              }).then(function () {
+                return needsTx ? true : SAZ.updateRegistryLink(ctx, C, P, s.label);
+              }).then(function () {
+                var moved = cleared ? "\n\nPrevious circuit on " + (oldP || P) + " cleared." : "";
+                if (!needsTx) {
+                  return SAZ.notify("Linked",
+                    C + " linked to " + P + " at circuit " + s.label + " (" + s.poles + "-pole), same voltage." + moved);
+                }
+                return SAZ.notify("Linked via transformer",
+                  C + " (" + cV + "V) linked to " + P + " (" + pV + "V) at circuit " + s.label +
+                  " (" + s.poles + "-pole).\n\nTransformer T-" + C + " was added to the " + SAZ.TX_SHEET +
+                  " schedule (row " + tr + ") and the Panel Tree. Set %Z on that row if the Xfmr_DefZ " +
+                  "default is not right for this unit." + moved);
               });
             });
-        }
-        /* Voltages differ, so a transformer is required.
-
-           DO NOT create one here. The Transformers schedule is SELF-DERIVING:
-           BL4 spills one row per registry edge where the voltage changes, and
-           columns A-F of every data row read that spill through
-           INDEX($BL$4#,ROW()-5,n). Only R, S, T and U are inputs. The VBA
-           appended a row by hand and this port copied it, which would have
-           overwritten six derived formulas on the very row detection wants to
-           use. This is the same rule already honoured for Short Circuit and
-           Voltage Drop - registry-fed sheets are READ ONLY to handlers.
-
-           So: update the registry, let the sheet derive the row, find it by
-           tag, and point the child source fault at its secondary. */
-        if (!sheets.items.some(function (s) { return s.name === SAZ.TX_SHEET; })) {
-          throw new Error("\"" + P + "\" is " + pV + "V and \"" + C + "\" is " + cV +
-            "V, so a transformer is required, but there is no " + SAZ.TX_SHEET +
-            " sheet. Create it first with New Transformers.");
-        }
-        return SAZ.updateRegistryFedFrom(ctx, C, P).then(function () {
-          ctx.workbook.application.calculate(Excel.CalculationType.full);
-          return ctx.sync();
-        }).then(function () {
-          return SAZ.txRowForTag(ctx, "T-" + C);
-        }).then(function (tr) {
-          if (!tr) {
-            throw new Error("\"" + C + "\" is " + cV + "V under \"" + P + "\" at " +
-              pV + "V, but no transformer row appeared on " + SAZ.TX_SHEET +
-              ". The usual cause is a registry voltage string the config list does " +
-              "not recognise - see the check at " + SAZ.TX_SHEET + "!BS2.");
-          }
-          childSheet.getRange(childSrc).formulas =
-            [[ "='" + SAZ.TX_SHEET.replace(/'/g, "''") + "'!$T$" + tr ]];   /* T = Sec Fault Sym (A) on the printed schedule */
-          return ctx.sync()
-            .then(function () { return place("T-" + C); })
-            .then(function (row) {
-              return SAZ.notify("Linked via transformer",
-                C + " (" + cV + "V) linked to " + P + " (" + pV + "V).\n\n" +
-                SAZ.TX_SHEET + " row " + tr + " was derived automatically from the " +
-                "registry - this command did not write it. Parent circuit at row " +
-                row + ".\n\nIf the default impedance from Xfmr_DefZ is not right for " +
-                "this unit, set %Z in column T on that row.");
-            });
+          });
         });
       });
     });
   });
 };
 
-
-/* Link Equipment: prompts for both tags, takes the first open circuit. */
-SAZ.uiLink = function (ctx) {
-  return SAZ.prompt("Link Equipment", "PARENT tag (the upstream board)", "", true)
-    .then(function (a) {
-      if (!a.ok) { return null; }
-      var parentTag = SAZ.sanitise(a.value);
-      if (!parentTag) { return SAZ.notify("Invalid tag", "No usable characters."); }
-      return SAZ.prompt("Link Equipment", "CHILD tag (fed from " + parentTag + ")", "", true)
-        .then(function (b) {
-          if (!b.ok) { return null; }
-          var childTag = SAZ.sanitise(b.value);
-          if (!childTag) { return SAZ.notify("Invalid tag", "No usable characters."); }
-          return SAZ.linkEquipment(ctx, parentTag, childTag);
-        });
-    });
+/* Slot dialog: circuit number + poles, pre-filled with the first open
+   position. Re-opens with the reason when the chosen slot is occupied. */
+SAZ.uiPickSlot = function (ctx, P, C, wantNum, wantPoles, err) {
+  var r = [];
+  return SAZ.cktGrid(ctx, P).then(function (g) { r[0] = g; return SAZ.geoCellValue(ctx, C, "ENG_PH_CELL"); })
+  .then(function (v) { r[1] = v; return SAZ.geoCellValue(ctx, C, "ENG_VLL_CELL"); })
+  .then(function (v) { r[2] = v;
+    var grid = r[0], mine = [C, "T-" + C];
+    var poles = Number(wantPoles) || SAZ.defaultPoles(r[1], r[2]);
+    var nums = Object.keys(grid.byNum).map(Number).sort(function (a, b) { return a - b; });
+    var fit = SAZ.firstFit(grid, poles, mine);
+    var num = Number(wantNum) || fit || nums[0];
+    return SAZ.form("Link " + C + " \u2192 " + P,
+      C + " will be fed from " + P + " (" + nums.length + " circuits).",
+      [ { id: "ckt", label: "Circuit position on " + P, type: "number", value: String(num),
+          min: nums[0], max: nums[nums.length - 1], required: true,
+          hint: fit ? "First open slot for a " + poles + "-pole breaker: " + fit + "." : "No open " + poles + "-pole slot - resize " + P + " first." },
+        { id: "poles", label: "Breaker poles", type: "select", options: ["1", "2", "3"], value: String(poles), required: true } ],
+      err || "", 62).then(function (ans) {
+        if (!ans.ok) { return null; }
+        var n = parseInt(ans.values.ckt, 10), pl = parseInt(ans.values.poles, 10) || poles;
+        var chk = SAZ.slotCheck(grid, n, pl, mine);
+        if (!chk.ok) { return SAZ.uiPickSlot(ctx, P, C, n, pl, chk.msg); }
+        return SAZ.linkEquipment(ctx, P, C, chk);
+      });
+  });
 };
 
-/* Sub-Feed: run FROM the parent with a circuit row selected. The chosen row
-   is used instead of the first open one. Confirms before overwriting a row
-   that already has a description. */
+/* Link Equipment: pick parent and child (type-ahead from the registry), then
+   the circuit position. The active sheet pre-fills the parent when it is a board. */
+SAZ.uiLink = function (ctx, presetParent, presetNum, err) {
+  var active = ctx.workbook.worksheets.getActiveWorksheet();
+  active.load("name");
+  return ctx.sync().then(function () { return SAZ.registryRecords(ctx); }).then(function (reg) {
+    var tags = reg.map(function (x) { return x.tag; }).slice(0, 150);
+    var isBoard = function (t) { return tags.some(function (x) { return x.toLowerCase() === String(t).toLowerCase(); }); };
+    var pDefault = presetParent || (isBoard(active.name) ? active.name : "");
+    return SAZ.form("Link Equipment", "Pick the upstream board and the board it feeds.",
+      [ { id: "parent", label: "PARENT (upstream board)", type: "text", value: pDefault, list: tags, required: true },
+        { id: "child",  label: "CHILD (fed from the parent)", type: "text", value: "", list: tags, required: true } ],
+      err || "", 58).then(function (ans) {
+        if (!ans.ok) { return null; }
+        var P = SAZ.sanitise(ans.values.parent), C = SAZ.sanitise(ans.values.child);
+        if (!P || !C) { return SAZ.uiLink(ctx, P, presetNum, "Both tags are required."); }
+        if (P.toLowerCase() === C.toLowerCase()) { return SAZ.uiLink(ctx, P, presetNum, "A board cannot feed itself."); }
+        if (!isBoard(P)) { return SAZ.uiLink(ctx, "", presetNum, "\"" + P + "\" is not in the equipment registry."); }
+        if (!isBoard(C)) { return SAZ.uiLink(ctx, P, presetNum, "\"" + C + "\" is not in the equipment registry."); }
+        var canon = function (t) { return tags.filter(function (x) { return x.toLowerCase() === t.toLowerCase(); })[0]; };
+        return SAZ.uiPickSlot(ctx, canon(P), canon(C), presetNum, 0, "");
+      });
+  });
+};
+
+/* Sub-Feed: run FROM the parent with a circuit row selected - same dialogs,
+   pre-filled with this board and the selected circuit number. */
 SAZ.uiSubFeed = function (ctx) {
   var active = ctx.workbook.worksheets.getActiveWorksheet();
   active.load("name");
@@ -1616,37 +2132,13 @@ SAZ.uiSubFeed = function (ctx) {
   return ctx.sync().then(function () {
     var parentTag = active.name;
     var row = sel.rowIndex + 1;
-    return SAZ.geo(ctx, parentTag).then(function (g) {
-      var first = Number(g.CKT_FIRST) || 0;
-      var lastR = Number(g.CKT_LAST) || 0;
-      var dc = SAZ.geoUsable(g.CKT_DESC_COL);
-      if (!first || !dc) {
-        return SAZ.notify("Not an equipment sheet",
-          "\"" + parentTag + "\" has no circuit grid in its GEO_MAP." +
-          " Run Sub-Feed from a panelboard, switchboard or MCC.");
-      }
-      if (row < first || row > lastR) {
-        return SAZ.notify("Select a circuit row",
-          "Click a cell in the schedule grid (rows " + first + "-" + lastR +
-          ") to pick the slot, then run Sub-Feed. You selected row " + row + ".");
-      }
-      var descCell = ctx.workbook.worksheets.getItem(parentTag).getRange(dc + row);
-      descCell.load("values");
-      return ctx.sync().then(function () {
-        var occupied = String(descCell.values[0][0] || "").trim() !== "";
-        var ask = occupied
-          ? SAZ.prompt("Row " + row + " is not empty",
-              "Row " + row + " currently reads \"" + descCell.values[0][0] +
-              "\". Type the child tag to overwrite it, or cancel", "", true)
-          : SAZ.prompt("Sub-Feed", "Child board to sub-feed from " + parentTag +
-              " at row " + row, "", true);
-        return ask.then(function (ans) {
-          if (!ans.ok) { return null; }
-          var childTag = SAZ.sanitise(ans.value);
-          if (!childTag) { return SAZ.notify("Invalid tag", "No usable characters."); }
-          return SAZ.linkEquipment(ctx, parentTag, childTag, row);
-        });
-      });
+    return SAZ.cktGrid(ctx, parentTag).then(function (grid) {
+      var rec = grid.rows[row - grid.first];
+      return SAZ.uiLink(ctx, parentTag, rec ? rec.num : 0, "");
+    }, function () {
+      return SAZ.notify("Not an equipment sheet",
+        "\"" + parentTag + "\" has no circuit grid in its GEO_MAP." +
+        " Run Sub-Feed from a panelboard, switchboard or MCC.");
     });
   });
 };
@@ -1912,6 +2404,98 @@ SAZ.setBlockRows = function (ctx, sheetName, firstRow, lastRowIn, wantRows, pole
   });
 };
 
+/* Re-draw the circuit-grid row lines after any resize (all TPL_ layouts).
+   Panelboards: the odd/even seam is a Medium bottom border on the LAST ODD row;
+   shrinking deletes that row and growing clones it onto every new row.
+   Switchboards / MCCs: shrinking drops the closing line under the dashboard.
+   So the lines are rebuilt from the final geometry: every grid row gets its
+   normal inner line, the seam row (TWOBLOCK only) gets Medium, the last row
+   closes the grid in Thin. Spans come from GEO_MAP so any layout works: the
+   circuit entry dashboard is the 9 class columns ending at CKT_KVA_COL and the
+   schedule runs from B to two columns left of it (one gutter column). The inner
+   weight is read from the sheet's own first grid row (panelboard dashboard =
+   Hairline, everything else Thin). Must run inside withUnprotected. */
+SAZ.gridColNum = function (L) {
+  var n = 0;
+  String(L).toUpperCase().replace(/[^A-Z]/g, "").split("").forEach(function (ch) { n = n * 26 + ch.charCodeAt(0) - 64; });
+  return n;
+};
+SAZ.gridColLet = function (n) {
+  var s = "";
+  while (n > 0) { var m = (n - 1) % 26; s = String.fromCharCode(65 + m) + s; n = Math.floor((n - 1) / 26); }
+  return s;
+};
+SAZ.gridSpans = function (g) {
+  var kva = SAZ.gridColNum(SAZ.geoUsable(g.CKT_KVA_COL) || "W"), d1 = kva - 8;
+  return [ { first: "B", last: SAZ.gridColLet(d1 - 2) },            /* circuit schedule */
+           { first: SAZ.gridColLet(d1), last: SAZ.gridColLet(kva) } ]; /* circuit entry dashboard */
+};
+SAZ.restampGrid = function (ctx, sheetName, g, firstRow, seamRow, lastRow) {
+  var sheet = ctx.workbook.worksheets.getItem(sheetName), spans = SAZ.gridSpans(g);
+  var probes = spans.map(function (sp) {
+    var b = sheet.getRange(sp.first + firstRow).format.borders.getItem("EdgeBottom");
+    b.load("style,weight");
+    return b;
+  });
+  var setB = function (rg, edge, weight) {
+    var b = rg.format.borders.getItem(edge);
+    b.style = "Continuous"; b.weight = weight; b.color = "#000000";
+  };
+  return ctx.sync().then(function () {
+    spans.forEach(function (sp, i) {
+      var p = probes[i], inner = "Thin";
+      if (p.style === "Continuous" && p.weight !== "Medium" && firstRow !== seamRow && firstRow !== lastRow) { inner = p.weight; }
+      var span = function (r1, r2) { return sheet.getRange(sp.first + r1 + ":" + sp.last + r2); };
+      if (lastRow > firstRow) { setB(span(firstRow, lastRow), "InsideHorizontal", inner); }
+      setB(span(lastRow, lastRow), "EdgeBottom", "Thin");
+      if (seamRow && seamRow >= firstRow && seamRow < lastRow) { setB(span(seamRow, seamRow), "EdgeBottom", "Medium"); }
+    });
+    return ctx.sync();
+  });
+};
+
+/* Grid totals (load summary K6:K14 / H14:H16, engine VD / phase cells) are
+   absolute ranges that start on the first circuit row, e.g. SUM($O$28:$O$47).
+   Growing inserts rows BELOW the last circuit row, which Excel does not fold
+   into those ranges - the new circuits silently dropped out of every total and
+   the demand that feeds the feeder sizing. After every resize, any absolute
+   range anywhere on the sheet that starts on the first circuit row is repointed
+   to end on the last one. Runs every resize, so panels grown earlier heal too. */
+SAZ.healGridTotals = function (ctx, sheetName, firstRow, lastRow) {
+  var sheet = ctx.workbook.worksheets.getItem(sheetName), used = sheet.getUsedRange();
+  used.load("formulas,rowIndex");
+  return ctx.sync().then(function () {
+    var re = new RegExp("\\$([A-Z]{1,3})\\$" + firstRow + ":\\$([A-Z]{1,3})\\$(\\d+)(?![0-9])", "g"), fixed = 0;
+    used.formulas.forEach(function (row, i) {
+      /* no row skip: the engine cells (AQ / BH) sit beside the grid rows */
+      row.forEach(function (f, j) {
+        if (typeof f !== "string" || f.charAt(0) !== "=") { return; }
+        var nf = f.replace(re, function (m, c1, c2) { return "$" + c1 + "$" + firstRow + ":$" + c2 + "$" + lastRow; });
+        if (nf !== f) { used.getCell(i, j).formulas = [[nf]]; fixed++; }
+      });
+    });
+    return ctx.sync().then(function () { return fixed; });
+  });
+};
+
+
+/* Multi-pole tie flag (column AN, 1 = this row is the 2nd/3rd pole of the breaker
+   above). Row n checks n-1 for >=2 poles and n-2 for 3 poles. The SECOND row of
+   each block must check only the row above: the old template's ckt-4 row looked
+   two rows up into the last ODD row, so a shrink (which deletes that row) left
+   #REF! cascading down the even block, and a 3-pole at the last odd ckt wrongly
+   tied ckt 4. Rewritten on every TWOBLOCK resize so older panels self-heal. */
+SAZ.PNL_TIE_COL = "AN";
+SAZ.healPanelTies = function (ctx, sheetName, b1F, b2F, perBlock, polesCol) {
+  if (!polesCol || polesCol === "-" || perBlock < 2) { return Promise.resolve(); }
+  var sheet = ctx.workbook.worksheets.getItem(sheetName), tc = SAZ.PNL_TIE_COL;
+  [b1F, b2F].forEach(function (top) {
+    sheet.getRange(tc + top).values = [[0]];
+    sheet.getRange(tc + (top + 1)).formulas = [[
+      "=IF(AND($" + polesCol + top + ">=2,$" + tc + top + "=0),1,0)" ]];
+  });
+  return ctx.sync();
+};
 
 /* Resize a panel to a target space count, then self-heal GEO_MAP.
    TWOBLOCK (panelboards) keeps both blocks the SAME size - odd circuits above,
@@ -1971,9 +2555,10 @@ SAZ.resizePanel = function (ctx, tag, spaces) {
                   BLOCK_SIZE: String(newBlk),
                   CKT_BLOCK1_FIRST: String(b1F), CKT_BLOCK1_LAST: String(n1L),
                   CKT_BLOCK2_FIRST: String(n2F), CKT_BLOCK2_LAST: String(n2L),
-                  CKT_LAST: String(n2L)
+                  CKT_LAST: String(n2L),
+                  VD_RANGE: (SAZ.geoUsable(g.VD_COL) || "K") + b1F + ":" + (SAZ.geoUsable(g.VD_COL) || "K") + n2L
                 });
-              }).then(function () { return { mode: "TWOBLOCK", perBlock: newBlk, cktLast: n2L }; });
+              }).then(function () { return SAZ.healPanelTies(ctx, name, b1F, n2F, newBlk, pc); }).then(function () { return SAZ.restampGrid(ctx, name, g, b1F, n1L, n2L); }).then(function () { return SAZ.healGridTotals(ctx, name, b1F, n2L); }).then(function () { return { mode: "TWOBLOCK", perBlock: newBlk, cktLast: n2L }; });
             });
           }
           /* single contiguous block - CKT = 1,2,3... */
@@ -1991,9 +2576,11 @@ SAZ.resizePanel = function (ctx, tag, spaces) {
             }).then(function () {
               return SAZ.geoSetMany(ctx, name, {
                 BLOCK_SIZE: String(lastRow - ckt1 + 1),
-                CKT_LAST:   String(lastRow)
+                CKT_LAST:   String(lastRow),
+                CKT_BLOCK1_FIRST: String(ckt1), CKT_BLOCK1_LAST: String(lastRow),
+                VD_RANGE: (SAZ.geoUsable(g.VD_COL) || "K") + ckt1 + ":" + (SAZ.geoUsable(g.VD_COL) || "K") + lastRow
               });
-            }).then(function () { return { mode: "SINGLE", cktLast: lastRow }; });
+            }).then(function () { return SAZ.restampGrid(ctx, name, g, ckt1, 0, lastRow); }).then(function () { return SAZ.healGridTotals(ctx, name, ckt1, lastRow); }).then(function () { return { mode: "SINGLE", cktLast: lastRow }; });
           }).then(function (res) {
             /* row moves invalidate every anchored address - heal before reprotecting */
             return SAZ.rebuildGeoMap(ctx, name).then(function (rb) {
@@ -2002,6 +2589,222 @@ SAZ.resizePanel = function (ctx, tag, spaces) {
           });
         });
     });
+  });
+};
+
+/* ==========================================================
+   RENAME EQUIPMENT  (v2.4)  -  IDENTICAL COPY in commands.js and taskpane.js.
+   Edit both together.
+   Renames a board everywhere its tag is stored as TEXT. Formula links (registry
+   Voltage / Demand kVA, parent circuit kVA, feed-through links) follow the tab
+   automatically when it is renamed; the text copies do not, so they are
+   rewritten here:
+     - the sheet tab and the schedule's own name cell (GEO NAME_CELL, locked)
+     - the equipment registry: Tag, Fed From and Sheet columns
+     - every other schedule: circuit descriptions, feed-through descriptions and
+       the Fed From cell, including the "T-TAG" and "P via T-TAG" forms
+   Registry row ORDER is unchanged, so study rows keep their typed inputs.
+   Resolves to { from, to, sheetRenamed, cells }.
+   ========================================================== */
+var SAZ_RENAME = (function () {
+  var OPTS = {
+    allowAutoFilter: false, allowDeleteColumns: false, allowDeleteRows: false,
+    allowEditObjects: false, allowEditScenarios: false, allowFormatCells: false,
+    allowFormatColumns: false, allowFormatRows: false, allowInsertColumns: false,
+    allowInsertHyperlinks: false, allowInsertRows: false, allowPivotTables: false,
+    allowSort: false, selectionMode: "Normal"
+  };
+  var REG_NAME = "Equip_Registry", REG_SHEET = "Dashboard", REG_RANGE = "A100:J349";
+  var C_TAG = 0, C_FED = 3, C_SHEET = 6;
+
+  function esc(s) { return String(s).replace(/[.*+?^${}()|[\]\\]/g, "\\$&"); }
+  function tokenRe(t) { return new RegExp("(^|[\\s(,]|T-)" + esc(t) + "(?=$|[\\s),])", "gi"); }
+  function swap(text, oldT, newT) {
+    var s = String(text == null ? "" : text);
+    if (!s || !tokenRe(oldT).test(s)) { return null; }
+    return s.replace(tokenRe(oldT), function (m, pre) { return pre + newT; });
+  }
+  function clean(raw) {
+    return String(raw || "").replace(/[:\\\/\?\*\[\]]/g, "").trim().substring(0, 31);
+  }
+  function check(oldT, newT, names) {
+    if (!newT) { return "The new tag contains no usable characters."; }
+    if (/^'|'$/.test(newT)) { return "A tag cannot start or end with an apostrophe."; }
+    if (newT.toLowerCase() === "history") { return "\"History\" is reserved by Excel."; }
+    if (newT === oldT) { return "The new tag is the same as the current one."; }
+    var clash = names.filter(function (n) {
+      return n.toLowerCase() === newT.toLowerCase() && n.toLowerCase() !== oldT.toLowerCase();
+    })[0];
+    if (clash) { return "\"" + clash + "\" is already in use. Pick another tag."; }
+    return "";
+  }
+  function letters(a) { var m = /^\$?([A-Z]+)\$?(\d+)$/i.exec(String(a || "")); return m ? [m[1].toUpperCase(), Number(m[2])] : null; }
+  function usable(v) { var s = String(v == null ? "" : v).trim(); return (s && s !== "-") ? s : ""; }
+
+  function withUnprot(ctx, sheet, fn) {
+    sheet.protection.load("protected");
+    return ctx.sync().then(function () {
+      var was = sheet.protection.protected;
+      var re = function () { if (!was) { return Promise.resolve(); } sheet.protection.protect(OPTS); return ctx.sync(); };
+      if (was) { sheet.protection.unprotect(); }
+      return ctx.sync().then(fn).then(function (o) { return re().then(function () { return o; }); },
+        function (e) { return re().then(function () { throw e; }, function () { throw e; }); });
+    });
+  }
+
+  function registry(ctx) {
+    var n = ctx.workbook.names.getItemOrNullObject(REG_NAME);
+    n.load("isNullObject");
+    return ctx.sync().then(function () {
+      var sh = ctx.workbook.worksheets.getItemOrNullObject(REG_SHEET);
+      sh.load("isNullObject");
+      return ctx.sync().then(function () {
+        if (!n.isNullObject) { return n.getRange(); }
+        return sh.isNullObject ? null : sh.getRange(REG_RANGE);
+      });
+    });
+  }
+
+  function run(ctx, oldRaw, newRaw) {
+    var oldT = String(oldRaw || "").trim(), newT = clean(newRaw);
+    var sheets = ctx.workbook.worksheets;
+    sheets.load("items/name");
+    return ctx.sync().then(function () {
+      var names = sheets.items.map(function (s) { return s.name; });
+      return registry(ctx).then(function (reg) {
+        if (reg) { reg.load("values,rowIndex,columnIndex,worksheet/name"); }
+        return ctx.sync().then(function () {
+          var regTags = reg ? reg.values.map(function (r) { return String(r[C_TAG] || "").trim(); }).filter(Boolean) : [];
+          var target = sheets.items.filter(function (s) { return s.name.toLowerCase() === oldT.toLowerCase(); })[0];
+          var inReg = regTags.some(function (t) { return t.toLowerCase() === oldT.toLowerCase(); });
+          if (!target && !inReg) { throw new Error("\"" + oldT + "\" is not a schedule sheet or a registry tag."); }
+          if (target) { oldT = target.name; }
+          var err = check(oldT, newT, names.concat(regTags));
+          if (err) { throw new Error(err); }
+
+          /* sheet-scoped GEO_MAP on every sheet = the set of schedules */
+          var geoNames = sheets.items.map(function (s) {
+            var nm = s.names.getItemOrNullObject("GEO_MAP"); nm.load("isNullObject"); return nm;
+          });
+          return ctx.sync().then(function () {
+            var geoRanges = geoNames.map(function (nm) {
+              if (nm.isNullObject) { return null; }
+              var r = nm.getRange(); r.load("values"); return r;
+            });
+            return ctx.sync().then(function () {
+              var boards = [];
+              geoRanges.forEach(function (r, i) {
+                if (!r) { return; }
+                var g = {};
+                r.values.forEach(function (row) { var k = String(row[0] || "").trim(); if (k && k !== "GEO_MAP") { g[k] = row[1]; } });
+                boards.push({ sheet: sheets.items[i], name: sheets.items[i].name, g: g });
+              });
+
+              /* 1. rename the tab first - formula links follow it */
+              var renamed = false;
+              if (target) { target.name = newT; renamed = true; }
+              return ctx.sync().then(function () {
+                /* 2. collect text cells on every schedule */
+                var scans = [];
+                boards.forEach(function (b) {
+                  var g = b.g, spans = [];
+                  var dc = usable(g.CKT_DESC_COL), f1 = Number(g.CKT_FIRST) || 0, l1 = Number(g.CKT_LAST) || 0;
+                  if (dc && f1 && l1 >= f1) { spans.push(dc + f1 + ":" + dc + l1); }
+                  var fd = usable(g.FEEDTHRU_DESC_COL), t1 = Number(g.FEEDTHRU_FIRST) || 0, t2 = Number(g.FEEDTHRU_LAST) || 0;
+                  if (fd && t1 && t2 >= t1) { spans.push(fd + t1 + ":" + fd + (t2 + 1)); }
+                  var nc = letters(usable(g.NAME_CELL));
+                  if (nc) { spans.push(nc[0] + (nc[1] + 1)); }          /* Fed From = cell below the name */
+                  var rs = spans.map(function (a) { var x = b.sheet.getRange(a); x.load("formulas,address"); return x; });
+                  scans.push({ b: b, rs: rs, nc: nc });
+                });
+                return ctx.sync().then(function () {
+                  var cells = 0, jobs = [];
+                  scans.forEach(function (sc) {
+                    var edits = [];
+                    sc.rs.forEach(function (x) {
+                      x.formulas.forEach(function (row, i) {
+                        var v = row[0];
+                        if (typeof v !== "string" || v.charAt(0) === "=") { return; }
+                        var nv = swap(v, oldT, newT);
+                        if (nv !== null) { edits.push({ r: x, i: i, v: nv }); }
+                      });
+                    });
+                    var isTarget = !!target && sc.b.name.toLowerCase() === oldT.toLowerCase();
+                    if (isTarget && sc.nc) { edits.push({ addr: sc.nc[0] + sc.nc[1], v: newT }); }
+                    if (!edits.length) { return; }
+                    cells += edits.length;
+                    jobs.push(function () {
+                      return withUnprot(ctx, sc.b.sheet, function () {
+                        edits.forEach(function (e) {
+                          var cell = e.addr ? sc.b.sheet.getRange(e.addr) : e.r.getCell(e.i, 0);
+                          cell.values = [[e.v]];
+                        });
+                        return ctx.sync();
+                      });
+                    });
+                  });
+                  /* 3. registry text columns */
+                  if (reg) {
+                    var redits = [];
+                    reg.values.forEach(function (row, i) {
+                      [C_TAG, C_FED, C_SHEET].forEach(function (c) {
+                        var v = String(row[c] || "").trim();
+                        if (v && v.toLowerCase() === oldT.toLowerCase()) { redits.push([i, c]); }
+                      });
+                    });
+                    if (redits.length) {
+                      cells += redits.length;
+                      var rsheet = ctx.workbook.worksheets.getItem(reg.worksheet.name);
+                      jobs.push(function () {
+                        return withUnprot(ctx, rsheet, function () {
+                          redits.forEach(function (e) { reg.getCell(e[0], e[1]).values = [[newT]]; });
+                          return ctx.sync();
+                        });
+                      });
+                    }
+                  }
+                  return jobs.reduce(function (p, j) { return p.then(j); }, Promise.resolve()).then(function () {
+                    return { from: oldT, to: newT, sheetRenamed: renamed, cells: cells };
+                  });
+                });
+              });
+            });
+          });
+        });
+      });
+    });
+  }
+  return { run: run, clean: clean };
+})();
+
+SAZ.renameBoard = function (ctx, oldTag, newTag) { return SAZ_RENAME.run(ctx, oldTag, newTag); };
+
+/* Menu: Rename Equipment. Defaults to the active schedule. */
+SAZ.uiRename = function (ctx) {
+  var active = ctx.workbook.worksheets.getActiveWorksheet();
+  active.load("name");
+  var geo = active.names.getItemOrNullObject("GEO_MAP");
+  geo.load("isNullObject");
+  return ctx.sync().then(function () {
+    var dflt = geo.isNullObject ? "" : active.name;
+    return SAZ.prompt("Rename Equipment", "Current tag of the board to rename", dflt, true)
+      .then(function (a) {
+        if (!a.ok) { return null; }
+        var oldTag = String(a.value || "").trim();
+        return SAZ.prompt("Rename Equipment",
+          "New tag for " + oldTag + "  (renames the tab, the schedule name and every reference)",
+          oldTag, true).then(function (b) {
+            if (!b.ok) { return null; }
+            return SAZ.renameBoard(ctx, oldTag, b.value).then(function (res) {
+              return SAZ.notify("Equipment renamed",
+                res.from + " is now " + res.to + "." +
+                (res.sheetRenamed ? " The tab was renamed." : " (Registry entry only - no schedule sheet.)") +
+                "\n\n" + res.cells + " text reference(s) updated; formula links follow automatically.");
+            }, function (e) {
+              return SAZ.notify("Rename not done", e.message || String(e));
+            });
+          });
+      });
   });
 };
 

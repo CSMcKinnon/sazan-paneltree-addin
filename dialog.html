@@ -16,9 +16,12 @@
   #wrap{ padding:14px 16px; }
   #msg{ white-space:pre-wrap; line-height:1.45; margin-bottom:12px; }
   label{ display:block; color:var(--grey); margin-bottom:4px; }
-  input[type=text]{ width:100%; height:28px; padding:4px 8px; font-family:"Segoe UI",sans-serif;
-         font-size:10pt; color:#0000FF; background:#D9D9D9; border:1px solid var(--mid); }
-  #err{ color:#CA7F39; min-height:16px; margin-top:6px; }
+  input[type=text], input[type=number], select{ width:100%; height:28px; padding:4px 8px;
+         font-family:"Segoe UI",sans-serif; font-size:10pt; color:#0000FF; background:#D9D9D9;
+         border:1px solid var(--mid); }
+  .row{ margin-bottom:10px; }
+  .hint{ color:var(--mid); font-size:9pt; margin-top:2px; }
+  #err, #ferr{ color:#CA7F39; min-height:16px; margin-top:6px; white-space:pre-wrap; }
   #btns{ display:flex; gap:8px; justify-content:flex-end; padding:0 16px 16px; }
   button{ font-family:"Segoe UI",sans-serif; font-size:10pt; height:28px; padding:0 18px;
          border:1px solid var(--teal); background:#fff; color:var(--teal); cursor:pointer; }
@@ -36,12 +39,23 @@
       <input type="text" id="val" autocomplete="off"/>
       <div id="err"></div>
     </div>
+    <div id="form" style="display:none"></div>
+    <div id="ferr"></div>
   </div>
   <div id="btns">
     <button id="cancel">Cancel</button>
     <button id="ok" class="primary">OK</button>
   </div>
 <script>
+/* Modes:
+     notify  - message + OK
+     prompt  - one text field          -> { ok, value }
+     form    - several fields (v2.3)   -> { ok, values:{ id: value } }
+   form param = JSON { fields:[{ id, label, type:"text"|"number"|"select",
+                                 options:[...], value, required, min, max, hint,
+                                 list:[...] }], err:"..." }
+   'list' on a text field gives a type-ahead datalist; 'err' is shown in amber
+   when the caller re-opens the form after a failed check (e.g. occupied slot). */
 (function(){
   var P = new URLSearchParams(location.search);
   var mode  = P.get("mode")  || "notify";
@@ -50,18 +64,64 @@
   var label = P.get("label") || "Value";
   var dflt  = P.get("default") || "";
   var req   = P.get("required") === "1";
+  var spec  = null;
+  if (mode === "form") { try { spec = JSON.parse(P.get("form") || "{}"); } catch (e) { spec = { fields: [] }; } }
 
   document.getElementById("sub-t").textContent = title;
   document.getElementById("msg").textContent   = text;
 
   var isPrompt = (mode === "prompt");
+  var isForm   = (mode === "form");
   if (isPrompt) {
     document.getElementById("field").style.display = "block";
     document.getElementById("lbl").textContent = label;
     document.getElementById("val").value = dflt;
   }
+  if (isForm) { buildForm(); }
   if (mode === "notify") {
     document.getElementById("cancel").style.display = "none";
+  }
+
+  function buildForm(){
+    var host = document.getElementById("form");
+    host.style.display = "block";
+    (spec.fields || []).forEach(function (f, k) {
+      var row = document.createElement("div"); row.className = "row";
+      var lb = document.createElement("label"); lb.textContent = f.label || f.id;
+      lb.setAttribute("for", "f_" + f.id); row.appendChild(lb);
+      var el;
+      if (f.type === "select") {
+        el = document.createElement("select");
+        if (!f.value) {
+          var o0 = document.createElement("option"); o0.value = ""; o0.textContent = "\u2014 choose \u2014";
+          el.appendChild(o0);
+        }
+        (f.options || []).forEach(function (op) {
+          var o = document.createElement("option"); o.value = op; o.textContent = op; el.appendChild(o);
+        });
+        el.value = f.value || "";
+      } else {
+        el = document.createElement("input");
+        el.type = (f.type === "number") ? "number" : "text";
+        el.autocomplete = "off";
+        if (f.type === "number") {
+          if (f.min != null) el.min = f.min;
+          if (f.max != null) el.max = f.max;
+          el.step = 1;
+        }
+        if (f.list && f.list.length) {
+          var dl = document.createElement("datalist"); dl.id = "dl_" + f.id;
+          f.list.forEach(function (v) { var o = document.createElement("option"); o.value = v; dl.appendChild(o); });
+          row.appendChild(dl); el.setAttribute("list", dl.id);
+        }
+        el.value = (f.value == null) ? "" : f.value;
+      }
+      el.id = "f_" + f.id;
+      row.appendChild(el);
+      if (f.hint) { var h = document.createElement("div"); h.className = "hint"; h.textContent = f.hint; row.appendChild(h); }
+      host.appendChild(row);
+    });
+    document.getElementById("ferr").textContent = spec.err || "";
   }
 
   function send(payload){
@@ -69,7 +129,25 @@
     catch(e) { }
   }
 
+  function submitForm(){
+    var out = {}, bad = "";
+    (spec.fields || []).forEach(function (f) {
+      var v = String(document.getElementById("f_" + f.id).value || "").trim();
+      if (!bad && f.required && !v) { bad = (f.label || f.id) + " is required."; }
+      if (!bad && v && f.type === "number") {
+        var n = Number(v);
+        if (!isFinite(n) || Math.floor(n) !== n) { bad = (f.label || f.id) + " must be a whole number."; }
+        else if (f.min != null && n < f.min) { bad = (f.label || f.id) + " must be at least " + f.min + "."; }
+        else if (f.max != null && n > f.max) { bad = (f.label || f.id) + " must be at most " + f.max + "."; }
+      }
+      out[f.id] = v;
+    });
+    if (bad) { document.getElementById("ferr").textContent = bad; return; }
+    send({ ok:true, values: out });
+  }
+
   function submit(){
+    if (isForm) { submitForm(); return; }
     if (!isPrompt) { send({ ok:true }); return; }
     var v = document.getElementById("val").value.trim();
     if (req && !v) {
@@ -86,8 +164,9 @@
       if (e.key === "Enter")  { e.preventDefault(); submit(); }
       if (e.key === "Escape") { send({ ok:false }); }
     });
-    var f = document.getElementById(isPrompt ? "val" : "ok");
-    if (f) { f.focus(); if (isPrompt) f.select(); }
+    var first = isForm ? document.querySelector("#form input, #form select") : null;
+    var f = first || document.getElementById(isPrompt ? "val" : "ok");
+    if (f) { f.focus(); if (f.select && f.tagName === "INPUT") f.select(); }
   });
 })();
 </script>

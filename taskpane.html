@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>SAZAN Panel Tree</title>
+<title>SÄZÄN Distribution Map</title>
 <script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
 <style>
   :root{
@@ -53,7 +53,7 @@
 </style>
 </head>
 <body>
-  <div class="band">PANEL TREE</div>
+  <div class="band">DISTRIBUTION MAP</div>
 
   <div class="bar">
     <button id="btnExpand">Expand all</button>
@@ -62,7 +62,7 @@
     <span class="count" id="count">0 items</span>
   </div>
 
-  <div id="tree" role="tree" aria-label="Panel tree"></div>
+  <div id="tree" role="tree" aria-label="Distribution map"></div>
 
   <div class="band sub" style="margin-top:10px;">SELECTED EQUIPMENT</div>
 
@@ -75,28 +75,33 @@
 
     <div class="row"><label>Fed from</label><select id="selFed"></select></div>
     <div class="row"><label>Feed type</label><select id="selFT">
-        <option value=""></option>
         <option>Sub-Feed</option>
         <option>Feed-Through</option>
-        <option>Main Breaker</option>
-        <option>Main Lugs (MLO)</option>
-        <option>Utility / Service</option>
         <option>Tap / Splice</option>
       </select></div>
-    <div class="row"><label>Ckt / space</label><input type="text" id="txtCkt"/></div>
+    <div class="row"><label>Fed from ckt #</label><input type="text" id="txtCkt" placeholder="blank = first open"/></div>
+    <div class="row"><label>Mains</label><select id="selMains">
+        <option value="">(auto)</option>
+        <option>MCB</option>
+        <option>MLO</option>
+        <option>Main Fusible Switch</option>
+      </select></div>
+    <div class="row"><label>Spaces</label><input type="text" id="txtSpaces" inputmode="numeric"/></div>
       <div class="row"><label>Rename to</label><input type="text" id="txtRename" maxlength="31"/></div>
   </div>
 
   <div class="actions">
-    <button id="btnApply">Apply link</button>
+    <button id="btnApply" style="flex:1 1 100%;">Apply to schedules</button>
     <button id="btnUnlink">Unlink</button>
     <button id="btnGoto">Go to sheet</button>
-      <button id="btnRename">Rename</button>
+    <button id="btnRepair">Repair</button>
+    <button id="btnRename">Rename</button>
     <button id="btnAdd" style="flex:1 1 100%;">Add equipment fed from this</button>
   </div>
 
   <div id="status"></div>
 
-  <script src="taskpane.js"></script>
+  <script src="commands.js?v=2.5.0"></script>   <!-- v2.5: shared SAZ engine (link, resize, repair) -->
+  <script src="taskpane.js?v=2.5.0"></script>
 </body>
 </html>

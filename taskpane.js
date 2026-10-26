@@ -1,4 +1,4 @@
-/*  SAZAN Panel Tree - Excel task pane
+/*  SAZAN Distribution Map - Excel task pane
     Reads and writes the equipment registry named  Equip_Registry  (Dashboard!A100:J349)
     Columns (0-based):  0 Tag  1 Type  2 Voltage  3 Fed From  5 Demand kVA
                         6 Sheet  8 Feed Type  9 Ckt / space                */
@@ -19,7 +19,7 @@ function regRange(ctx) {
       : n.getRange();
   });
 }
-var C_TAG = 0, C_TYPE = 1, C_VOLT = 2, C_FED = 3, C_KVA = 5, C_SHEET = 6, C_FT = 8, C_CKT = 9;
+var C_TAG = 0, C_TYPE = 1, C_VOLT = 2, C_FED = 3, C_MAINS = 4, C_KVA = 5, C_SHEET = 6, C_FT = 8, C_CKT = 9;
 var MAXDEPTH = 12;
 
 var items = [];          // { tag, type, volt, fed, kva, sheet, ft, ckt, row }
@@ -40,6 +40,7 @@ Office.onReady(function (info) {
   document.getElementById("btnGoto").onclick = gotoSheet;
   document.getElementById("btnAdd").onclick = addEquipment;
   document.getElementById("btnRename").onclick = renameSelected;
+  document.getElementById("btnRepair").onclick = repairSelected;
   refresh();
 });
 
@@ -93,6 +94,7 @@ function refresh() {
               sheet: String(row[C_SHEET] || "").trim(),
               ft: String(row[C_FT] || "").trim(),
               ckt: String(row[C_CKT] || "").trim(),
+              mains: String(row[C_MAINS] || "").trim(),
               row: i                                   // offset inside the registry
             });
           });
@@ -166,7 +168,7 @@ function statusOf(it) {
     if (p.fed === it.tag) return "\u26A0 Circular feed";
     chain.push(p.fed); p = byTag(p.fed);
   }
-  if (!it.ft) return "\u26A0 Feed type not set";
+  if (it.fed && it.fed !== "(unassigned)" && !it.ft) return "\u26A0 Feed type not set";
   return "\u2714 OK";
 }
 
@@ -223,8 +225,10 @@ function render() {
 function clearProps() {
   document.getElementById("vTag").textContent = "(none selected)";
   ["vTV", "vKVA", "vDown", "vStat"].forEach(function (id) { document.getElementById(id).textContent = ""; });
-  document.getElementById("selFT").value = "";
+  document.getElementById("selFT").value = "Sub-Feed";
   document.getElementById("txtCkt").value = "";
+  document.getElementById("selMains").value = "";
+  document.getElementById("txtSpaces").value = "";
   document.getElementById("txtRename").value = "";
 }
 
@@ -237,12 +241,22 @@ function select(tag) {
   document.getElementById("vKVA").textContent = it.kva ? it.kva.toFixed(1) : "\u2013";
   document.getElementById("vDown").textContent = downstreamKva(it.tag).toFixed(1);
   document.getElementById("vStat").textContent = statusOf(it);
-  document.getElementById("selFT").value = it.ft || "";
-  document.getElementById("txtCkt").value = it.ckt || "";
+  var ft = /feed-through/i.test(it.ft) ? "Feed-Through" : (/tap/i.test(it.ft) ? "Tap / Splice" : "Sub-Feed");
+  document.getElementById("selFT").value = ft;
+  document.getElementById("txtCkt").value = (it.ckt === "FT") ? "" : (it.ckt || "");
+  document.getElementById("selMains").value = it.mains || "";
+  document.getElementById("txtSpaces").value = "";
   document.getElementById("txtRename").value = it.tag;
   fillFedList();
-  document.getElementById("selFed").value = it.fed || "";
+  document.getElementById("selFed").value = (it.fed === "(unassigned)") ? "" : (it.fed || "");
   render();
+  /* v2.5: the space count is read live from the schedule's GEO_MAP */
+  if (!it.head && !it.virtual && it.sheet && typeof SAZ !== "undefined") {
+    Excel.run(function (ctx) {
+      return SAZ.geo(ctx, it.sheet).then(function (g) { return SAZ.currentSpaces(g); });
+    }).then(function (n) { if (selTag === tag) { document.getElementById("txtSpaces").value = n || ""; } })
+      .catch(function () { /* not a schedule sheet */ });
+  }
 }
 
 /*  parents offered exclude self and anything downstream of self - no circular feeds */
@@ -312,18 +326,40 @@ function writeCells(rowOffset, pairs) {
   });
 }
 
+/*  v2.5: Apply runs the full link through the shared engine (commands.js):
+    circuit on the parent, poles from the child's voltage, live demand link,
+    feed-through rows, mains, space count and Fed From - one source of truth. */
+function busy(on) {
+  ["btnApply", "btnUnlink", "btnRepair", "btnRename", "btnAdd"].forEach(function (id) {
+    var b = document.getElementById(id); if (b) { b.disabled = !!on; }
+  });
+}
+function engineReady() {
+  if (typeof SAZ === "undefined" || !SAZ.mapApply) {
+    setStatus("The shared engine (commands.js) did not load - publish commands.js next to taskpane.html and reload.");
+    return false;
+  }
+  return true;
+}
 function applyLink() {
   var it = byTag(selTag);
   if (!it) { setStatus("Select a piece of equipment first."); return; }
   if (it.head) { setStatus(it.tag + " is the utility head end - edit it on the Dashboard."); return; }
   if (it.virtual) { setStatus(it.tag + " is derived automatically - link its secondary board instead."); return; }
-  var fed = document.getElementById("selFed").value;
-  var ft = document.getElementById("selFT").value;
-  var ckt = document.getElementById("txtCkt").value;
-  if (fed === it.tag) { setStatus("Equipment cannot feed itself."); return; }
-  writeCells(it.row, [{ col: C_FED, val: fed }, { col: C_FT, val: ft }, { col: C_CKT, val: ckt }])
-    .then(function () { setStatus("Linked " + it.tag + (fed ? " to " + fed : " as a source.")); return refresh(); })
-    .catch(function (e) { setStatus("Write failed: " + e.message); });
+  if (!engineReady()) { return; }
+  var req = {
+    tag: it.tag,
+    fed: document.getElementById("selFed").value,
+    ft: document.getElementById("selFT").value,
+    ckt: document.getElementById("txtCkt").value,
+    mains: document.getElementById("selMains").value,
+    spaces: document.getElementById("txtSpaces").value
+  };
+  if (req.fed === it.tag) { setStatus("Equipment cannot feed itself."); return; }
+  busy(true); setStatus("Applying...");
+  SAZ.exec(function (ctx) { return SAZ.mapApply(ctx, req); })
+    .then(function (msg) { busy(false); return refresh().then(function () { setStatus(msg || "Applied."); }); })
+    .catch(function (e) { busy(false); setStatus("Apply failed: " + (e && e.message ? e.message : e)); });
 }
 
 function unlink() {
@@ -331,9 +367,21 @@ function unlink() {
   if (!it) { setStatus("Select a piece of equipment first."); return; }
   if (it.head) { setStatus(it.tag + " is the utility head end - it has no parent."); return; }
   if (it.virtual) { setStatus(it.tag + " is derived automatically - unlink its secondary board instead."); return; }
-  writeCells(it.row, [{ col: C_FED, val: "" }, { col: C_FT, val: "" }, { col: C_CKT, val: "" }])
-    .then(function () { setStatus(it.tag + " is now an unlinked source."); return refresh(); })
-    .catch(function (e) { setStatus("Write failed: " + e.message); });
+  if (!engineReady()) { return; }
+  busy(true);
+  SAZ.exec(function (ctx) { return SAZ.mapUnlink(ctx, it.tag); })
+    .then(function (msg) { busy(false); return refresh().then(function () { setStatus(msg); }); })
+    .catch(function (e) { busy(false); setStatus("Unlink failed: " + (e && e.message ? e.message : e)); });
+}
+
+function repairSelected() {
+  var it = byTag(selTag);
+  if (!it || it.head || it.virtual || !it.sheet) { setStatus("Select a schedule (panelboard, switchboard or MCC) first."); return; }
+  if (!engineReady()) { return; }
+  busy(true); setStatus("Checking " + it.tag + "...");
+  SAZ.exec(function (ctx) { return SAZ.mapRepair(ctx, it.sheet); })
+    .then(function (msg) { busy(false); setStatus(msg); })
+    .catch(function (e) { busy(false); setStatus("Repair failed: " + (e && e.message ? e.message : e)); });
 }
 
 function gotoSheet() {
@@ -366,35 +414,36 @@ function formatRegistryRow(row) {
 }
 
 /*  adds a placeholder row fed from the current selection - rename it on the Dashboard */
+/*  v2.5: Add equipment deploys a REAL schedule (same create dialog as the ribbon:
+    name, voltage, spaces) and, when a board is selected, links it straight in
+    as a Sub-Feed at the first open circuit. No placeholder registry rows. */
 function addEquipment() {
-  return Excel.run(function (ctx) {
-    return regRange(ctx).then(function (base) {
-      base.load("values");
-      return ctx.sync().then(function () {
-      var free = -1;
-      for (var i = 0; i < base.values.length; i++) {
-        if (String(base.values[i][C_TAG] || "").trim() === "") { free = i; break; }
-      }
-      if (free < 0) { setStatus("Registry is full - extend the Equip_Registry name and Cfg_MaxNodes."); return; }
-      var n = 1, tag;
-      do { tag = "NEW-" + n++; } while (byTag(tag));
-      base.load("worksheet/name");
-      return ctx.sync().then(function () {
-        var ws = ctx.workbook.worksheets.getItem(base.worksheet.name);
-        return withUnprotected(ctx, ws, function () {
-          base.getCell(free, C_TAG).values = [[tag]];
-          if (selTag) base.getCell(free, C_FED).values = [[selTag]];
-          formatRegistryRow(base.getRow(free));
-          return ctx.sync();
+  if (!engineReady()) { return; }
+  var parent = byTag(selTag);
+  var fedTag = (parent && !parent.virtual) ? parent.tag : "";
+  var before = {};
+  items.forEach(function (x) { before[x.tag.toLowerCase()] = true; });
+  busy(true);
+  SAZ.exec(function (ctx) {
+    return SAZ.form("Add equipment", fedTag ? "New schedule fed from " + fedTag + "." : "New schedule at the top of the map.", [
+      { id: "kind", label: "Type", type: "select", options: ["Panelboard", "Switchboard", "MCC"], value: "Panelboard", required: true }
+    ], "", 35).then(function (a) {
+      if (!a || !a.ok || !a.values) { return null; }
+      var k = a.values.kind;
+      var tpl = k === "Switchboard" ? "TPL_Switchboard" : (k === "MCC" ? "TPL_MCC" : "TPL_Panelboard");
+      return SAZ.uiCreate(ctx, tpl, k).then(function () {
+        return SAZ.registryRecords(ctx);
+      }).then(function (reg) {
+        var added = reg.filter(function (r) { return !before[r.tag.toLowerCase()]; })[0];
+        if (!added) { return null; }
+        if (!fedTag) { return "Added " + added.tag + "."; }
+        return SAZ.mapApply(ctx, { tag: added.tag, fed: fedTag, ft: "Sub-Feed" }).then(function (m) {
+          selTag = added.tag; return "Added " + added.tag + ". " + m;
         });
-      }).then(function () {
-        setStatus("Added " + tag + (selTag ? " fed from " + selTag : "") + " - rename it on the Dashboard.");
-        selTag = tag;
-        return refresh();
       });
     });
-    });
-  }).catch(function (e) { setStatus("Add failed: " + e.message); });
+  }).then(function (msg) { busy(false); return refresh().then(function () { if (msg) { setStatus(msg); } }); })
+    .catch(function (e) { busy(false); setStatus("Add failed: " + (e && e.message ? e.message : e)); });
 }
 
 /*  Rename the selected board everywhere (tab, schedule name, registry, every

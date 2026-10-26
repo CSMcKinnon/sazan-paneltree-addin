@@ -15,7 +15,7 @@ var CFG = {
 };
 
 var SAZ = {};
-
+SAZ.DIALOG_VER = "2.3.1";   /* sent as ?_v= on every dialog URL so Office / GitHub Pages cannot serve a cached dialog.html - bump when dialog.html changes */
 /* ---------- dialog helpers: replace VBA MsgBox / InputBox ---------- */
 
 SAZ.dialog = function (params) {
@@ -23,7 +23,7 @@ SAZ.dialog = function (params) {
     var qs = Object.keys(params).map(function (k) {
       return encodeURIComponent(k) + "=" + encodeURIComponent(params[k]);
     }).join("&");
-    var url = CFG.host + "/dialog.html?" + qs;
+    var url = CFG.host + "/dialog.html?" + qs + "&_v=" + encodeURIComponent(SAZ.DIALOG_VER);
     Office.context.ui.displayDialogAsync(url,
       { height: params._h || 42, width: params._w || 30, displayInIframe: true },
       function (res) {
@@ -57,7 +57,19 @@ SAZ.prompt = function (title, label, dflt, required) {
 SAZ.form = function (title, text, fields, err, heightPct) {
   return SAZ.dialog({ mode: "form", title: title, text: text || "",
                       form: JSON.stringify({ fields: fields, err: err || "" }),
-                      _h: heightPct || 60 });
+                      _h: heightPct || 60 }).then(function (ans) {
+    /* Loop guard: a pre-2.3 dialog.html (old copy on GitHub, or a cached one) has no
+       form mode - it shows the title with OK / Cancel only and returns { ok:true } with
+       no values. Every caller then re-opened the form with an error the old page could
+       not display, so OK just brought the same box back forever. Stop and say why. */
+    if (ans && ans.ok && !ans.values) {
+      return SAZ.notify("Dialog page out of date",
+        "The dialog page the add-in loaded is an older version without form fields, so this command cannot continue.\n\n" +
+        "Publish dialog.html (v" + SAZ.DIALOG_VER + ") together with commands.js, clear the Office add-in cache, then reopen the workbook."
+      ).then(function () { return { ok: false, stale: true }; });
+    }
+    return ans;
+  });
 };
 
 /* ---------- run wrapper: guarantees event.completed() ---------- */

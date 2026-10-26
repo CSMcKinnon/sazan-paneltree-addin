@@ -5,7 +5,7 @@
            xmlns:ov="http://schemas.microsoft.com/office/taskpaneappversionoverrides"
            xsi:type="TaskPaneApp">
   <Id>8f1a2c34-5b6d-4e7f-9a01-2b3c4d5e6f70</Id>
-  <Version>2.4.0.0</Version>
+  <Version>2.5.0.0</Version>
   <ProviderName>Säzän Group</ProviderName>
   <DefaultLocale>en-US</DefaultLocale>
   <DisplayName DefaultValue="S&#196;Z&#196;N PowerCalc"/>
@@ -162,29 +162,11 @@
                   <Icon><bt:Image size="16" resid="Mso.LinkedNotesPaneOpen.16"/><bt:Image size="32" resid="Mso.LinkedNotesPaneOpen.32"/><bt:Image size="80" resid="Mso.LinkedNotesPaneOpen.80"/></Icon>
                   <Action xsi:type="ExecuteFunction"><FunctionName>FeedThru</FunctionName></Action>
                 </Control>
-                <Control xsi:type="Button" id="Sazan.Resize">
-                  <Label resid="Ls.Resize"/>
-                  <Supertip><Title resid="Ls.Resize"/><Description resid="Ld.Resize"/></Supertip>
-                  <Icon><bt:Image size="16" resid="Mso.TableAutoFitWindow.16"/><bt:Image size="32" resid="Mso.TableAutoFitWindow.32"/><bt:Image size="80" resid="Mso.TableAutoFitWindow.80"/></Icon>
-                  <Action xsi:type="ExecuteFunction"><FunctionName>Resize</FunctionName></Action>
-                </Control>
                 <Control xsi:type="Button" id="Sazan.Rename">
                   <Label resid="Ls.Rename"/>
                   <Supertip><Title resid="Ls.Rename"/><Description resid="Ld.Rename"/></Supertip>
                   <Icon><bt:Image size="16" resid="Mso.SheetInsert.16"/><bt:Image size="32" resid="Mso.SheetInsert.32"/><bt:Image size="80" resid="Mso.SheetInsert.80"/></Icon>
                   <Action xsi:type="ExecuteFunction"><FunctionName>RenameBoard</FunctionName></Action>
-                </Control>
-                <Control xsi:type="Button" id="Sazan.AddEquipRows">
-                  <Label resid="Ls.AddEquipRows"/>
-                  <Supertip><Title resid="Ls.AddEquipRows"/><Description resid="Ld.AddEquipRows"/></Supertip>
-                  <Icon><bt:Image size="16" resid="Mso.TableRowsInsertAbove.16"/><bt:Image size="32" resid="Mso.TableRowsInsertAbove.32"/><bt:Image size="80" resid="Mso.TableRowsInsertAbove.80"/></Icon>
-                  <Action xsi:type="ExecuteFunction"><FunctionName>AddEquipRows</FunctionName></Action>
-                </Control>
-                <Control xsi:type="Button" id="Sazan.TrimEquipRows">
-                  <Label resid="Ls.TrimEquipRows"/>
-                  <Supertip><Title resid="Ls.TrimEquipRows"/><Description resid="Ld.TrimEquipRows"/></Supertip>
-                  <Icon><bt:Image size="16" resid="Mso.TableRowsDeleteRows.16"/><bt:Image size="32" resid="Mso.TableRowsDeleteRows.32"/><bt:Image size="80" resid="Mso.TableRowsDeleteRows.80"/></Icon>
-                  <Action xsi:type="ExecuteFunction"><FunctionName>TrimEquipRows</FunctionName></Action>
                 </Control>
                 <Control xsi:type="Button" id="Sazan.RebuildGeo">
                   <Label resid="Ls.RebuildGeo"/>
@@ -493,7 +475,7 @@
         <bt:String id="Ls.Rename" DefaultValue="Rename Equipment"/>
       <bt:String id="Ls.AddEquipRows" DefaultValue="Add Table Rows"/>
       <bt:String id="Ls.TrimEquipRows" DefaultValue="Trim Table Rows"/>
-        <bt:String id="Ls.RebuildGeo" DefaultValue="Rebuild GEO_MAP"/>
+        <bt:String id="Ls.RebuildGeo" DefaultValue="Repair Schedule"/>
         <bt:String id="Ls.Backup" DefaultValue="Backup Power"/>
         <bt:String id="Ls.NewGenerator" DefaultValue="New Generator"/>
         <bt:String id="Ls.GoGenerator" DefaultValue="Go To Generator"/>
@@ -518,7 +500,7 @@
         <bt:String id="Ls.GoStudiesView" DefaultValue="Go To Combined Studies"/>
         <bt:String id="Ls.RefreshFeeders" DefaultValue="Refresh Feeders"/>
         <bt:String id="Ls.RefreshStudies" DefaultValue="Refresh Studies"/>
-        <bt:String id="Ls.PanelTreePane" DefaultValue="Panel Tree"/>
+        <bt:String id="Ls.PanelTreePane" DefaultValue="Distribution Map"/>
         <bt:String id="Ls.Output" DefaultValue="Report &amp; View"/>
         <bt:String id="Ls.NewReport" DefaultValue="New Report"/>
         <bt:String id="Ls.GoReport" DefaultValue="Go To Report"/>
@@ -554,7 +536,7 @@
         <bt:String id="Ld.Rename" DefaultValue="Rename a panelboard, switchboard or MCC: renames the tab, the schedule name, the registry and every reference to it."/>
       <bt:String id="Ld.AddEquipRows" DefaultValue="Add rows to a Load Calc, Generator or UPS table — S&#196;Z&#196;N PowerCalc."/>
       <bt:String id="Ld.TrimEquipRows" DefaultValue="Trim rows from a Load Calc, Generator or UPS table — S&#196;Z&#196;N PowerCalc."/>
-        <bt:String id="Ld.RebuildGeo" DefaultValue="Rebuild GEO_MAP — S&#196;Z&#196;N PowerCalc."/>
+        <bt:String id="Ld.RebuildGeo" DefaultValue="Restore damaged cells and re-derive the grid map on the active schedule — S&#196;Z&#196;N PowerCalc."/>
         <bt:String id="Ld.Backup" DefaultValue="Backup Power — S&#196;Z&#196;N PowerCalc."/>
         <bt:String id="Ld.Xfmr" DefaultValue="Transformers — new transformer schedule or jump to the existing one. S&#196;Z&#196;N PowerCalc."/>
         <bt:String id="Ld.NewGenerator" DefaultValue="New Generator — S&#196;Z&#196;N PowerCalc."/>
@@ -575,7 +557,7 @@
         <bt:String id="Ld.GoStudiesView" DefaultValue="Go To Combined Studies — the read-only view joining Feeder Schedule, Short Circuit and Voltage Drop by bus."/>
         <bt:String id="Ld.RefreshFeeders" DefaultValue="Recalculate and validate the Feeder Schedule — it derives its own rows from the equipment registry."/>
         <bt:String id="Ld.RefreshStudies" DefaultValue="Rebuild the Arc Flash bus table — Short Circuit and Voltage Drop derive themselves and are not modified."/>
-        <bt:String id="Ld.PanelTreePane" DefaultValue="Panel Tree — S&#196;Z&#196;N PowerCalc."/>
+        <bt:String id="Ld.PanelTreePane" DefaultValue="Distribution Map: link, move, resize and repair every schedule — S&#196;Z&#196;N PowerCalc."/>
         <bt:String id="Ld.Output" DefaultValue="Report &amp; View — S&#196;Z&#196;N PowerCalc."/>
         <bt:String id="Ld.NewReport" DefaultValue="New Report — S&#196;Z&#196;N PowerCalc."/>
         <bt:String id="Ld.GoReport" DefaultValue="Go To Report — S&#196;Z&#196;N PowerCalc."/>

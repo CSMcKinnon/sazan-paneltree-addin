@@ -902,7 +902,7 @@ SAZ.mapDetach = function (ctx, childTag) {
   });
 };
 SAZ.mapApply = function (ctx, req) {
-  /* req: { tag, fed, ft, ckt, mains, spaces } */
+  /* req: { tag, fed, ft, ckt, mains, spaces, len, lenPri, lenEm, mat, race, exist } */
   var C = String(req.tag || "").trim(), P = String(req.fed || "").trim();
   var ft = String(req.ft || "").trim(), msgs = [];
   if (!C) { return Promise.reject(new Error("Select a board first.")); }
@@ -927,6 +927,21 @@ SAZ.mapApply = function (ctx, req) {
   step = step.then(function () {
     if (req.mains === undefined) { return null; }
     return SAZ.registrySet(ctx, C, { 4: req.mains || "" });
+  });
+  /* 2b. v2.11 feeder inputs - single home in the registry (Dashboard R:W); the Feeder Schedule
+     (Length, Material, Conduit Type, EXIST?) and every schedule read them by tag, so a typed
+     value can never drift onto another feeder when the derived schedule re-sorts. */
+  step = step.then(function () {
+    var nb = function (v) { var s = String(v == null ? "" : v).replace(/[^0-9.]/g, ""); var n = parseFloat(s); return isNaN(n) ? "" : n; };
+    var f = {};
+    if (req.len !== undefined) { f[17] = nb(req.len); }
+    if (req.lenPri !== undefined) { f[18] = nb(req.lenPri); }
+    if (req.lenEm !== undefined) { f[19] = nb(req.lenEm); }
+    if (req.mat !== undefined) { f[20] = /^(CU|AL)$/i.test(String(req.mat)) ? String(req.mat).toUpperCase() : ""; }
+    if (req.race !== undefined) { f[21] = String(req.race || "").trim(); }
+    if (req.exist !== undefined) { f[22] = /^y/i.test(String(req.exist || "")) ? "Y" : ""; }
+    if (!Object.keys(f).length) { return null; }
+    return SAZ.registrySet(ctx, C, f);
   });
   /* 3. upstream link */
   return step.then(function () { return SAZ.isUtilityTag(ctx, P); }).then(function (isUtil) {
@@ -1363,6 +1378,7 @@ SAZ.udCleanMeterBlock = function (ctx, sheet, firstBanner, newBanner, offset, me
   sheet.getRange("F" + idRow).clear(Excel.ClearApplyTo.contents);
   sheet.getRange("I" + idRow).clear(Excel.ClearApplyTo.contents);
   sheet.getRange("L" + idRow).clear(Excel.ClearApplyTo.contents);
+  sheet.getRange("L" + (idRow + 1)).clear(Excel.ClearApplyTo.contents);   /* v2.11: Metered Board - blank = service board */
   /* twelve billing cycles: clear the entered columns only, keeping Cycle numbers,
      PF Used defaults and every calculated column intact */
   var firstCycle = newBanner + 6;
@@ -5792,7 +5808,7 @@ SAZ.healMainsOverride = function (ctx, name) {
 SAZ.STUDY_REFRESH = {
   vd: { sheet: "Voltage Drop",  first: 6, last: 260, node: "A", status: "K", title: "Refresh Voltage Drop", noun: "bus",
         none: "No buses yet - Voltage Drop derives one row per bus from the equipment registry and the Feeder Schedule.",
-        hint: "Feeder lengths are entered on the Feeder Schedule (Length column) and branch lengths in each schedule's Length Ft column." },
+        hint: "Feeder lengths, material and conduit are set in the Distribution Map (stored on the registry, read by the Feeder Schedule) and branch lengths in each schedule's Length Ft column." },
   sc: { sheet: "Short Circuit", first: 6, last: 255, node: "A", status: "T", title: "Refresh Short Circuit", noun: "bus",
         none: "No buses yet - Short Circuit derives one row per bus from the equipment registry.",
         hint: "Device AIC comes from each schedule's Std Device AIC (override in E13). Run Refresh Arc Flash after this to carry the new fault currents into the arc-flash table." }

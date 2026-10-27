@@ -5,7 +5,7 @@
            xmlns:ov="http://schemas.microsoft.com/office/taskpaneappversionoverrides"
            xsi:type="TaskPaneApp">
   <Id>8f1a2c34-5b6d-4e7f-9a01-2b3c4d5e6f70</Id>
-  <Version>2.9.0.0</Version>
+  <Version>2.10.0.0</Version>
   <ProviderName>Säzän Group</ProviderName>
   <DefaultLocale>en-US</DefaultLocale>
   <DisplayName DefaultValue="S&#196;Z&#196;N PowerCalc"/>
@@ -152,15 +152,6 @@
                   <Supertip><Title resid="Ls.MnuPanels"/><Description resid="Ld.MnuPanels"/></Supertip>
                   <Icon><bt:Image size="16" resid="Mso.SheetInsert.16"/><bt:Image size="32" resid="Mso.SheetInsert.32"/><bt:Image size="80" resid="Mso.SheetInsert.80"/></Icon>
                   <Items>
-                    <Item id="Sazan.PanelTreePane">
-                      <Label resid="Ls.PanelTreePane"/>
-                      <Supertip><Title resid="Ls.PanelTreePane"/><Description resid="Ld.PanelTreePane"/></Supertip>
-                      <Icon><bt:Image size="16" resid="Mso.PanelTree.16"/><bt:Image size="32" resid="Mso.PanelTree.32"/><bt:Image size="80" resid="Mso.PanelTree.80"/></Icon>
-                      <Action xsi:type="ShowTaskpane">
-                        <TaskpaneId>Sazan.PanelTree.Pane</TaskpaneId>
-                        <SourceLocation resid="Url.Taskpane"/>
-                      </Action>
-                    </Item>
                     <Item id="Sazan.NewSwitchboard">
                       <Label resid="Ls.NewSwitchboard"/>
                       <Supertip><Title resid="Ls.NewSwitchboard"/><Description resid="Ld.NewSwitchboard"/></Supertip>
@@ -313,6 +304,12 @@
                       <Icon><bt:Image size="16" resid="Mso.ChartLineInsert.16"/><bt:Image size="32" resid="Mso.ChartLineInsert.32"/><bt:Image size="80" resid="Mso.ChartLineInsert.80"/></Icon>
                       <Action xsi:type="ExecuteFunction"><FunctionName>GoVoltageDrop</FunctionName></Action>
                     </Item>
+                    <Item id="Sazan.RefreshVoltageDrop">
+                      <Label resid="Ls.RefreshVoltageDrop"/>
+                      <Supertip><Title resid="Ls.RefreshVoltageDrop"/><Description resid="Ld.RefreshVoltageDrop"/></Supertip>
+                      <Icon><bt:Image size="16" resid="Mso.RecordsRefreshAll.16"/><bt:Image size="32" resid="Mso.RecordsRefreshAll.32"/><bt:Image size="80" resid="Mso.RecordsRefreshAll.80"/></Icon>
+                      <Action xsi:type="ExecuteFunction"><FunctionName>RefreshVoltageDrop</FunctionName></Action>
+                    </Item>
                   </Items>
                 </Control>
                 <Control xsi:type="Menu" id="Sazan.MnuSC">
@@ -332,8 +329,18 @@
                       <Icon><bt:Image size="16" resid="Mso.ErrorChecking.16"/><bt:Image size="32" resid="Mso.ErrorChecking.32"/><bt:Image size="80" resid="Mso.ErrorChecking.80"/></Icon>
                       <Action xsi:type="ExecuteFunction"><FunctionName>GoShortCircuit</FunctionName></Action>
                     </Item>
+                    <Item id="Sazan.RefreshShortCircuit">
+                      <Label resid="Ls.RefreshShortCircuit"/>
+                      <Supertip><Title resid="Ls.RefreshShortCircuit"/><Description resid="Ld.RefreshShortCircuit"/></Supertip>
+                      <Icon><bt:Image size="16" resid="Mso.RecordsRefreshAll.16"/><bt:Image size="32" resid="Mso.RecordsRefreshAll.32"/><bt:Image size="80" resid="Mso.RecordsRefreshAll.80"/></Icon>
+                      <Action xsi:type="ExecuteFunction"><FunctionName>RefreshShortCircuit</FunctionName></Action>
+                    </Item>
                   </Items>
                 </Control>
+              </Group>
+              <Group id="Sazan.GrpSafety">
+                <Label resid="Ls.GrpSafety"/>
+                <Icon><bt:Image size="16" resid="Mso.MacroSecurity.16"/><bt:Image size="32" resid="Mso.MacroSecurity.32"/><bt:Image size="80" resid="Mso.MacroSecurity.80"/></Icon>
                 <Control xsi:type="Menu" id="Sazan.MnuAF">
                   <Label resid="Ls.MnuAF"/>
                   <Supertip><Title resid="Ls.MnuAF"/><Description resid="Ld.MnuAF"/></Supertip>
@@ -350,6 +357,12 @@
                       <Supertip><Title resid="Ls.GoArcFlash"/><Description resid="Ld.GoArcFlash"/></Supertip>
                       <Icon><bt:Image size="16" resid="Mso.MacroSecurity.16"/><bt:Image size="32" resid="Mso.MacroSecurity.32"/><bt:Image size="80" resid="Mso.MacroSecurity.80"/></Icon>
                       <Action xsi:type="ExecuteFunction"><FunctionName>GoArcFlash</FunctionName></Action>
+                    </Item>
+                    <Item id="Sazan.RefreshArcFlash">
+                      <Label resid="Ls.RefreshArcFlash"/>
+                      <Supertip><Title resid="Ls.RefreshArcFlash"/><Description resid="Ld.RefreshArcFlash"/></Supertip>
+                      <Icon><bt:Image size="16" resid="Mso.RecordsRefreshAll.16"/><bt:Image size="32" resid="Mso.RecordsRefreshAll.32"/><bt:Image size="80" resid="Mso.RecordsRefreshAll.80"/></Icon>
+                      <Action xsi:type="ExecuteFunction"><FunctionName>RefreshArcFlash</FunctionName></Action>
                     </Item>
                   </Items>
                 </Control>
@@ -398,6 +411,120 @@
                       <Supertip><Title resid="Ls.GoRecon"/><Description resid="Ld.GoRecon"/></Supertip>
                       <Icon><bt:Image size="16" resid="Mso.ReviewAcceptChange.16"/><bt:Image size="32" resid="Mso.ReviewAcceptChange.32"/><bt:Image size="80" resid="Mso.ReviewAcceptChange.80"/></Icon>
                       <Action xsi:type="ExecuteFunction"><FunctionName>GoRecon</FunctionName></Action>
+                    </Item>
+                  </Items>
+                </Control>
+              </Group>
+              <Group id="Sazan.GrpMap">
+                <Label resid="Ls.GrpMap"/>
+                <Icon><bt:Image size="16" resid="Mso.PanelTree.16"/><bt:Image size="32" resid="Mso.PanelTree.32"/><bt:Image size="80" resid="Mso.PanelTree.80"/></Icon>
+                <Control xsi:type="Button" id="Sazan.DistMapBtn">
+                  <Label resid="Ls.DistMapBtn"/>
+                  <Supertip><Title resid="Ls.DistMapBtn"/><Description resid="Ld.DistMapBtn"/></Supertip>
+                  <Icon><bt:Image size="16" resid="Mso.PanelTree.16"/><bt:Image size="32" resid="Mso.PanelTree.32"/><bt:Image size="80" resid="Mso.PanelTree.80"/></Icon>
+                  <Action xsi:type="ShowTaskpane">
+                    <TaskpaneId>Sazan.PanelTree.Pane</TaskpaneId>
+                    <SourceLocation resid="Url.Taskpane"/>
+                  </Action>
+                </Control>
+              </Group>
+              <Group id="Sazan.GrpHelp">
+                <Label resid="Ls.GrpHelp"/>
+                <Icon><bt:Image size="16" resid="Mso.Info.16"/><bt:Image size="32" resid="Mso.Info.32"/><bt:Image size="80" resid="Mso.Info.80"/></Icon>
+                <Control xsi:type="Menu" id="Sazan.MnuInstr">
+                  <Label resid="Ls.MnuInstr"/>
+                  <Supertip><Title resid="Ls.MnuInstr"/><Description resid="Ld.MnuInstr"/></Supertip>
+                  <Icon><bt:Image size="16" resid="Mso.Info.16"/><bt:Image size="32" resid="Mso.Info.32"/><bt:Image size="80" resid="Mso.Info.80"/></Icon>
+                  <Items>
+                    <Item id="Sazan.Ch01">
+                      <Label resid="Ls.Ch01"/>
+                      <Supertip><Title resid="Ls.Ch01"/><Description resid="Ld.Ch01"/></Supertip>
+                      <Icon><bt:Image size="16" resid="Mso.Info.16"/><bt:Image size="32" resid="Mso.Info.32"/><bt:Image size="80" resid="Mso.Info.80"/></Icon>
+                      <Action xsi:type="ExecuteFunction"><FunctionName>GoCh01</FunctionName></Action>
+                    </Item>
+                    <Item id="Sazan.Ch02">
+                      <Label resid="Ls.Ch02"/>
+                      <Supertip><Title resid="Ls.Ch02"/><Description resid="Ld.Ch02"/></Supertip>
+                      <Icon><bt:Image size="16" resid="Mso.Info.16"/><bt:Image size="32" resid="Mso.Info.32"/><bt:Image size="80" resid="Mso.Info.80"/></Icon>
+                      <Action xsi:type="ExecuteFunction"><FunctionName>GoCh02</FunctionName></Action>
+                    </Item>
+                    <Item id="Sazan.Ch03">
+                      <Label resid="Ls.Ch03"/>
+                      <Supertip><Title resid="Ls.Ch03"/><Description resid="Ld.Ch03"/></Supertip>
+                      <Icon><bt:Image size="16" resid="Mso.Info.16"/><bt:Image size="32" resid="Mso.Info.32"/><bt:Image size="80" resid="Mso.Info.80"/></Icon>
+                      <Action xsi:type="ExecuteFunction"><FunctionName>GoCh03</FunctionName></Action>
+                    </Item>
+                    <Item id="Sazan.Ch04">
+                      <Label resid="Ls.Ch04"/>
+                      <Supertip><Title resid="Ls.Ch04"/><Description resid="Ld.Ch04"/></Supertip>
+                      <Icon><bt:Image size="16" resid="Mso.Info.16"/><bt:Image size="32" resid="Mso.Info.32"/><bt:Image size="80" resid="Mso.Info.80"/></Icon>
+                      <Action xsi:type="ExecuteFunction"><FunctionName>GoCh04</FunctionName></Action>
+                    </Item>
+                    <Item id="Sazan.Ch05">
+                      <Label resid="Ls.Ch05"/>
+                      <Supertip><Title resid="Ls.Ch05"/><Description resid="Ld.Ch05"/></Supertip>
+                      <Icon><bt:Image size="16" resid="Mso.Info.16"/><bt:Image size="32" resid="Mso.Info.32"/><bt:Image size="80" resid="Mso.Info.80"/></Icon>
+                      <Action xsi:type="ExecuteFunction"><FunctionName>GoCh05</FunctionName></Action>
+                    </Item>
+                    <Item id="Sazan.Ch06">
+                      <Label resid="Ls.Ch06"/>
+                      <Supertip><Title resid="Ls.Ch06"/><Description resid="Ld.Ch06"/></Supertip>
+                      <Icon><bt:Image size="16" resid="Mso.Info.16"/><bt:Image size="32" resid="Mso.Info.32"/><bt:Image size="80" resid="Mso.Info.80"/></Icon>
+                      <Action xsi:type="ExecuteFunction"><FunctionName>GoCh06</FunctionName></Action>
+                    </Item>
+                    <Item id="Sazan.Ch07">
+                      <Label resid="Ls.Ch07"/>
+                      <Supertip><Title resid="Ls.Ch07"/><Description resid="Ld.Ch07"/></Supertip>
+                      <Icon><bt:Image size="16" resid="Mso.Info.16"/><bt:Image size="32" resid="Mso.Info.32"/><bt:Image size="80" resid="Mso.Info.80"/></Icon>
+                      <Action xsi:type="ExecuteFunction"><FunctionName>GoCh07</FunctionName></Action>
+                    </Item>
+                    <Item id="Sazan.Ch08">
+                      <Label resid="Ls.Ch08"/>
+                      <Supertip><Title resid="Ls.Ch08"/><Description resid="Ld.Ch08"/></Supertip>
+                      <Icon><bt:Image size="16" resid="Mso.Info.16"/><bt:Image size="32" resid="Mso.Info.32"/><bt:Image size="80" resid="Mso.Info.80"/></Icon>
+                      <Action xsi:type="ExecuteFunction"><FunctionName>GoCh08</FunctionName></Action>
+                    </Item>
+                    <Item id="Sazan.Ch09">
+                      <Label resid="Ls.Ch09"/>
+                      <Supertip><Title resid="Ls.Ch09"/><Description resid="Ld.Ch09"/></Supertip>
+                      <Icon><bt:Image size="16" resid="Mso.Info.16"/><bt:Image size="32" resid="Mso.Info.32"/><bt:Image size="80" resid="Mso.Info.80"/></Icon>
+                      <Action xsi:type="ExecuteFunction"><FunctionName>GoCh09</FunctionName></Action>
+                    </Item>
+                    <Item id="Sazan.Ch10">
+                      <Label resid="Ls.Ch10"/>
+                      <Supertip><Title resid="Ls.Ch10"/><Description resid="Ld.Ch10"/></Supertip>
+                      <Icon><bt:Image size="16" resid="Mso.Info.16"/><bt:Image size="32" resid="Mso.Info.32"/><bt:Image size="80" resid="Mso.Info.80"/></Icon>
+                      <Action xsi:type="ExecuteFunction"><FunctionName>GoCh10</FunctionName></Action>
+                    </Item>
+                    <Item id="Sazan.Ch11">
+                      <Label resid="Ls.Ch11"/>
+                      <Supertip><Title resid="Ls.Ch11"/><Description resid="Ld.Ch11"/></Supertip>
+                      <Icon><bt:Image size="16" resid="Mso.Info.16"/><bt:Image size="32" resid="Mso.Info.32"/><bt:Image size="80" resid="Mso.Info.80"/></Icon>
+                      <Action xsi:type="ExecuteFunction"><FunctionName>GoCh11</FunctionName></Action>
+                    </Item>
+                    <Item id="Sazan.Ch12">
+                      <Label resid="Ls.Ch12"/>
+                      <Supertip><Title resid="Ls.Ch12"/><Description resid="Ld.Ch12"/></Supertip>
+                      <Icon><bt:Image size="16" resid="Mso.Info.16"/><bt:Image size="32" resid="Mso.Info.32"/><bt:Image size="80" resid="Mso.Info.80"/></Icon>
+                      <Action xsi:type="ExecuteFunction"><FunctionName>GoCh12</FunctionName></Action>
+                    </Item>
+                    <Item id="Sazan.Ch13">
+                      <Label resid="Ls.Ch13"/>
+                      <Supertip><Title resid="Ls.Ch13"/><Description resid="Ld.Ch13"/></Supertip>
+                      <Icon><bt:Image size="16" resid="Mso.Info.16"/><bt:Image size="32" resid="Mso.Info.32"/><bt:Image size="80" resid="Mso.Info.80"/></Icon>
+                      <Action xsi:type="ExecuteFunction"><FunctionName>GoCh13</FunctionName></Action>
+                    </Item>
+                    <Item id="Sazan.Ch14">
+                      <Label resid="Ls.Ch14"/>
+                      <Supertip><Title resid="Ls.Ch14"/><Description resid="Ld.Ch14"/></Supertip>
+                      <Icon><bt:Image size="16" resid="Mso.Info.16"/><bt:Image size="32" resid="Mso.Info.32"/><bt:Image size="80" resid="Mso.Info.80"/></Icon>
+                      <Action xsi:type="ExecuteFunction"><FunctionName>GoCh14</FunctionName></Action>
+                    </Item>
+                    <Item id="Sazan.Ch15">
+                      <Label resid="Ls.Ch15"/>
+                      <Supertip><Title resid="Ls.Ch15"/><Description resid="Ld.Ch15"/></Supertip>
+                      <Icon><bt:Image size="16" resid="Mso.Info.16"/><bt:Image size="32" resid="Mso.Info.32"/><bt:Image size="80" resid="Mso.Info.80"/></Icon>
+                      <Action xsi:type="ExecuteFunction"><FunctionName>GoCh15</FunctionName></Action>
                     </Item>
                   </Items>
                 </Control>
@@ -594,6 +721,29 @@
 <bt:String id="Ls.GrpOut" DefaultValue="Output"/>
 <bt:String id="Ls.MnuReports" DefaultValue="Reports"/>
 <bt:String id="Ls.NewUpsSys" DefaultValue="New UPS System"/>
+        <bt:String id="Ls.GrpSafety" DefaultValue="Safety &amp; Review"/>
+        <bt:String id="Ls.GrpMap" DefaultValue="Map"/>
+        <bt:String id="Ls.DistMapBtn" DefaultValue="Distribution Map"/>
+        <bt:String id="Ls.GrpHelp" DefaultValue="Help"/>
+        <bt:String id="Ls.MnuInstr" DefaultValue="Instructions"/>
+        <bt:String id="Ls.RefreshVoltageDrop" DefaultValue="Refresh Voltage Drop"/>
+        <bt:String id="Ls.RefreshShortCircuit" DefaultValue="Refresh Short Circuit"/>
+        <bt:String id="Ls.RefreshArcFlash" DefaultValue="Refresh Arc Flash"/>
+        <bt:String id="Ls.Ch01" DefaultValue="01 · Getting Started"/>
+        <bt:String id="Ls.Ch02" DefaultValue="02 · Project"/>
+        <bt:String id="Ls.Ch03" DefaultValue="03 · Load Calc"/>
+        <bt:String id="Ls.Ch04" DefaultValue="04 · Existing Demand"/>
+        <bt:String id="Ls.Ch05" DefaultValue="05 · Panel Schedules"/>
+        <bt:String id="Ls.Ch06" DefaultValue="06 · Transformers"/>
+        <bt:String id="Ls.Ch07" DefaultValue="07 · Backup Power"/>
+        <bt:String id="Ls.Ch08" DefaultValue="08 · Feeders"/>
+        <bt:String id="Ls.Ch09" DefaultValue="09 · Voltage Drop"/>
+        <bt:String id="Ls.Ch10" DefaultValue="10 · Short Circuit"/>
+        <bt:String id="Ls.Ch11" DefaultValue="11 · Arc Flash"/>
+        <bt:String id="Ls.Ch12" DefaultValue="12 · Studies"/>
+        <bt:String id="Ls.Ch13" DefaultValue="13 · Reports"/>
+        <bt:String id="Ls.Ch14" DefaultValue="14 · Distribution Map"/>
+        <bt:String id="Ls.Ch15" DefaultValue="15 · Reference &amp; Troubleshooting"/>
       </bt:ShortStrings>
       <bt:LongStrings>
         <bt:String id="Ld.GetStarted" DefaultValue="Open the S&#196;Z&#196;N PowerCalc tab to build load calcs, panel schedules and studies."/>
@@ -668,6 +818,26 @@
 <bt:String id="Ld.MnuStudies" DefaultValue="Combined studies view and study refresh. — S&#196;Z&#196;N PowerCalc."/>
 <bt:String id="Ld.MnuReports" DefaultValue="Project report and the reconciliation view. — S&#196;Z&#196;N PowerCalc."/>
 <bt:String id="Ld.NewUpsSys" DefaultValue="Place a UPS unit between its input board and the critical board it feeds, or take it out. Rating, input / output OCPD, bypass and SCCR size themselves on the UPS sheet."/>
+        <bt:String id="Ld.DistMapBtn" DefaultValue="Open the Distribution Map: the one-line tree of every source, board, transformer, UPS and transfer switch with ratings and demand — S&#196;Z&#196;N PowerCalc."/>
+        <bt:String id="Ld.MnuInstr" DefaultValue="Open the manual at a chapter. One chapter per ribbon section and its commands — S&#196;Z&#196;N PowerCalc."/>
+        <bt:String id="Ld.RefreshVoltageDrop" DefaultValue="Recalculate Voltage Drop and list every bus over the feeder or total limit — S&#196;Z&#196;N PowerCalc."/>
+        <bt:String id="Ld.RefreshShortCircuit" DefaultValue="Re-link registry AIC / ratings, recalculate Short Circuit and list every bus whose device AIC is inadequate — S&#196;Z&#196;N PowerCalc."/>
+        <bt:String id="Ld.RefreshArcFlash" DefaultValue="Rebuild the Arc Flash table from the Short Circuit bus list, keeping your inputs — S&#196;Z&#196;N PowerCalc."/>
+        <bt:String id="Ld.Ch01" DefaultValue="Go to Instructions, chapter 01: Getting Started — S&#196;Z&#196;N PowerCalc."/>
+        <bt:String id="Ld.Ch02" DefaultValue="Go to Instructions, chapter 02: Project — S&#196;Z&#196;N PowerCalc."/>
+        <bt:String id="Ld.Ch03" DefaultValue="Go to Instructions, chapter 03: Load Calc — S&#196;Z&#196;N PowerCalc."/>
+        <bt:String id="Ld.Ch04" DefaultValue="Go to Instructions, chapter 04: Existing Demand — S&#196;Z&#196;N PowerCalc."/>
+        <bt:String id="Ld.Ch05" DefaultValue="Go to Instructions, chapter 05: Panel Schedules — S&#196;Z&#196;N PowerCalc."/>
+        <bt:String id="Ld.Ch06" DefaultValue="Go to Instructions, chapter 06: Transformers — S&#196;Z&#196;N PowerCalc."/>
+        <bt:String id="Ld.Ch07" DefaultValue="Go to Instructions, chapter 07: Backup Power — S&#196;Z&#196;N PowerCalc."/>
+        <bt:String id="Ld.Ch08" DefaultValue="Go to Instructions, chapter 08: Feeders — S&#196;Z&#196;N PowerCalc."/>
+        <bt:String id="Ld.Ch09" DefaultValue="Go to Instructions, chapter 09: Voltage Drop — S&#196;Z&#196;N PowerCalc."/>
+        <bt:String id="Ld.Ch10" DefaultValue="Go to Instructions, chapter 10: Short Circuit — S&#196;Z&#196;N PowerCalc."/>
+        <bt:String id="Ld.Ch11" DefaultValue="Go to Instructions, chapter 11: Arc Flash — S&#196;Z&#196;N PowerCalc."/>
+        <bt:String id="Ld.Ch12" DefaultValue="Go to Instructions, chapter 12: Studies — S&#196;Z&#196;N PowerCalc."/>
+        <bt:String id="Ld.Ch13" DefaultValue="Go to Instructions, chapter 13: Reports — S&#196;Z&#196;N PowerCalc."/>
+        <bt:String id="Ld.Ch14" DefaultValue="Go to Instructions, chapter 14: Distribution Map — S&#196;Z&#196;N PowerCalc."/>
+        <bt:String id="Ld.Ch15" DefaultValue="Go to Instructions, chapter 15: Reference &amp; Troubleshooting — S&#196;Z&#196;N PowerCalc."/>
       </bt:LongStrings>
     </Resources>
   </VersionOverrides>

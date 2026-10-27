@@ -5,7 +5,7 @@
            xmlns:ov="http://schemas.microsoft.com/office/taskpaneappversionoverrides"
            xsi:type="TaskPaneApp">
   <Id>8f1a2c34-5b6d-4e7f-9a01-2b3c4d5e6f70</Id>
-  <Version>2.8.0.0</Version>
+  <Version>2.9.0.0</Version>
   <ProviderName>Säzän Group</ProviderName>
   <DefaultLocale>en-US</DefaultLocale>
   <DisplayName DefaultValue="S&#196;Z&#196;N PowerCalc"/>
@@ -29,343 +29,377 @@
           <FunctionFile resid="Url.Commands"/>
           <ExtensionPoint xsi:type="PrimaryCommandSurface">
             <CustomTab id="Sazan.Tab">
-              <Group id="Sazan.Group">
-                <Label resid="Ls.Group"/>
+              <Group id="Sazan.GrpSetup">
+                <Label resid="Ls.GrpSetup"/>
                 <Icon><bt:Image size="16" resid="Mso.FileNew.16"/><bt:Image size="32" resid="Mso.FileNew.32"/><bt:Image size="80" resid="Mso.FileNew.80"/></Icon>
-                <Control xsi:type="Button" id="Sazan.NewProject">
-                  <Label resid="Ls.NewProject"/>
-                  <Supertip><Title resid="Ls.NewProject"/><Description resid="Ld.NewProject"/></Supertip>
+                <Control xsi:type="Menu" id="Sazan.MnuProject">
+                  <Label resid="Ls.MnuProject"/>
+                  <Supertip><Title resid="Ls.MnuProject"/><Description resid="Ld.MnuProject"/></Supertip>
                   <Icon><bt:Image size="16" resid="Mso.FileNew.16"/><bt:Image size="32" resid="Mso.FileNew.32"/><bt:Image size="80" resid="Mso.FileNew.80"/></Icon>
-                  <Action xsi:type="ExecuteFunction"><FunctionName>NewProject</FunctionName></Action>
+                  <Items>
+                    <Item id="Sazan.NewProject">
+                      <Label resid="Ls.NewProject"/>
+                      <Supertip><Title resid="Ls.NewProject"/><Description resid="Ld.NewProject"/></Supertip>
+                      <Icon><bt:Image size="16" resid="Mso.FileNew.16"/><bt:Image size="32" resid="Mso.FileNew.32"/><bt:Image size="80" resid="Mso.FileNew.80"/></Icon>
+                      <Action xsi:type="ExecuteFunction"><FunctionName>NewProject</FunctionName></Action>
+                    </Item>
+                    <Item id="Sazan.GoInstructions">
+                      <Label resid="Ls.GoInstructions"/>
+                      <Supertip><Title resid="Ls.GoInstructions"/><Description resid="Ld.GoInstructions"/></Supertip>
+                      <Icon><bt:Image size="16" resid="Mso.Info.16"/><bt:Image size="32" resid="Mso.Info.32"/><bt:Image size="80" resid="Mso.Info.80"/></Icon>
+                      <Action xsi:type="ExecuteFunction"><FunctionName>GoInstructions</FunctionName></Action>
+                    </Item>
+                    <Item id="Sazan.GoDashboard">
+                      <Label resid="Ls.GoDashboard"/>
+                      <Supertip><Title resid="Ls.GoDashboard"/><Description resid="Ld.GoDashboard"/></Supertip>
+                      <Icon><bt:Image size="16" resid="Mso.PivotTableInsert.16"/><bt:Image size="32" resid="Mso.PivotTableInsert.32"/><bt:Image size="80" resid="Mso.PivotTableInsert.80"/></Icon>
+                      <Action xsi:type="ExecuteFunction"><FunctionName>GoDashboard</FunctionName></Action>
+                    </Item>
+                  </Items>
                 </Control>
-                <Control xsi:type="Button" id="Sazan.GoInstructions">
-                  <Label resid="Ls.GoInstructions"/>
-                  <Supertip><Title resid="Ls.GoInstructions"/><Description resid="Ld.GoInstructions"/></Supertip>
-                  <Icon><bt:Image size="16" resid="Mso.Info.16"/><bt:Image size="32" resid="Mso.Info.32"/><bt:Image size="80" resid="Mso.Info.80"/></Icon>
-                  <Action xsi:type="ExecuteFunction"><FunctionName>GoInstructions</FunctionName></Action>
-                </Control>
-                <Control xsi:type="Button" id="Sazan.GoDashboard">
-                  <Label resid="Ls.GoDashboard"/>
-                  <Supertip><Title resid="Ls.GoDashboard"/><Description resid="Ld.GoDashboard"/></Supertip>
-                  <Icon><bt:Image size="16" resid="Mso.PivotTableInsert.16"/><bt:Image size="32" resid="Mso.PivotTableInsert.32"/><bt:Image size="80" resid="Mso.PivotTableInsert.80"/></Icon>
-                  <Action xsi:type="ExecuteFunction"><FunctionName>GoDashboard</FunctionName></Action>
-                </Control>
-              </Group>
-              <Group id="Sazan.GrpCalc">
-                <Label resid="Ls.LoadCalc"/>
-                <Icon><bt:Image size="16" resid="Mso.FunctionWizard.16"/><bt:Image size="32" resid="Mso.FunctionWizard.32"/><bt:Image size="80" resid="Mso.FunctionWizard.80"/></Icon>
-                <Control xsi:type="Button" id="Sazan.NewLoadCalc">
-                  <Label resid="Ls.NewLoadCalc"/>
-                  <Supertip><Title resid="Ls.NewLoadCalc"/><Description resid="Ld.NewLoadCalc"/></Supertip>
-                  <Icon><bt:Image size="16" resid="Mso.Calculator.16"/><bt:Image size="32" resid="Mso.Calculator.32"/><bt:Image size="80" resid="Mso.Calculator.80"/></Icon>
-                  <Action xsi:type="ExecuteFunction"><FunctionName>NewLoadCalc</FunctionName></Action>
-                </Control>
-                <Control xsi:type="Button" id="Sazan.GoLoadCalc">
-                  <Label resid="Ls.GoLoadCalc"/>
-                  <Supertip><Title resid="Ls.GoLoadCalc"/><Description resid="Ld.GoLoadCalc"/></Supertip>
+                <Control xsi:type="Menu" id="Sazan.MnuLoadCalc">
+                  <Label resid="Ls.MnuLoadCalc"/>
+                  <Supertip><Title resid="Ls.MnuLoadCalc"/><Description resid="Ld.MnuLoadCalc"/></Supertip>
                   <Icon><bt:Image size="16" resid="Mso.FunctionWizard.16"/><bt:Image size="32" resid="Mso.FunctionWizard.32"/><bt:Image size="80" resid="Mso.FunctionWizard.80"/></Icon>
-                  <Action xsi:type="ExecuteFunction"><FunctionName>GoLoadCalc</FunctionName></Action>
+                  <Items>
+                    <Item id="Sazan.NewLoadCalc">
+                      <Label resid="Ls.NewLoadCalc"/>
+                      <Supertip><Title resid="Ls.NewLoadCalc"/><Description resid="Ld.NewLoadCalc"/></Supertip>
+                      <Icon><bt:Image size="16" resid="Mso.Calculator.16"/><bt:Image size="32" resid="Mso.Calculator.32"/><bt:Image size="80" resid="Mso.Calculator.80"/></Icon>
+                      <Action xsi:type="ExecuteFunction"><FunctionName>NewLoadCalc</FunctionName></Action>
+                    </Item>
+                    <Item id="Sazan.GoLoadCalc">
+                      <Label resid="Ls.GoLoadCalc"/>
+                      <Supertip><Title resid="Ls.GoLoadCalc"/><Description resid="Ld.GoLoadCalc"/></Supertip>
+                      <Icon><bt:Image size="16" resid="Mso.FunctionWizard.16"/><bt:Image size="32" resid="Mso.FunctionWizard.32"/><bt:Image size="80" resid="Mso.FunctionWizard.80"/></Icon>
+                      <Action xsi:type="ExecuteFunction"><FunctionName>GoLoadCalc</FunctionName></Action>
+                    </Item>
+                    <Item id="Sazan.AddSectionRow">
+                      <Label resid="Ls.AddSectionRow"/>
+                      <Supertip><Title resid="Ls.AddSectionRow"/><Description resid="Ld.AddSectionRow"/></Supertip>
+                      <Icon><bt:Image size="16" resid="Mso.TableRowsInsertAbove.16"/><bt:Image size="32" resid="Mso.TableRowsInsertAbove.32"/><bt:Image size="80" resid="Mso.TableRowsInsertAbove.80"/></Icon>
+                      <Action xsi:type="ExecuteFunction"><FunctionName>AddSectionRow</FunctionName></Action>
+                    </Item>
+                    <Item id="Sazan.TrimSectionRows">
+                      <Label resid="Ls.TrimSectionRows"/>
+                      <Supertip><Title resid="Ls.TrimSectionRows"/><Description resid="Ld.TrimSectionRows"/></Supertip>
+                      <Icon><bt:Image size="16" resid="Mso.TableRowsDeleteRows.16"/><bt:Image size="32" resid="Mso.TableRowsDeleteRows.32"/><bt:Image size="80" resid="Mso.TableRowsDeleteRows.80"/></Icon>
+                      <Action xsi:type="ExecuteFunction"><FunctionName>TrimSectionRows</FunctionName></Action>
+                    </Item>
+                    <Item id="Sazan.ToggleSection">
+                      <Label resid="Ls.ToggleSection"/>
+                      <Supertip><Title resid="Ls.ToggleSection"/><Description resid="Ld.ToggleSection"/></Supertip>
+                      <Icon><bt:Image size="16" resid="Mso.FilterToggleFilter.16"/><bt:Image size="32" resid="Mso.FilterToggleFilter.32"/><bt:Image size="80" resid="Mso.FilterToggleFilter.80"/></Icon>
+                      <Action xsi:type="ExecuteFunction"><FunctionName>ToggleSection</FunctionName></Action>
+                    </Item>
+                    <Item id="Sazan.SendToPanel">
+                      <Label resid="Ls.SendToPanel"/>
+                      <Supertip><Title resid="Ls.SendToPanel"/><Description resid="Ld.SendToPanel"/></Supertip>
+                      <Icon><bt:Image size="16" resid="Mso.Link.16"/><bt:Image size="32" resid="Mso.Link.32"/><bt:Image size="80" resid="Mso.Link.80"/></Icon>
+                      <Action xsi:type="ExecuteFunction"><FunctionName>SendToPanel</FunctionName></Action>
+                    </Item>
+                    <Item id="Sazan.RefreshPlacement">
+                      <Label resid="Ls.RefreshPlacement"/>
+                      <Supertip><Title resid="Ls.RefreshPlacement"/><Description resid="Ld.RefreshPlacement"/></Supertip>
+                      <Icon><bt:Image size="16" resid="Mso.RecordsRefreshAll.16"/><bt:Image size="32" resid="Mso.RecordsRefreshAll.32"/><bt:Image size="80" resid="Mso.RecordsRefreshAll.80"/></Icon>
+                      <Action xsi:type="ExecuteFunction"><FunctionName>RefreshPlacement</FunctionName></Action>
+                    </Item>
+                  </Items>
                 </Control>
-                <Control xsi:type="Button" id="Sazan.AddSectionRow">
-                  <Label resid="Ls.AddSectionRow"/>
-                  <Supertip><Title resid="Ls.AddSectionRow"/><Description resid="Ld.AddSectionRow"/></Supertip>
-                  <Icon><bt:Image size="16" resid="Mso.TableRowsInsertAbove.16"/><bt:Image size="32" resid="Mso.TableRowsInsertAbove.32"/><bt:Image size="80" resid="Mso.TableRowsInsertAbove.80"/></Icon>
-                  <Action xsi:type="ExecuteFunction"><FunctionName>AddSectionRow</FunctionName></Action>
-                </Control>
-                <Control xsi:type="Button" id="Sazan.TrimSectionRows">
-                  <Label resid="Ls.TrimSectionRows"/>
-                  <Supertip><Title resid="Ls.TrimSectionRows"/><Description resid="Ld.TrimSectionRows"/></Supertip>
-                  <Icon><bt:Image size="16" resid="Mso.TableRowsDeleteRows.16"/><bt:Image size="32" resid="Mso.TableRowsDeleteRows.32"/><bt:Image size="80" resid="Mso.TableRowsDeleteRows.80"/></Icon>
-                  <Action xsi:type="ExecuteFunction"><FunctionName>TrimSectionRows</FunctionName></Action>
-                </Control>
-                <Control xsi:type="Button" id="Sazan.ToggleSection">
-                  <Label resid="Ls.ToggleSection"/>
-                  <Supertip><Title resid="Ls.ToggleSection"/><Description resid="Ld.ToggleSection"/></Supertip>
-                  <Icon><bt:Image size="16" resid="Mso.FilterToggleFilter.16"/><bt:Image size="32" resid="Mso.FilterToggleFilter.32"/><bt:Image size="80" resid="Mso.FilterToggleFilter.80"/></Icon>
-                  <Action xsi:type="ExecuteFunction"><FunctionName>ToggleSection</FunctionName></Action>
-                </Control>
-                <Control xsi:type="Button" id="Sazan.SendToPanel">
-                  <Label resid="Ls.SendToPanel"/>
-                  <Supertip><Title resid="Ls.SendToPanel"/><Description resid="Ld.SendToPanel"/></Supertip>
-                  <Icon><bt:Image size="16" resid="Mso.PivotTableInsert.16"/><bt:Image size="32" resid="Mso.PivotTableInsert.32"/><bt:Image size="80" resid="Mso.PivotTableInsert.80"/></Icon>
-                  <Action xsi:type="ExecuteFunction"><FunctionName>SendToPanel</FunctionName></Action>
-                </Control>
-                <Control xsi:type="Button" id="Sazan.RefreshPlacement">
-                  <Label resid="Ls.RefreshPlacement"/>
-                  <Supertip><Title resid="Ls.RefreshPlacement"/><Description resid="Ld.RefreshPlacement"/></Supertip>
-                  <Icon><bt:Image size="16" resid="Mso.Calculator.16"/><bt:Image size="32" resid="Mso.Calculator.32"/><bt:Image size="80" resid="Mso.Calculator.80"/></Icon>
-                  <Action xsi:type="ExecuteFunction"><FunctionName>RefreshPlacement</FunctionName></Action>
-                </Control>
-              </Group>
-              <Group id="Sazan.GrpDemand">
-                <Label resid="Ls.ExistDemand"/>
-                <Icon><bt:Image size="16" resid="Mso.ChartInsert.16"/><bt:Image size="32" resid="Mso.ChartInsert.32"/><bt:Image size="80" resid="Mso.ChartInsert.80"/></Icon>
-                <Control xsi:type="Button" id="Sazan.NewUtility">
-                  <Label resid="Ls.NewUtility"/>
-                  <Supertip><Title resid="Ls.NewUtility"/><Description resid="Ld.NewUtility"/></Supertip>
+                <Control xsi:type="Menu" id="Sazan.MnuDemand">
+                  <Label resid="Ls.MnuDemand"/>
+                  <Supertip><Title resid="Ls.MnuDemand"/><Description resid="Ld.MnuDemand"/></Supertip>
                   <Icon><bt:Image size="16" resid="Mso.ChartInsert.16"/><bt:Image size="32" resid="Mso.ChartInsert.32"/><bt:Image size="80" resid="Mso.ChartInsert.80"/></Icon>
-                  <Action xsi:type="ExecuteFunction"><FunctionName>NewUtility</FunctionName></Action>
-                </Control>
-                <Control xsi:type="Button" id="Sazan.GoUtility">
-                  <Label resid="Ls.GoUtility"/>
-                  <Supertip><Title resid="Ls.GoUtility"/><Description resid="Ld.GoUtility"/></Supertip>
-                  <Icon><bt:Image size="16" resid="Mso.ChartLineInsert.16"/><bt:Image size="32" resid="Mso.ChartLineInsert.32"/><bt:Image size="80" resid="Mso.ChartLineInsert.80"/></Icon>
-                  <Action xsi:type="ExecuteFunction"><FunctionName>GoUtility</FunctionName></Action>
-                </Control>
-                <Control xsi:type="Button" id="Sazan.NewLogging">
-                  <Label resid="Ls.NewLogging"/>
-                  <Supertip><Title resid="Ls.NewLogging"/><Description resid="Ld.NewLogging"/></Supertip>
-                  <Icon><bt:Image size="16" resid="Mso.ChartInsert.16"/><bt:Image size="32" resid="Mso.ChartInsert.32"/><bt:Image size="80" resid="Mso.ChartInsert.80"/></Icon>
-                  <Action xsi:type="ExecuteFunction"><FunctionName>NewLogging</FunctionName></Action>
-                </Control>
-                <Control xsi:type="Button" id="Sazan.GoLogging">
-                  <Label resid="Ls.GoLogging"/>
-                  <Supertip><Title resid="Ls.GoLogging"/><Description resid="Ld.GoLogging"/></Supertip>
-                  <Icon><bt:Image size="16" resid="Mso.ChartLineInsert.16"/><bt:Image size="32" resid="Mso.ChartLineInsert.32"/><bt:Image size="80" resid="Mso.ChartLineInsert.80"/></Icon>
-                  <Action xsi:type="ExecuteFunction"><FunctionName>GoLogging</FunctionName></Action>
-                </Control>
-                <Control xsi:type="Button" id="Sazan.AddMeter">
-                  <Label resid="Ls.AddMeter"/>
-                  <Supertip><Title resid="Ls.AddMeter"/><Description resid="Ld.AddMeter"/></Supertip>
-                  <Icon><bt:Image size="16" resid="Mso.TableRowsInsertAbove.16"/><bt:Image size="32" resid="Mso.TableRowsInsertAbove.32"/><bt:Image size="80" resid="Mso.TableRowsInsertAbove.80"/></Icon>
-                  <Action xsi:type="ExecuteFunction"><FunctionName>AddMeter</FunctionName></Action>
+                  <Items>
+                    <Item id="Sazan.NewUtility">
+                      <Label resid="Ls.NewUtility"/>
+                      <Supertip><Title resid="Ls.NewUtility"/><Description resid="Ld.NewUtility"/></Supertip>
+                      <Icon><bt:Image size="16" resid="Mso.ChartInsert.16"/><bt:Image size="32" resid="Mso.ChartInsert.32"/><bt:Image size="80" resid="Mso.ChartInsert.80"/></Icon>
+                      <Action xsi:type="ExecuteFunction"><FunctionName>NewUtility</FunctionName></Action>
+                    </Item>
+                    <Item id="Sazan.GoUtility">
+                      <Label resid="Ls.GoUtility"/>
+                      <Supertip><Title resid="Ls.GoUtility"/><Description resid="Ld.GoUtility"/></Supertip>
+                      <Icon><bt:Image size="16" resid="Mso.ChartLineInsert.16"/><bt:Image size="32" resid="Mso.ChartLineInsert.32"/><bt:Image size="80" resid="Mso.ChartLineInsert.80"/></Icon>
+                      <Action xsi:type="ExecuteFunction"><FunctionName>GoUtility</FunctionName></Action>
+                    </Item>
+                    <Item id="Sazan.NewLogging">
+                      <Label resid="Ls.NewLogging"/>
+                      <Supertip><Title resid="Ls.NewLogging"/><Description resid="Ld.NewLogging"/></Supertip>
+                      <Icon><bt:Image size="16" resid="Mso.ChartInsert.16"/><bt:Image size="32" resid="Mso.ChartInsert.32"/><bt:Image size="80" resid="Mso.ChartInsert.80"/></Icon>
+                      <Action xsi:type="ExecuteFunction"><FunctionName>NewLogging</FunctionName></Action>
+                    </Item>
+                    <Item id="Sazan.GoLogging">
+                      <Label resid="Ls.GoLogging"/>
+                      <Supertip><Title resid="Ls.GoLogging"/><Description resid="Ld.GoLogging"/></Supertip>
+                      <Icon><bt:Image size="16" resid="Mso.ChartLineInsert.16"/><bt:Image size="32" resid="Mso.ChartLineInsert.32"/><bt:Image size="80" resid="Mso.ChartLineInsert.80"/></Icon>
+                      <Action xsi:type="ExecuteFunction"><FunctionName>GoLogging</FunctionName></Action>
+                    </Item>
+                    <Item id="Sazan.AddMeter">
+                      <Label resid="Ls.AddMeter"/>
+                      <Supertip><Title resid="Ls.AddMeter"/><Description resid="Ld.AddMeter"/></Supertip>
+                      <Icon><bt:Image size="16" resid="Mso.TableRowsInsertAbove.16"/><bt:Image size="32" resid="Mso.TableRowsInsertAbove.32"/><bt:Image size="80" resid="Mso.TableRowsInsertAbove.80"/></Icon>
+                      <Action xsi:type="ExecuteFunction"><FunctionName>AddMeter</FunctionName></Action>
+                    </Item>
+                  </Items>
                 </Control>
               </Group>
-              <Group id="Sazan.GrpPanels">
-                <Label resid="Ls.Panels"/>
+              <Group id="Sazan.GrpDist">
+                <Label resid="Ls.GrpDist"/>
                 <Icon><bt:Image size="16" resid="Mso.SheetInsert.16"/><bt:Image size="32" resid="Mso.SheetInsert.32"/><bt:Image size="80" resid="Mso.SheetInsert.80"/></Icon>
-                <Control xsi:type="Button" id="Sazan.NewSwitchboard">
-                  <Label resid="Ls.NewSwitchboard"/>
-                  <Supertip><Title resid="Ls.NewSwitchboard"/><Description resid="Ld.NewSwitchboard"/></Supertip>
+                <Control xsi:type="Menu" id="Sazan.MnuPanels">
+                  <Label resid="Ls.MnuPanels"/>
+                  <Supertip><Title resid="Ls.MnuPanels"/><Description resid="Ld.MnuPanels"/></Supertip>
                   <Icon><bt:Image size="16" resid="Mso.SheetInsert.16"/><bt:Image size="32" resid="Mso.SheetInsert.32"/><bt:Image size="80" resid="Mso.SheetInsert.80"/></Icon>
-                  <Action xsi:type="ExecuteFunction"><FunctionName>NewSwitchboard</FunctionName></Action>
+                  <Items>
+                    <Item id="Sazan.PanelTreePane">
+                      <Label resid="Ls.PanelTreePane"/>
+                      <Supertip><Title resid="Ls.PanelTreePane"/><Description resid="Ld.PanelTreePane"/></Supertip>
+                      <Icon><bt:Image size="16" resid="Mso.PanelTree.16"/><bt:Image size="32" resid="Mso.PanelTree.32"/><bt:Image size="80" resid="Mso.PanelTree.80"/></Icon>
+                      <Action xsi:type="ShowTaskpane">
+                        <TaskpaneId>Sazan.PanelTree.Pane</TaskpaneId>
+                        <SourceLocation resid="Url.Taskpane"/>
+                      </Action>
+                    </Item>
+                    <Item id="Sazan.NewSwitchboard">
+                      <Label resid="Ls.NewSwitchboard"/>
+                      <Supertip><Title resid="Ls.NewSwitchboard"/><Description resid="Ld.NewSwitchboard"/></Supertip>
+                      <Icon><bt:Image size="16" resid="Mso.SheetInsert.16"/><bt:Image size="32" resid="Mso.SheetInsert.32"/><bt:Image size="80" resid="Mso.SheetInsert.80"/></Icon>
+                      <Action xsi:type="ExecuteFunction"><FunctionName>NewSwitchboard</FunctionName></Action>
+                    </Item>
+                    <Item id="Sazan.NewMCC">
+                      <Label resid="Ls.NewMCC"/>
+                      <Supertip><Title resid="Ls.NewMCC"/><Description resid="Ld.NewMCC"/></Supertip>
+                      <Icon><bt:Image size="16" resid="Mso.SheetInsert.16"/><bt:Image size="32" resid="Mso.SheetInsert.32"/><bt:Image size="80" resid="Mso.SheetInsert.80"/></Icon>
+                      <Action xsi:type="ExecuteFunction"><FunctionName>NewMCC</FunctionName></Action>
+                    </Item>
+                    <Item id="Sazan.NewPanelboard">
+                      <Label resid="Ls.NewPanelboard"/>
+                      <Supertip><Title resid="Ls.NewPanelboard"/><Description resid="Ld.NewPanelboard"/></Supertip>
+                      <Icon><bt:Image size="16" resid="Mso.SheetInsert.16"/><bt:Image size="32" resid="Mso.SheetInsert.32"/><bt:Image size="80" resid="Mso.SheetInsert.80"/></Icon>
+                      <Action xsi:type="ExecuteFunction"><FunctionName>NewPanelboard</FunctionName></Action>
+                    </Item>
+                    <Item id="Sazan.MoveCircuit">
+                      <Label resid="Ls.MoveCircuit"/>
+                      <Supertip><Title resid="Ls.MoveCircuit"/><Description resid="Ld.MoveCircuit"/></Supertip>
+                      <Icon><bt:Image size="16" resid="Mso.LinkedNotesPaneOpen.16"/><bt:Image size="32" resid="Mso.LinkedNotesPaneOpen.32"/><bt:Image size="80" resid="Mso.LinkedNotesPaneOpen.80"/></Icon>
+                      <Action xsi:type="ExecuteFunction"><FunctionName>MoveCircuit</FunctionName></Action>
+                    </Item>
+                    <Item id="Sazan.ToggleSizing">
+                      <Label resid="Ls.ToggleSizing"/>
+                      <Supertip><Title resid="Ls.ToggleSizing"/><Description resid="Ld.ToggleSizing"/></Supertip>
+                      <Icon><bt:Image size="16" resid="Mso.ColumnWidth.16"/><bt:Image size="32" resid="Mso.ColumnWidth.32"/><bt:Image size="80" resid="Mso.ColumnWidth.80"/></Icon>
+                      <Action xsi:type="ExecuteFunction"><FunctionName>ToggleSizing</FunctionName></Action>
+                    </Item>
+                    <Item id="Sazan.ToggleMatrix">
+                      <Label resid="Ls.ToggleMatrix"/>
+                      <Supertip><Title resid="Ls.ToggleMatrix"/><Description resid="Ld.ToggleMatrix"/></Supertip>
+                      <Icon><bt:Image size="16" resid="Mso.TableStylesGallery.16"/><bt:Image size="32" resid="Mso.TableStylesGallery.32"/><bt:Image size="80" resid="Mso.TableStylesGallery.80"/></Icon>
+                      <Action xsi:type="ExecuteFunction"><FunctionName>ToggleMatrix</FunctionName></Action>
+                    </Item>
+                    <Item id="Sazan.RebuildGeo">
+                      <Label resid="Ls.RebuildGeo"/>
+                      <Supertip><Title resid="Ls.RebuildGeo"/><Description resid="Ld.RebuildGeo"/></Supertip>
+                      <Icon><bt:Image size="16" resid="Mso.Repair.16"/><bt:Image size="32" resid="Mso.Repair.32"/><bt:Image size="80" resid="Mso.Repair.80"/></Icon>
+                      <Action xsi:type="ExecuteFunction"><FunctionName>RebuildGeo</FunctionName></Action>
+                    </Item>
+                  </Items>
                 </Control>
-                <Control xsi:type="Button" id="Sazan.NewMCC">
-                  <Label resid="Ls.NewMCC"/>
-                  <Supertip><Title resid="Ls.NewMCC"/><Description resid="Ld.NewMCC"/></Supertip>
-                  <Icon><bt:Image size="16" resid="Mso.SheetInsert.16"/><bt:Image size="32" resid="Mso.SheetInsert.32"/><bt:Image size="80" resid="Mso.SheetInsert.80"/></Icon>
-                  <Action xsi:type="ExecuteFunction"><FunctionName>NewMCC</FunctionName></Action>
+                <Control xsi:type="Menu" id="Sazan.MnuXfmr">
+                  <Label resid="Ls.MnuXfmr"/>
+                  <Supertip><Title resid="Ls.MnuXfmr"/><Description resid="Ld.MnuXfmr"/></Supertip>
+                  <Icon><bt:Image size="16" resid="Mso.Transformer.16"/><bt:Image size="32" resid="Mso.Transformer.32"/><bt:Image size="80" resid="Mso.Transformer.80"/></Icon>
+                  <Items>
+                    <Item id="Sazan.NewTransformers">
+                      <Label resid="Ls.NewTransformers"/>
+                      <Supertip><Title resid="Ls.NewTransformers"/><Description resid="Ld.NewTransformers"/></Supertip>
+                      <Icon><bt:Image size="16" resid="Mso.TableInsert.16"/><bt:Image size="32" resid="Mso.TableInsert.32"/><bt:Image size="80" resid="Mso.TableInsert.80"/></Icon>
+                      <Action xsi:type="ExecuteFunction"><FunctionName>NewTransformers</FunctionName></Action>
+                    </Item>
+                    <Item id="Sazan.GoTransformers">
+                      <Label resid="Ls.GoTransformers"/>
+                      <Supertip><Title resid="Ls.GoTransformers"/><Description resid="Ld.GoTransformers"/></Supertip>
+                      <Icon><bt:Image size="16" resid="Mso.Transformer.16"/><bt:Image size="32" resid="Mso.Transformer.32"/><bt:Image size="80" resid="Mso.Transformer.80"/></Icon>
+                      <Action xsi:type="ExecuteFunction"><FunctionName>GoTransformers</FunctionName></Action>
+                    </Item>
+                  </Items>
                 </Control>
-                <Control xsi:type="Button" id="Sazan.NewPanelboard">
-                  <Label resid="Ls.NewPanelboard"/>
-                  <Supertip><Title resid="Ls.NewPanelboard"/><Description resid="Ld.NewPanelboard"/></Supertip>
-                  <Icon><bt:Image size="16" resid="Mso.SheetInsert.16"/><bt:Image size="32" resid="Mso.SheetInsert.32"/><bt:Image size="80" resid="Mso.SheetInsert.80"/></Icon>
-                  <Action xsi:type="ExecuteFunction"><FunctionName>NewPanelboard</FunctionName></Action>
+                <Control xsi:type="Menu" id="Sazan.MnuBackup">
+                  <Label resid="Ls.MnuBackup"/>
+                  <Supertip><Title resid="Ls.MnuBackup"/><Description resid="Ld.MnuBackup"/></Supertip>
+                  <Icon><bt:Image size="16" resid="Mso.MacroPlay.16"/><bt:Image size="32" resid="Mso.MacroPlay.32"/><bt:Image size="80" resid="Mso.MacroPlay.80"/></Icon>
+                  <Items>
+                    <Item id="Sazan.NewGenerator">
+                      <Label resid="Ls.NewGenerator"/>
+                      <Supertip><Title resid="Ls.NewGenerator"/><Description resid="Ld.NewGenerator"/></Supertip>
+                      <Icon><bt:Image size="16" resid="Mso.MacroSecurity.16"/><bt:Image size="32" resid="Mso.MacroSecurity.32"/><bt:Image size="80" resid="Mso.MacroSecurity.80"/></Icon>
+                      <Action xsi:type="ExecuteFunction"><FunctionName>NewGenerator</FunctionName></Action>
+                    </Item>
+                    <Item id="Sazan.GoGenerator">
+                      <Label resid="Ls.GoGenerator"/>
+                      <Supertip><Title resid="Ls.GoGenerator"/><Description resid="Ld.GoGenerator"/></Supertip>
+                      <Icon><bt:Image size="16" resid="Mso.MacroPlay.16"/><bt:Image size="32" resid="Mso.MacroPlay.32"/><bt:Image size="80" resid="Mso.MacroPlay.80"/></Icon>
+                      <Action xsi:type="ExecuteFunction"><FunctionName>GoGenerator</FunctionName></Action>
+                    </Item>
+                    <Item id="Sazan.NewTransferSwitch">
+                      <Label resid="Ls.NewXfer"/>
+                      <Supertip><Title resid="Ls.NewXfer"/><Description resid="Ld.NewXfer"/></Supertip>
+                      <Icon><bt:Image size="16" resid="Mso.MacroPlay.16"/><bt:Image size="32" resid="Mso.MacroPlay.32"/><bt:Image size="80" resid="Mso.MacroPlay.80"/></Icon>
+                      <Action xsi:type="ExecuteFunction"><FunctionName>NewTransferSwitch</FunctionName></Action>
+                    </Item>
+                    <Item id="Sazan.NewUPS">
+                      <Label resid="Ls.NewUPS"/>
+                      <Supertip><Title resid="Ls.NewUPS"/><Description resid="Ld.NewUPS"/></Supertip>
+                      <Icon><bt:Image size="16" resid="Mso.MacroSecurity.16"/><bt:Image size="32" resid="Mso.MacroSecurity.32"/><bt:Image size="80" resid="Mso.MacroSecurity.80"/></Icon>
+                      <Action xsi:type="ExecuteFunction"><FunctionName>NewUPS</FunctionName></Action>
+                    </Item>
+                    <Item id="Sazan.GoUPS">
+                      <Label resid="Ls.GoUPS"/>
+                      <Supertip><Title resid="Ls.GoUPS"/><Description resid="Ld.GoUPS"/></Supertip>
+                      <Icon><bt:Image size="16" resid="Mso.MacroPlay.16"/><bt:Image size="32" resid="Mso.MacroPlay.32"/><bt:Image size="80" resid="Mso.MacroPlay.80"/></Icon>
+                      <Action xsi:type="ExecuteFunction"><FunctionName>GoUPS</FunctionName></Action>
+                    </Item>
+                    <Item id="Sazan.NewUpsSystem">
+                      <Label resid="Ls.NewUpsSys"/>
+                      <Supertip><Title resid="Ls.NewUpsSys"/><Description resid="Ld.NewUpsSys"/></Supertip>
+                      <Icon><bt:Image size="16" resid="Mso.Calculator.16"/><bt:Image size="32" resid="Mso.Calculator.32"/><bt:Image size="80" resid="Mso.Calculator.80"/></Icon>
+                      <Action xsi:type="ExecuteFunction"><FunctionName>NewUpsSystem</FunctionName></Action>
+                    </Item>
+                  </Items>
                 </Control>
               </Group>
-              <Group id="Sazan.GrpPanelTools">
-                <Label resid="Ls.GrpPanelTools"/>
-                <Icon><bt:Image size="16" resid="Mso.SheetInsert.16"/><bt:Image size="32" resid="Mso.SheetInsert.32"/><bt:Image size="80" resid="Mso.SheetInsert.80"/></Icon>
-                <Control xsi:type="Button" id="Sazan.Link">
-                  <Label resid="Ls.Link"/>
-                  <Supertip><Title resid="Ls.Link"/><Description resid="Ld.Link"/></Supertip>
-                  <Icon><bt:Image size="16" resid="Mso.Link.16"/><bt:Image size="32" resid="Mso.Link.32"/><bt:Image size="80" resid="Mso.Link.80"/></Icon>
-                  <Action xsi:type="ExecuteFunction"><FunctionName>Link</FunctionName></Action>
-                </Control>
-                <Control xsi:type="Button" id="Sazan.SubFeed">
-                  <Label resid="Ls.SubFeed"/>
-                  <Supertip><Title resid="Ls.SubFeed"/><Description resid="Ld.SubFeed"/></Supertip>
-                  <Icon><bt:Image size="16" resid="Mso.LinkedNotesPaneOpen.16"/><bt:Image size="32" resid="Mso.LinkedNotesPaneOpen.32"/><bt:Image size="80" resid="Mso.LinkedNotesPaneOpen.80"/></Icon>
-                  <Action xsi:type="ExecuteFunction"><FunctionName>SubFeed</FunctionName></Action>
-                </Control>
-                <Control xsi:type="Button" id="Sazan.FeedThru">
-                  <Label resid="Ls.FeedThru"/>
-                  <Supertip><Title resid="Ls.FeedThru"/><Description resid="Ld.FeedThru"/></Supertip>
-                  <Icon><bt:Image size="16" resid="Mso.LinkedNotesPaneOpen.16"/><bt:Image size="32" resid="Mso.LinkedNotesPaneOpen.32"/><bt:Image size="80" resid="Mso.LinkedNotesPaneOpen.80"/></Icon>
-                  <Action xsi:type="ExecuteFunction"><FunctionName>FeedThru</FunctionName></Action>
-                </Control>
-                <Control xsi:type="Button" id="Sazan.MoveCircuit">
-                  <Label resid="Ls.MoveCircuit"/>
-                  <Supertip><Title resid="Ls.MoveCircuit"/><Description resid="Ld.MoveCircuit"/></Supertip>
-                  <Icon><bt:Image size="16" resid="Mso.Link.16"/><bt:Image size="32" resid="Mso.Link.32"/><bt:Image size="80" resid="Mso.Link.80"/></Icon>
-                  <Action xsi:type="ExecuteFunction"><FunctionName>MoveCircuit</FunctionName></Action>
-                </Control>
-                <Control xsi:type="Button" id="Sazan.Rename">
-                  <Label resid="Ls.Rename"/>
-                  <Supertip><Title resid="Ls.Rename"/><Description resid="Ld.Rename"/></Supertip>
-                  <Icon><bt:Image size="16" resid="Mso.SheetInsert.16"/><bt:Image size="32" resid="Mso.SheetInsert.32"/><bt:Image size="80" resid="Mso.SheetInsert.80"/></Icon>
-                  <Action xsi:type="ExecuteFunction"><FunctionName>RenameBoard</FunctionName></Action>
-                </Control>
-                <Control xsi:type="Button" id="Sazan.RebuildGeo">
-                  <Label resid="Ls.RebuildGeo"/>
-                  <Supertip><Title resid="Ls.RebuildGeo"/><Description resid="Ld.RebuildGeo"/></Supertip>
-                  <Icon><bt:Image size="16" resid="Mso.Repair.16"/><bt:Image size="32" resid="Mso.Repair.32"/><bt:Image size="80" resid="Mso.Repair.80"/></Icon>
-                  <Action xsi:type="ExecuteFunction"><FunctionName>RebuildGeo</FunctionName></Action>
-                </Control>
-              </Group>
-              <Group id="Sazan.GrpBackup">
-                <Label resid="Ls.Backup"/>
-                <Icon><bt:Image size="16" resid="Mso.MacroPlay.16"/><bt:Image size="32" resid="Mso.MacroPlay.32"/><bt:Image size="80" resid="Mso.MacroPlay.80"/></Icon>
-                <Control xsi:type="Button" id="Sazan.NewGenerator">
-                  <Label resid="Ls.NewGenerator"/>
-                  <Supertip><Title resid="Ls.NewGenerator"/><Description resid="Ld.NewGenerator"/></Supertip>
-                  <Icon><bt:Image size="16" resid="Mso.MacroSecurity.16"/><bt:Image size="32" resid="Mso.MacroSecurity.32"/><bt:Image size="80" resid="Mso.MacroSecurity.80"/></Icon>
-                  <Action xsi:type="ExecuteFunction"><FunctionName>NewGenerator</FunctionName></Action>
-                </Control>
-                <Control xsi:type="Button" id="Sazan.GoGenerator">
-                  <Label resid="Ls.GoGenerator"/>
-                  <Supertip><Title resid="Ls.GoGenerator"/><Description resid="Ld.GoGenerator"/></Supertip>
-                  <Icon><bt:Image size="16" resid="Mso.MacroPlay.16"/><bt:Image size="32" resid="Mso.MacroPlay.32"/><bt:Image size="80" resid="Mso.MacroPlay.80"/></Icon>
-                  <Action xsi:type="ExecuteFunction"><FunctionName>GoGenerator</FunctionName></Action>
-                </Control>
-                <Control xsi:type="Button" id="Sazan.NewTransferSwitch">
-                  <Label resid="Ls.NewXfer"/>
-                  <bt:String id="Ls.NewUpsSys" DefaultValue="New UPS System"/>
-                  <Supertip><Title resid="Ls.NewXfer"/><Description resid="Ld.NewXfer"/></Supertip>
-                  <bt:String id="Ld.NewUpsSys" DefaultValue="Place a UPS unit between its input board and the critical board it feeds, or take it out. Rating, input / output OCPD, bypass and SCCR size themselves on the UPS sheet."/>
-                  <Icon><bt:Image size="16" resid="Mso.MacroPlay.16"/><bt:Image size="32" resid="Mso.MacroPlay.32"/><bt:Image size="80" resid="Mso.MacroPlay.80"/></Icon>
-                  <Action xsi:type="ExecuteFunction"><FunctionName>NewTransferSwitch</FunctionName></Action>
-                </Control>
-                <Control xsi:type="Button" id="Sazan.NewUpsSystem">
-                  <Label resid="Ls.NewUpsSys"/>
-                  <Supertip><Title resid="Ls.NewUpsSys"/><Description resid="Ld.NewUpsSys"/></Supertip>
-                  <Icon><bt:Image size="16" resid="Mso.Calculator.16"/><bt:Image size="32" resid="Mso.Calculator.32"/><bt:Image size="80" resid="Mso.Calculator.80"/></Icon>
-                  <Action xsi:type="ExecuteFunction"><FunctionName>NewUpsSystem</FunctionName></Action>
-                </Control>
-                <Control xsi:type="Button" id="Sazan.NewUPS">
-                  <Label resid="Ls.NewUPS"/>
-                  <Supertip><Title resid="Ls.NewUPS"/><Description resid="Ld.NewUPS"/></Supertip>
-                  <Icon><bt:Image size="16" resid="Mso.MacroSecurity.16"/><bt:Image size="32" resid="Mso.MacroSecurity.32"/><bt:Image size="80" resid="Mso.MacroSecurity.80"/></Icon>
-                  <Action xsi:type="ExecuteFunction"><FunctionName>NewUPS</FunctionName></Action>
-                </Control>
-                <Control xsi:type="Button" id="Sazan.GoUPS">
-                  <Label resid="Ls.GoUPS"/>
-                  <Supertip><Title resid="Ls.GoUPS"/><Description resid="Ld.GoUPS"/></Supertip>
-                  <Icon><bt:Image size="16" resid="Mso.MacroPlay.16"/><bt:Image size="32" resid="Mso.MacroPlay.32"/><bt:Image size="80" resid="Mso.MacroPlay.80"/></Icon>
-                  <Action xsi:type="ExecuteFunction"><FunctionName>GoUPS</FunctionName></Action>
-                </Control>
-              </Group>
-              <Group id="Sazan.GrpXfmr">
-                <Label resid="Ls.Xfmr"/>
-                <Icon><bt:Image size="16" resid="Mso.Transformer.16"/><bt:Image size="32" resid="Mso.Transformer.32"/><bt:Image size="80" resid="Mso.Transformer.80"/></Icon>
-                <Control xsi:type="Button" id="Sazan.NewTransformers">
-                  <Label resid="Ls.NewTransformers"/>
-                  <Supertip><Title resid="Ls.NewTransformers"/><Description resid="Ld.NewTransformers"/></Supertip>
-                  <Icon><bt:Image size="16" resid="Mso.TableInsert.16"/><bt:Image size="32" resid="Mso.TableInsert.32"/><bt:Image size="80" resid="Mso.TableInsert.80"/></Icon>
-                  <Action xsi:type="ExecuteFunction"><FunctionName>NewTransformers</FunctionName></Action>
-                </Control>
-                <Control xsi:type="Button" id="Sazan.GoTransformers">
-                  <Label resid="Ls.GoTransformers"/>
-                  <Supertip><Title resid="Ls.GoTransformers"/><Description resid="Ld.GoTransformers"/></Supertip>
+              <Group id="Sazan.GrpStudy">
+                <Label resid="Ls.GrpStudy"/>
+                <Icon><bt:Image size="16" resid="Mso.TableDesign.16"/><bt:Image size="32" resid="Mso.TableDesign.32"/><bt:Image size="80" resid="Mso.TableDesign.80"/></Icon>
+                <Control xsi:type="Menu" id="Sazan.MnuFeeders">
+                  <Label resid="Ls.MnuFeeders"/>
+                  <Supertip><Title resid="Ls.MnuFeeders"/><Description resid="Ld.MnuFeeders"/></Supertip>
                   <Icon><bt:Image size="16" resid="Mso.TableDesign.16"/><bt:Image size="32" resid="Mso.TableDesign.32"/><bt:Image size="80" resid="Mso.TableDesign.80"/></Icon>
-                  <Action xsi:type="ExecuteFunction"><FunctionName>GoTransformers</FunctionName></Action>
+                  <Items>
+                    <Item id="Sazan.NewFeederSchedule">
+                      <Label resid="Ls.NewFeederSchedule"/>
+                      <Supertip><Title resid="Ls.NewFeederSchedule"/><Description resid="Ld.NewFeederSchedule"/></Supertip>
+                      <Icon><bt:Image size="16" resid="Mso.TableInsert.16"/><bt:Image size="32" resid="Mso.TableInsert.32"/><bt:Image size="80" resid="Mso.TableInsert.80"/></Icon>
+                      <Action xsi:type="ExecuteFunction"><FunctionName>NewFeederSchedule</FunctionName></Action>
+                    </Item>
+                    <Item id="Sazan.GoFeederSchedule">
+                      <Label resid="Ls.GoFeederSchedule"/>
+                      <Supertip><Title resid="Ls.GoFeederSchedule"/><Description resid="Ld.GoFeederSchedule"/></Supertip>
+                      <Icon><bt:Image size="16" resid="Mso.TableDesign.16"/><bt:Image size="32" resid="Mso.TableDesign.32"/><bt:Image size="80" resid="Mso.TableDesign.80"/></Icon>
+                      <Action xsi:type="ExecuteFunction"><FunctionName>GoFeederSchedule</FunctionName></Action>
+                    </Item>
+                    <Item id="Sazan.RefreshFeeders">
+                      <Label resid="Ls.RefreshFeeders"/>
+                      <Supertip><Title resid="Ls.RefreshFeeders"/><Description resid="Ld.RefreshFeeders"/></Supertip>
+                      <Icon><bt:Image size="16" resid="Mso.RecordsRefreshAll.16"/><bt:Image size="32" resid="Mso.RecordsRefreshAll.32"/><bt:Image size="80" resid="Mso.RecordsRefreshAll.80"/></Icon>
+                      <Action xsi:type="ExecuteFunction"><FunctionName>RefreshFeeders</FunctionName></Action>
+                    </Item>
+                  </Items>
                 </Control>
-              </Group>
-              <Group id="Sazan.GrpStudies">
-                <Label resid="Ls.Studies"/>
-                <Icon><bt:Image size="16" resid="Mso.FormulaEvaluate.16"/><bt:Image size="32" resid="Mso.FormulaEvaluate.32"/><bt:Image size="80" resid="Mso.FormulaEvaluate.80"/></Icon>
-                <Control xsi:type="Button" id="Sazan.NewShortCircuit">
-                  <Label resid="Ls.NewShortCircuit"/>
-                  <Supertip><Title resid="Ls.NewShortCircuit"/><Description resid="Ld.NewShortCircuit"/></Supertip>
-                  <Icon><bt:Image size="16" resid="Mso.ErrorChecking.16"/><bt:Image size="32" resid="Mso.ErrorChecking.32"/><bt:Image size="80" resid="Mso.ErrorChecking.80"/></Icon>
-                  <Action xsi:type="ExecuteFunction"><FunctionName>NewShortCircuit</FunctionName></Action>
-                </Control>
-                <Control xsi:type="Button" id="Sazan.GoShortCircuit">
-                  <Label resid="Ls.GoShortCircuit"/>
-                  <Supertip><Title resid="Ls.GoShortCircuit"/><Description resid="Ld.GoShortCircuit"/></Supertip>
-                  <Icon><bt:Image size="16" resid="Mso.ErrorChecking.16"/><bt:Image size="32" resid="Mso.ErrorChecking.32"/><bt:Image size="80" resid="Mso.ErrorChecking.80"/></Icon>
-                  <Action xsi:type="ExecuteFunction"><FunctionName>GoShortCircuit</FunctionName></Action>
-                </Control>
-                <Control xsi:type="Button" id="Sazan.NewVoltageDrop">
-                  <Label resid="Ls.NewVoltageDrop"/>
-                  <Supertip><Title resid="Ls.NewVoltageDrop"/><Description resid="Ld.NewVoltageDrop"/></Supertip>
+                <Control xsi:type="Menu" id="Sazan.MnuVD">
+                  <Label resid="Ls.MnuVD"/>
+                  <Supertip><Title resid="Ls.MnuVD"/><Description resid="Ld.MnuVD"/></Supertip>
                   <Icon><bt:Image size="16" resid="Mso.ChartLineInsert.16"/><bt:Image size="32" resid="Mso.ChartLineInsert.32"/><bt:Image size="80" resid="Mso.ChartLineInsert.80"/></Icon>
-                  <Action xsi:type="ExecuteFunction"><FunctionName>NewVoltageDrop</FunctionName></Action>
+                  <Items>
+                    <Item id="Sazan.NewVoltageDrop">
+                      <Label resid="Ls.NewVoltageDrop"/>
+                      <Supertip><Title resid="Ls.NewVoltageDrop"/><Description resid="Ld.NewVoltageDrop"/></Supertip>
+                      <Icon><bt:Image size="16" resid="Mso.ChartLineInsert.16"/><bt:Image size="32" resid="Mso.ChartLineInsert.32"/><bt:Image size="80" resid="Mso.ChartLineInsert.80"/></Icon>
+                      <Action xsi:type="ExecuteFunction"><FunctionName>NewVoltageDrop</FunctionName></Action>
+                    </Item>
+                    <Item id="Sazan.GoVoltageDrop">
+                      <Label resid="Ls.GoVoltageDrop"/>
+                      <Supertip><Title resid="Ls.GoVoltageDrop"/><Description resid="Ld.GoVoltageDrop"/></Supertip>
+                      <Icon><bt:Image size="16" resid="Mso.ChartLineInsert.16"/><bt:Image size="32" resid="Mso.ChartLineInsert.32"/><bt:Image size="80" resid="Mso.ChartLineInsert.80"/></Icon>
+                      <Action xsi:type="ExecuteFunction"><FunctionName>GoVoltageDrop</FunctionName></Action>
+                    </Item>
+                  </Items>
                 </Control>
-                <Control xsi:type="Button" id="Sazan.GoVoltageDrop">
-                  <Label resid="Ls.GoVoltageDrop"/>
-                  <Supertip><Title resid="Ls.GoVoltageDrop"/><Description resid="Ld.GoVoltageDrop"/></Supertip>
-                  <Icon><bt:Image size="16" resid="Mso.ChartLineInsert.16"/><bt:Image size="32" resid="Mso.ChartLineInsert.32"/><bt:Image size="80" resid="Mso.ChartLineInsert.80"/></Icon>
-                  <Action xsi:type="ExecuteFunction"><FunctionName>GoVoltageDrop</FunctionName></Action>
+                <Control xsi:type="Menu" id="Sazan.MnuSC">
+                  <Label resid="Ls.MnuSC"/>
+                  <Supertip><Title resid="Ls.MnuSC"/><Description resid="Ld.MnuSC"/></Supertip>
+                  <Icon><bt:Image size="16" resid="Mso.ErrorChecking.16"/><bt:Image size="32" resid="Mso.ErrorChecking.32"/><bt:Image size="80" resid="Mso.ErrorChecking.80"/></Icon>
+                  <Items>
+                    <Item id="Sazan.NewShortCircuit">
+                      <Label resid="Ls.NewShortCircuit"/>
+                      <Supertip><Title resid="Ls.NewShortCircuit"/><Description resid="Ld.NewShortCircuit"/></Supertip>
+                      <Icon><bt:Image size="16" resid="Mso.ErrorChecking.16"/><bt:Image size="32" resid="Mso.ErrorChecking.32"/><bt:Image size="80" resid="Mso.ErrorChecking.80"/></Icon>
+                      <Action xsi:type="ExecuteFunction"><FunctionName>NewShortCircuit</FunctionName></Action>
+                    </Item>
+                    <Item id="Sazan.GoShortCircuit">
+                      <Label resid="Ls.GoShortCircuit"/>
+                      <Supertip><Title resid="Ls.GoShortCircuit"/><Description resid="Ld.GoShortCircuit"/></Supertip>
+                      <Icon><bt:Image size="16" resid="Mso.ErrorChecking.16"/><bt:Image size="32" resid="Mso.ErrorChecking.32"/><bt:Image size="80" resid="Mso.ErrorChecking.80"/></Icon>
+                      <Action xsi:type="ExecuteFunction"><FunctionName>GoShortCircuit</FunctionName></Action>
+                    </Item>
+                  </Items>
                 </Control>
-                <Control xsi:type="Button" id="Sazan.NewArcFlash">
-                  <Label resid="Ls.NewArcFlash"/>
-                  <Supertip><Title resid="Ls.NewArcFlash"/><Description resid="Ld.NewArcFlash"/></Supertip>
+                <Control xsi:type="Menu" id="Sazan.MnuAF">
+                  <Label resid="Ls.MnuAF"/>
+                  <Supertip><Title resid="Ls.MnuAF"/><Description resid="Ld.MnuAF"/></Supertip>
                   <Icon><bt:Image size="16" resid="Mso.MacroSecurity.16"/><bt:Image size="32" resid="Mso.MacroSecurity.32"/><bt:Image size="80" resid="Mso.MacroSecurity.80"/></Icon>
-                  <Action xsi:type="ExecuteFunction"><FunctionName>NewArcFlash</FunctionName></Action>
+                  <Items>
+                    <Item id="Sazan.NewArcFlash">
+                      <Label resid="Ls.NewArcFlash"/>
+                      <Supertip><Title resid="Ls.NewArcFlash"/><Description resid="Ld.NewArcFlash"/></Supertip>
+                      <Icon><bt:Image size="16" resid="Mso.MacroSecurity.16"/><bt:Image size="32" resid="Mso.MacroSecurity.32"/><bt:Image size="80" resid="Mso.MacroSecurity.80"/></Icon>
+                      <Action xsi:type="ExecuteFunction"><FunctionName>NewArcFlash</FunctionName></Action>
+                    </Item>
+                    <Item id="Sazan.GoArcFlash">
+                      <Label resid="Ls.GoArcFlash"/>
+                      <Supertip><Title resid="Ls.GoArcFlash"/><Description resid="Ld.GoArcFlash"/></Supertip>
+                      <Icon><bt:Image size="16" resid="Mso.MacroSecurity.16"/><bt:Image size="32" resid="Mso.MacroSecurity.32"/><bt:Image size="80" resid="Mso.MacroSecurity.80"/></Icon>
+                      <Action xsi:type="ExecuteFunction"><FunctionName>GoArcFlash</FunctionName></Action>
+                    </Item>
+                  </Items>
                 </Control>
-                <Control xsi:type="Button" id="Sazan.GoArcFlash">
-                  <Label resid="Ls.GoArcFlash"/>
-                  <Supertip><Title resid="Ls.GoArcFlash"/><Description resid="Ld.GoArcFlash"/></Supertip>
-                  <Icon><bt:Image size="16" resid="Mso.MacroSecurity.16"/><bt:Image size="32" resid="Mso.MacroSecurity.32"/><bt:Image size="80" resid="Mso.MacroSecurity.80"/></Icon>
-                  <Action xsi:type="ExecuteFunction"><FunctionName>GoArcFlash</FunctionName></Action>
+                <Control xsi:type="Menu" id="Sazan.MnuStudies">
+                  <Label resid="Ls.MnuStudies"/>
+                  <Supertip><Title resid="Ls.MnuStudies"/><Description resid="Ld.MnuStudies"/></Supertip>
+                  <Icon><bt:Image size="16" resid="Mso.FormulaEvaluate.16"/><bt:Image size="32" resid="Mso.FormulaEvaluate.32"/><bt:Image size="80" resid="Mso.FormulaEvaluate.80"/></Icon>
+                  <Items>
+                    <Item id="Sazan.GoStudiesView">
+                      <Label resid="Ls.GoStudiesView"/>
+                      <Supertip><Title resid="Ls.GoStudiesView"/><Description resid="Ld.GoStudiesView"/></Supertip>
+                      <Icon><bt:Image size="16" resid="Mso.FilterBySelection.16"/><bt:Image size="32" resid="Mso.FilterBySelection.32"/><bt:Image size="80" resid="Mso.FilterBySelection.80"/></Icon>
+                      <Action xsi:type="ExecuteFunction"><FunctionName>GoStudiesView</FunctionName></Action>
+                    </Item>
+                    <Item id="Sazan.RefreshStudies">
+                      <Label resid="Ls.RefreshStudies"/>
+                      <Supertip><Title resid="Ls.RefreshStudies"/><Description resid="Ld.RefreshStudies"/></Supertip>
+                      <Icon><bt:Image size="16" resid="Mso.RefreshAll.16"/><bt:Image size="32" resid="Mso.RefreshAll.32"/><bt:Image size="80" resid="Mso.RefreshAll.80"/></Icon>
+                      <Action xsi:type="ExecuteFunction"><FunctionName>RefreshStudies</FunctionName></Action>
+                    </Item>
+                  </Items>
                 </Control>
               </Group>
-              <Group id="Sazan.GrpFeeders">
-                <Label resid="Ls.GrpFeeders"/>
-                <Icon><bt:Image size="16" resid="Mso.FormulaEvaluate.16"/><bt:Image size="32" resid="Mso.FormulaEvaluate.32"/><bt:Image size="80" resid="Mso.FormulaEvaluate.80"/></Icon>
-                <Control xsi:type="Button" id="Sazan.NewFeederSchedule">
-                  <Label resid="Ls.NewFeederSchedule"/>
-                  <Supertip><Title resid="Ls.NewFeederSchedule"/><Description resid="Ld.NewFeederSchedule"/></Supertip>
-                  <Icon><bt:Image size="16" resid="Mso.TableInsert.16"/><bt:Image size="32" resid="Mso.TableInsert.32"/><bt:Image size="80" resid="Mso.TableInsert.80"/></Icon>
-                  <Action xsi:type="ExecuteFunction"><FunctionName>NewFeederSchedule</FunctionName></Action>
-                </Control>
-                <Control xsi:type="Button" id="Sazan.GoFeederSchedule">
-                  <Label resid="Ls.GoFeederSchedule"/>
-                  <Supertip><Title resid="Ls.GoFeederSchedule"/><Description resid="Ld.GoFeederSchedule"/></Supertip>
-                  <Icon><bt:Image size="16" resid="Mso.TableDesign.16"/><bt:Image size="32" resid="Mso.TableDesign.32"/><bt:Image size="80" resid="Mso.TableDesign.80"/></Icon>
-                  <Action xsi:type="ExecuteFunction"><FunctionName>GoFeederSchedule</FunctionName></Action>
-                </Control>
-                <Control xsi:type="Button" id="Sazan.GoStudiesView">
-                  <Label resid="Ls.GoStudiesView"/>
-                  <Supertip><Title resid="Ls.GoStudiesView"/><Description resid="Ld.GoStudiesView"/></Supertip>
-                  <Icon><bt:Image size="16" resid="Mso.FilterBySelection.16"/><bt:Image size="32" resid="Mso.FilterBySelection.32"/><bt:Image size="80" resid="Mso.FilterBySelection.80"/></Icon>
-                  <Action xsi:type="ExecuteFunction"><FunctionName>GoStudiesView</FunctionName></Action>
-                </Control>
-                <Control xsi:type="Button" id="Sazan.RefreshFeeders">
-                  <Label resid="Ls.RefreshFeeders"/>
-                  <Supertip><Title resid="Ls.RefreshFeeders"/><Description resid="Ld.RefreshFeeders"/></Supertip>
-                  <Icon><bt:Image size="16" resid="Mso.RecordsRefreshAll.16"/><bt:Image size="32" resid="Mso.RecordsRefreshAll.32"/><bt:Image size="80" resid="Mso.RecordsRefreshAll.80"/></Icon>
-                  <Action xsi:type="ExecuteFunction"><FunctionName>RefreshFeeders</FunctionName></Action>
-                </Control>
-                <Control xsi:type="Button" id="Sazan.RefreshStudies">
-                  <Label resid="Ls.RefreshStudies"/>
-                  <Supertip><Title resid="Ls.RefreshStudies"/><Description resid="Ld.RefreshStudies"/></Supertip>
-                  <Icon><bt:Image size="16" resid="Mso.RefreshAll.16"/><bt:Image size="32" resid="Mso.RefreshAll.32"/><bt:Image size="80" resid="Mso.RefreshAll.80"/></Icon>
-                  <Action xsi:type="ExecuteFunction"><FunctionName>RefreshStudies</FunctionName></Action>
-                </Control>
-                <Control xsi:type="Button" id="Sazan.PanelTreePane">
-                  <Label resid="Ls.PanelTreePane"/>
-                  <Supertip><Title resid="Ls.PanelTreePane"/><Description resid="Ld.PanelTreePane"/></Supertip>
-                  <Icon><bt:Image size="16" resid="Mso.PanelTree.16"/><bt:Image size="32" resid="Mso.PanelTree.32"/><bt:Image size="80" resid="Mso.PanelTree.80"/></Icon>
-                  <Action xsi:type="ShowTaskpane">
-                  <TaskpaneId>Sazan.PanelTree.Pane</TaskpaneId>
-                  <SourceLocation resid="Url.Taskpane"/>
-                  </Action>
-                </Control>
-              </Group>
-              <Group id="Sazan.GrpReport">
-                <Label resid="Ls.Output"/>
+              <Group id="Sazan.GrpOut">
+                <Label resid="Ls.GrpOut"/>
                 <Icon><bt:Image size="16" resid="Mso.PrintPreviewAndPrint.16"/><bt:Image size="32" resid="Mso.PrintPreviewAndPrint.32"/><bt:Image size="80" resid="Mso.PrintPreviewAndPrint.80"/></Icon>
-                <Control xsi:type="Button" id="Sazan.NewReport">
-                  <Label resid="Ls.NewReport"/>
-                  <Supertip><Title resid="Ls.NewReport"/><Description resid="Ld.NewReport"/></Supertip>
+                <Control xsi:type="Menu" id="Sazan.MnuReports">
+                  <Label resid="Ls.MnuReports"/>
+                  <Supertip><Title resid="Ls.MnuReports"/><Description resid="Ld.MnuReports"/></Supertip>
                   <Icon><bt:Image size="16" resid="Mso.PrintPreviewAndPrint.16"/><bt:Image size="32" resid="Mso.PrintPreviewAndPrint.32"/><bt:Image size="80" resid="Mso.PrintPreviewAndPrint.80"/></Icon>
-                  <Action xsi:type="ExecuteFunction"><FunctionName>NewReport</FunctionName></Action>
-                </Control>
-                <Control xsi:type="Button" id="Sazan.GoReport">
-                  <Label resid="Ls.GoReport"/>
-                  <Supertip><Title resid="Ls.GoReport"/><Description resid="Ld.GoReport"/></Supertip>
-                  <Icon><bt:Image size="16" resid="Mso.ZoomPrintPreviewExcel.16"/><bt:Image size="32" resid="Mso.ZoomPrintPreviewExcel.32"/><bt:Image size="80" resid="Mso.ZoomPrintPreviewExcel.80"/></Icon>
-                  <Action xsi:type="ExecuteFunction"><FunctionName>GoReport</FunctionName></Action>
-                </Control>
-                <Control xsi:type="Button" id="Sazan.GoRecon">
-                  <Label resid="Ls.GoRecon"/>
-                  <Supertip><Title resid="Ls.GoRecon"/><Description resid="Ld.GoRecon"/></Supertip>
-                  <Icon><bt:Image size="16" resid="Mso.ReviewAcceptChange.16"/><bt:Image size="32" resid="Mso.ReviewAcceptChange.32"/><bt:Image size="80" resid="Mso.ReviewAcceptChange.80"/></Icon>
-                  <Action xsi:type="ExecuteFunction"><FunctionName>GoRecon</FunctionName></Action>
-                </Control>
-                <Control xsi:type="Button" id="Sazan.ToggleSizing">
-                  <Label resid="Ls.ToggleSizing"/>
-                  <Supertip><Title resid="Ls.ToggleSizing"/><Description resid="Ld.ToggleSizing"/></Supertip>
-                  <Icon><bt:Image size="16" resid="Mso.ColumnWidth.16"/><bt:Image size="32" resid="Mso.ColumnWidth.32"/><bt:Image size="80" resid="Mso.ColumnWidth.80"/></Icon>
-                  <Action xsi:type="ExecuteFunction"><FunctionName>ToggleSizing</FunctionName></Action>
-                </Control>
-                <Control xsi:type="Button" id="Sazan.ToggleMatrix">
-                  <Label resid="Ls.ToggleMatrix"/>
-                  <Supertip><Title resid="Ls.ToggleMatrix"/><Description resid="Ld.ToggleMatrix"/></Supertip>
-                  <Icon><bt:Image size="16" resid="Mso.TableStylesGallery.16"/><bt:Image size="32" resid="Mso.TableStylesGallery.32"/><bt:Image size="80" resid="Mso.TableStylesGallery.80"/></Icon>
-                  <Action xsi:type="ExecuteFunction"><FunctionName>ToggleMatrix</FunctionName></Action>
+                  <Items>
+                    <Item id="Sazan.NewReport">
+                      <Label resid="Ls.NewReport"/>
+                      <Supertip><Title resid="Ls.NewReport"/><Description resid="Ld.NewReport"/></Supertip>
+                      <Icon><bt:Image size="16" resid="Mso.PrintPreviewAndPrint.16"/><bt:Image size="32" resid="Mso.PrintPreviewAndPrint.32"/><bt:Image size="80" resid="Mso.PrintPreviewAndPrint.80"/></Icon>
+                      <Action xsi:type="ExecuteFunction"><FunctionName>NewReport</FunctionName></Action>
+                    </Item>
+                    <Item id="Sazan.GoReport">
+                      <Label resid="Ls.GoReport"/>
+                      <Supertip><Title resid="Ls.GoReport"/><Description resid="Ld.GoReport"/></Supertip>
+                      <Icon><bt:Image size="16" resid="Mso.ZoomPrintPreviewExcel.16"/><bt:Image size="32" resid="Mso.ZoomPrintPreviewExcel.32"/><bt:Image size="80" resid="Mso.ZoomPrintPreviewExcel.80"/></Icon>
+                      <Action xsi:type="ExecuteFunction"><FunctionName>GoReport</FunctionName></Action>
+                    </Item>
+                    <Item id="Sazan.GoRecon">
+                      <Label resid="Ls.GoRecon"/>
+                      <Supertip><Title resid="Ls.GoRecon"/><Description resid="Ld.GoRecon"/></Supertip>
+                      <Icon><bt:Image size="16" resid="Mso.ReviewAcceptChange.16"/><bt:Image size="32" resid="Mso.ReviewAcceptChange.32"/><bt:Image size="80" resid="Mso.ReviewAcceptChange.80"/></Icon>
+                      <Action xsi:type="ExecuteFunction"><FunctionName>GoRecon</FunctionName></Action>
+                    </Item>
+                  </Items>
                 </Control>
               </Group>
               <Label resid="Ls.Tab"/>
@@ -543,6 +577,23 @@
         <bt:String id="Ls.GoRecon" DefaultValue="Reconciliation"/>
         <bt:String id="Ls.ToggleSizing" DefaultValue="Toggle Sizing Columns"/>
         <bt:String id="Ls.ToggleMatrix" DefaultValue="Toggle Circuit Entry Dashboard"/>
+<bt:String id="Ls.GrpSetup" DefaultValue="Setup"/>
+<bt:String id="Ls.MnuProject" DefaultValue="Project"/>
+<bt:String id="Ls.MnuLoadCalc" DefaultValue="Load Calc"/>
+<bt:String id="Ls.MnuDemand" DefaultValue="Existing Demand"/>
+<bt:String id="Ls.GrpDist" DefaultValue="Distribution"/>
+<bt:String id="Ls.MnuPanels" DefaultValue="Panel Schedules"/>
+<bt:String id="Ls.MnuXfmr" DefaultValue="Transformers"/>
+<bt:String id="Ls.MnuBackup" DefaultValue="Backup Power"/>
+<bt:String id="Ls.GrpStudy" DefaultValue="Studies"/>
+<bt:String id="Ls.MnuFeeders" DefaultValue="Feeders"/>
+<bt:String id="Ls.MnuVD" DefaultValue="Voltage Drop"/>
+<bt:String id="Ls.MnuSC" DefaultValue="Short Circuit"/>
+<bt:String id="Ls.MnuAF" DefaultValue="Arc Flash"/>
+<bt:String id="Ls.MnuStudies" DefaultValue="Studies"/>
+<bt:String id="Ls.GrpOut" DefaultValue="Output"/>
+<bt:String id="Ls.MnuReports" DefaultValue="Reports"/>
+<bt:String id="Ls.NewUpsSys" DefaultValue="New UPS System"/>
       </bt:ShortStrings>
       <bt:LongStrings>
         <bt:String id="Ld.GetStarted" DefaultValue="Open the S&#196;Z&#196;N PowerCalc tab to build load calcs, panel schedules and studies."/>
@@ -604,6 +655,19 @@
         <bt:String id="Ld.GoRecon" DefaultValue="Reconciliation — S&#196;Z&#196;N PowerCalc."/>
         <bt:String id="Ld.ToggleSizing" DefaultValue="Shows or hides Length / VD % / Wire columns on the active schedule — S&#196;Z&#196;N PowerCalc."/>
         <bt:String id="Ld.ToggleMatrix" DefaultValue="Shows or hides the Circuit Entry Dashboard (classification columns) on the active schedule — S&#196;Z&#196;N PowerCalc."/>
+<bt:String id="Ld.MnuProject" DefaultValue="New project, instructions and the project Dashboard. — S&#196;Z&#196;N PowerCalc."/>
+<bt:String id="Ld.MnuLoadCalc" DefaultValue="Build the Load Calc, manage its sections and rows, and send loads to panels. — S&#196;Z&#196;N PowerCalc."/>
+<bt:String id="Ld.MnuDemand" DefaultValue="12-month utility demand and 30-day logging demand sheets, and utility meters. — S&#196;Z&#196;N PowerCalc."/>
+<bt:String id="Ld.MnuPanels" DefaultValue="Distribution Map, new switchboards / MCCs / panelboards and schedule tools. — S&#196;Z&#196;N PowerCalc."/>
+<bt:String id="Ld.MnuXfmr" DefaultValue="Transformer schedule: create it or go to it. — S&#196;Z&#196;N PowerCalc."/>
+<bt:String id="Ld.MnuBackup" DefaultValue="Generator, transfer switches, UPS sizing and UPS systems. — S&#196;Z&#196;N PowerCalc."/>
+<bt:String id="Ld.MnuFeeders" DefaultValue="Feeder &amp; OCPD schedule: create, go to and refresh. — S&#196;Z&#196;N PowerCalc."/>
+<bt:String id="Ld.MnuVD" DefaultValue="Voltage drop study. — S&#196;Z&#196;N PowerCalc."/>
+<bt:String id="Ld.MnuSC" DefaultValue="Short circuit study. — S&#196;Z&#196;N PowerCalc."/>
+<bt:String id="Ld.MnuAF" DefaultValue="Arc flash study. — S&#196;Z&#196;N PowerCalc."/>
+<bt:String id="Ld.MnuStudies" DefaultValue="Combined studies view and study refresh. — S&#196;Z&#196;N PowerCalc."/>
+<bt:String id="Ld.MnuReports" DefaultValue="Project report and the reconciliation view. — S&#196;Z&#196;N PowerCalc."/>
+<bt:String id="Ld.NewUpsSys" DefaultValue="Place a UPS unit between its input board and the critical board it feeds, or take it out. Rating, input / output OCPD, bypass and SCCR size themselves on the UPS sheet."/>
       </bt:LongStrings>
     </Resources>
   </VersionOverrides>

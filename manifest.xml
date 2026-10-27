@@ -5,7 +5,7 @@
            xmlns:ov="http://schemas.microsoft.com/office/taskpaneappversionoverrides"
            xsi:type="TaskPaneApp">
   <Id>8f1a2c34-5b6d-4e7f-9a01-2b3c4d5e6f70</Id>
-  <Version>2.5.0.0</Version>
+  <Version>2.8.0.0</Version>
   <ProviderName>Säzän Group</ProviderName>
   <DefaultLocale>en-US</DefaultLocale>
   <DisplayName DefaultValue="S&#196;Z&#196;N PowerCalc"/>
@@ -83,6 +83,18 @@
                   <Supertip><Title resid="Ls.ToggleSection"/><Description resid="Ld.ToggleSection"/></Supertip>
                   <Icon><bt:Image size="16" resid="Mso.FilterToggleFilter.16"/><bt:Image size="32" resid="Mso.FilterToggleFilter.32"/><bt:Image size="80" resid="Mso.FilterToggleFilter.80"/></Icon>
                   <Action xsi:type="ExecuteFunction"><FunctionName>ToggleSection</FunctionName></Action>
+                </Control>
+                <Control xsi:type="Button" id="Sazan.SendToPanel">
+                  <Label resid="Ls.SendToPanel"/>
+                  <Supertip><Title resid="Ls.SendToPanel"/><Description resid="Ld.SendToPanel"/></Supertip>
+                  <Icon><bt:Image size="16" resid="Mso.PivotTableInsert.16"/><bt:Image size="32" resid="Mso.PivotTableInsert.32"/><bt:Image size="80" resid="Mso.PivotTableInsert.80"/></Icon>
+                  <Action xsi:type="ExecuteFunction"><FunctionName>SendToPanel</FunctionName></Action>
+                </Control>
+                <Control xsi:type="Button" id="Sazan.RefreshPlacement">
+                  <Label resid="Ls.RefreshPlacement"/>
+                  <Supertip><Title resid="Ls.RefreshPlacement"/><Description resid="Ld.RefreshPlacement"/></Supertip>
+                  <Icon><bt:Image size="16" resid="Mso.Calculator.16"/><bt:Image size="32" resid="Mso.Calculator.32"/><bt:Image size="80" resid="Mso.Calculator.80"/></Icon>
+                  <Action xsi:type="ExecuteFunction"><FunctionName>RefreshPlacement</FunctionName></Action>
                 </Control>
               </Group>
               <Group id="Sazan.GrpDemand">
@@ -162,6 +174,12 @@
                   <Icon><bt:Image size="16" resid="Mso.LinkedNotesPaneOpen.16"/><bt:Image size="32" resid="Mso.LinkedNotesPaneOpen.32"/><bt:Image size="80" resid="Mso.LinkedNotesPaneOpen.80"/></Icon>
                   <Action xsi:type="ExecuteFunction"><FunctionName>FeedThru</FunctionName></Action>
                 </Control>
+                <Control xsi:type="Button" id="Sazan.MoveCircuit">
+                  <Label resid="Ls.MoveCircuit"/>
+                  <Supertip><Title resid="Ls.MoveCircuit"/><Description resid="Ld.MoveCircuit"/></Supertip>
+                  <Icon><bt:Image size="16" resid="Mso.Link.16"/><bt:Image size="32" resid="Mso.Link.32"/><bt:Image size="80" resid="Mso.Link.80"/></Icon>
+                  <Action xsi:type="ExecuteFunction"><FunctionName>MoveCircuit</FunctionName></Action>
+                </Control>
                 <Control xsi:type="Button" id="Sazan.Rename">
                   <Label resid="Ls.Rename"/>
                   <Supertip><Title resid="Ls.Rename"/><Description resid="Ld.Rename"/></Supertip>
@@ -189,6 +207,20 @@
                   <Supertip><Title resid="Ls.GoGenerator"/><Description resid="Ld.GoGenerator"/></Supertip>
                   <Icon><bt:Image size="16" resid="Mso.MacroPlay.16"/><bt:Image size="32" resid="Mso.MacroPlay.32"/><bt:Image size="80" resid="Mso.MacroPlay.80"/></Icon>
                   <Action xsi:type="ExecuteFunction"><FunctionName>GoGenerator</FunctionName></Action>
+                </Control>
+                <Control xsi:type="Button" id="Sazan.NewTransferSwitch">
+                  <Label resid="Ls.NewXfer"/>
+                  <bt:String id="Ls.NewUpsSys" DefaultValue="New UPS System"/>
+                  <Supertip><Title resid="Ls.NewXfer"/><Description resid="Ld.NewXfer"/></Supertip>
+                  <bt:String id="Ld.NewUpsSys" DefaultValue="Place a UPS unit between its input board and the critical board it feeds, or take it out. Rating, input / output OCPD, bypass and SCCR size themselves on the UPS sheet."/>
+                  <Icon><bt:Image size="16" resid="Mso.MacroPlay.16"/><bt:Image size="32" resid="Mso.MacroPlay.32"/><bt:Image size="80" resid="Mso.MacroPlay.80"/></Icon>
+                  <Action xsi:type="ExecuteFunction"><FunctionName>NewTransferSwitch</FunctionName></Action>
+                </Control>
+                <Control xsi:type="Button" id="Sazan.NewUpsSystem">
+                  <Label resid="Ls.NewUpsSys"/>
+                  <Supertip><Title resid="Ls.NewUpsSys"/><Description resid="Ld.NewUpsSys"/></Supertip>
+                  <Icon><bt:Image size="16" resid="Mso.Calculator.16"/><bt:Image size="32" resid="Mso.Calculator.32"/><bt:Image size="80" resid="Mso.Calculator.80"/></Icon>
+                  <Action xsi:type="ExecuteFunction"><FunctionName>NewUpsSystem</FunctionName></Action>
                 </Control>
                 <Control xsi:type="Button" id="Sazan.NewUPS">
                   <Label resid="Ls.NewUPS"/>
@@ -458,6 +490,9 @@
         <bt:String id="Ls.AddSectionRow" DefaultValue="Add Row"/>
         <bt:String id="Ls.TrimSectionRows" DefaultValue="Trim Empty Rows"/>
         <bt:String id="Ls.ToggleSection" DefaultValue="Add / Remove Section"/>
+        <bt:String id="Ls.MoveCircuit" DefaultValue="Move Circuit"/>
+        <bt:String id="Ls.SendToPanel" DefaultValue="Send to Panel"/>
+        <bt:String id="Ls.RefreshPlacement" DefaultValue="Refresh Placement"/>
         <bt:String id="Ls.ExistDemand" DefaultValue="Existing Demand"/>
         <bt:String id="Ls.NewUtility" DefaultValue="New Utility Demand (12 mo)"/>
         <bt:String id="Ls.GoUtility" DefaultValue="Go To Utility Demand"/>
@@ -478,6 +513,7 @@
         <bt:String id="Ls.RebuildGeo" DefaultValue="Repair Schedule"/>
         <bt:String id="Ls.Backup" DefaultValue="Backup Power"/>
         <bt:String id="Ls.NewGenerator" DefaultValue="New Generator"/>
+        <bt:String id="Ls.NewXfer" DefaultValue="New Transfer Switch"/>
         <bt:String id="Ls.GoGenerator" DefaultValue="Go To Generator"/>
         <bt:String id="Ls.NewUPS" DefaultValue="New UPS"/>
         <bt:String id="Ls.GoUPS" DefaultValue="Go To UPS"/>
@@ -506,7 +542,7 @@
         <bt:String id="Ls.GoReport" DefaultValue="Go To Report"/>
         <bt:String id="Ls.GoRecon" DefaultValue="Reconciliation"/>
         <bt:String id="Ls.ToggleSizing" DefaultValue="Toggle Sizing Columns"/>
-        <bt:String id="Ls.ToggleMatrix" DefaultValue="Toggle Load Matrix"/>
+        <bt:String id="Ls.ToggleMatrix" DefaultValue="Toggle Circuit Entry Dashboard"/>
       </bt:ShortStrings>
       <bt:LongStrings>
         <bt:String id="Ld.GetStarted" DefaultValue="Open the S&#196;Z&#196;N PowerCalc tab to build load calcs, panel schedules and studies."/>
@@ -519,6 +555,9 @@
         <bt:String id="Ld.AddSectionRow" DefaultValue="Adds one row to the Load Calc section your cursor is in, keeping the section formatting."/>
         <bt:String id="Ld.TrimSectionRows" DefaultValue="Removes empty rows from the bottom of the Load Calc section your cursor is in."/>
         <bt:String id="Ld.ToggleSection" DefaultValue="Load Calc: adds or removes an optional section (Refrigeration, Kitchen, Elevators, EV, Fire, Process). Logging Demand: adds or removes the interval-data blocks and load duration curve."/>
+        <bt:String id="Ld.SendToPanel" DefaultValue="Places the selected Load Calc rows on a panel, switchboard or MCC at the circuit you choose, as live links. Ckts / Placed / Status track what has been moved."/>
+        <bt:String id="Ld.MoveCircuit" DefaultValue="Moves the selected circuit (sub-feed, Load Calc load or manual entry) to the circuit number you choose, or swaps two circuits. Linked rows stay locked; registry and Load Calc tracking follow."/>
+        <bt:String id="Ld.RefreshPlacement" DefaultValue="Rescans every schedule and updates the Ckts / Placed / Status columns on Load Calc (picks up circuits cleared or moved on a panel)."/>
         <bt:String id="Ld.ExistDemand" DefaultValue="Existing Demand — S&#196;Z&#196;N PowerCalc."/>
         <bt:String id="Ld.NewUtility" DefaultValue="New Utility Demand (12 mo) — S&#196;Z&#196;N PowerCalc."/>
         <bt:String id="Ld.GoUtility" DefaultValue="Go To Utility Demand — S&#196;Z&#196;N PowerCalc."/>
@@ -540,6 +579,7 @@
         <bt:String id="Ld.Backup" DefaultValue="Backup Power — S&#196;Z&#196;N PowerCalc."/>
         <bt:String id="Ld.Xfmr" DefaultValue="Transformers — new transformer schedule or jump to the existing one. S&#196;Z&#196;N PowerCalc."/>
         <bt:String id="Ld.NewGenerator" DefaultValue="New Generator — S&#196;Z&#196;N PowerCalc."/>
+        <bt:String id="Ld.NewXfer" DefaultValue="Create or remove an ATS / MTS between the normal source and a board, with the generator as its emergency source. Rated and WCR-checked automatically — S&#196;Z&#196;N PowerCalc."/>
         <bt:String id="Ld.GoGenerator" DefaultValue="Go To Generator — S&#196;Z&#196;N PowerCalc."/>
         <bt:String id="Ld.NewUPS" DefaultValue="New UPS — S&#196;Z&#196;N PowerCalc."/>
         <bt:String id="Ld.GoUPS" DefaultValue="Go To UPS — S&#196;Z&#196;N PowerCalc."/>
@@ -562,8 +602,8 @@
         <bt:String id="Ld.NewReport" DefaultValue="New Report — S&#196;Z&#196;N PowerCalc."/>
         <bt:String id="Ld.GoReport" DefaultValue="Go To Report — S&#196;Z&#196;N PowerCalc."/>
         <bt:String id="Ld.GoRecon" DefaultValue="Reconciliation — S&#196;Z&#196;N PowerCalc."/>
-        <bt:String id="Ld.ToggleSizing" DefaultValue="Toggle Sizing Columns — S&#196;Z&#196;N PowerCalc."/>
-        <bt:String id="Ld.ToggleMatrix" DefaultValue="Toggle Load Matrix — S&#196;Z&#196;N PowerCalc."/>
+        <bt:String id="Ld.ToggleSizing" DefaultValue="Shows or hides Length / VD % / Wire columns on the active schedule — S&#196;Z&#196;N PowerCalc."/>
+        <bt:String id="Ld.ToggleMatrix" DefaultValue="Shows or hides the Circuit Entry Dashboard (classification columns) on the active schedule — S&#196;Z&#196;N PowerCalc."/>
       </bt:LongStrings>
     </Resources>
   </VersionOverrides>

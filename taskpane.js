@@ -23,6 +23,7 @@ var C_TAG = 0, C_TYPE = 1, C_VOLT = 2, C_FED = 3, C_MAINS = 4, C_KVA = 5, C_SHEE
 var MAXDEPTH = 12;
 
 var items = [];          // { tag, type, volt, fed, kva, sheet, ft, ckt, row }
+var xfmrKva = {};        // v2.10: T-tag -> { std, load } from the Transformers schedule
 var collapsed = {};      // tag -> true when its children are hidden
 var selTag = "";
 
@@ -61,7 +62,7 @@ function setStatus(msg) { document.getElementById("status").textContent = msg ||
 /*  ---------- read the registry ---------- */
 function refresh() {
   return Excel.run(function (ctx) {
-    return regRange(ctx).then(function (rg) {
+    return (typeof SAZ !== "undefined" && SAZ.healRegistryOwnKva ? SAZ.healRegistryOwnKva(ctx).catch(function () { return null; }) : Promise.resolve(null)).then(function () { return regRange(ctx); }).then(function (rg) {   /* v2.10: refresh rating / demand links first */
       rg.load("values");
       /* Utility service transformers live on the Dashboard (Util_Tags row, up to
          four sources), not in the registry. Each is shown as a tree root so main
@@ -102,9 +103,15 @@ function refresh() {
             if (!byTag(util.tag)) items.unshift({ tag: util.tag, type: "Utility Transformer", volt: util.volt,
               fed: "", kva: util.kva, sheet: "Dashboard", ft: "", ckt: "", row: -1, head: true });
           });
-          var altR = ctx.workbook.worksheets.getItem(REG_SHEET).getRange("L101:L350"); altR.load("values");   /* v2.8: column L = Alt Source (generator on a transfer switch) */
+          var altR = ctx.workbook.worksheets.getItem(REG_SHEET).getRange("L101:Q350"); altR.load("values");   /* L Alt Source | M own kVA | N UPS out V | O Main/Bus override (A) | P rating (A) | Q demand (A) */
+          var xfS = ctx.workbook.worksheets.getItemOrNullObject("Transformers"); xfS.load("isNullObject");
           return ctx.sync().then(function () {
-            altR.values.forEach(function (r, k) { var a = String(r[0] || "").trim(); if (!a) return; items.forEach(function (x) { if (x.row === k) x.alt = a; }); });
+            altR.values.forEach(function (r, k) { items.forEach(function (x) { if (x.row !== k) return; var a = String(r[0] || "").trim(); if (a) x.alt = a; x.outv = String(r[2] || "").trim(); x.ovr = Number(r[3]) || 0; x.ampR = Number(r[4]) || 0; x.ampD = Number(r[5]) || 0; }); });
+            xfmrKva = {};
+            if (xfS.isNullObject) return null;
+            var xfR = xfS.getRange("A6:G105"); xfR.load("values");
+            return ctx.sync().then(function () { xfR.values.forEach(function (r) { var t = String(r[0] || "").trim(); if (t) xfmrKva[t] = { std: r[6], load: Number(r[5]) || 0 }; }); });
+          }).then(function () {
             addTransformerNodes();
             addEmergencyNodes();
             render();
@@ -124,12 +131,31 @@ function refresh() {
     The node is display-only (row -1, virtual); the child's real Fed From in the
     registry stays the parent, which is what the schedule's detection reads.  */
 function leadVolts(s) { var m = /([0-9]+(?:\.[0-9]+)?)/.exec(String(s || "")); return m ? Number(m[1]) : 0; }
+/*  v2.10: what the map shows beside each tag.
+    Boards: Main/Bus rating and demand amps (% of rating); an override is marked "ovr".
+    Transformers: standard kVA and load kVA.  UPS / transfer switch: their rating.
+    Utility sources: kVA.  Anything else: demand kVA as before.  */
+function nodeRating(it) {
+  var f1 = function (n) { return (Math.round(n * 10) / 10).toLocaleString(); };
+  if (it.head) return it.kva ? "   " + f1(it.kva) + " kVA" : "";
+  if (/^transformer/i.test(String(it.type || "")) || /^T-/.test(it.tag)) {
+    var x = xfmrKva[it.tag]; if (!x) return it.kva ? "   " + f1(it.kva) + " kVA" : "";
+    var std = Number(x.std);
+    return "   " + (std ? f1(std) + " kVA" : String(x.std || "") + " kVA") + (x.load ? " \u00B7 " + f1(x.load) + " kVA load" : "");
+  }
+  if (it.ampR) {
+    var pct = it.ampD ? Math.round(it.ampD / it.ampR * 100) : 0;
+    return "   " + f1(it.ampR) + " A" + (it.ovr ? " ovr" : "") + (it.ampD ? " \u00B7 " + f1(it.ampD) + " A dem (" + pct + "%)" : "");
+  }
+  if (it.mains && /^(UPS|ATS|MTS|Transfer)/i.test(String(it.type || ""))) { var m = String(it.mains); return "   " + (/^[0-9.]+$/.test(m) ? m + " A" : m); }
+  return it.kva ? "   " + f1(it.kva) + " kVA" : "";
+}
 function addTransformerNodes() {
   items.slice().forEach(function (it) {
     if (it.virtual || !it.fed) return;
     var p = byTag(it.fed);
     if (!p) return;
-    var pv = leadVolts(p.volt), cv = leadVolts(it.volt);
+    var pv = leadVolts(p.outv || p.volt), cv = leadVolts(it.volt);   /* v2.10: a UPS with an internal transformer feeds at its output voltage */
     if (!pv || !cv || Math.abs(pv - cv) <= 1) return;
     var t = "T-" + it.tag;
     if (!byTag(t)) {
@@ -222,7 +248,7 @@ function render() {
     var st = statusOf(it);
     var lead = "  ".repeat(depth) + (depth === 0 ? "\u25CF  " : "\u2514\u2500 ");
     var label = document.createElement("span");
-    label.textContent = lead + it.tag + (it.kva ? "   " + it.kva.toFixed(1) + " kVA" : "");
+    label.textContent = lead + it.tag + nodeRating(it);   /* v2.10: rating + demand (transformers keep kVA) */
     div.appendChild(label);
 
     if (st.indexOf("\u26A0") === 0) {

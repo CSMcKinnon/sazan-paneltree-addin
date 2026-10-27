@@ -87,6 +87,12 @@
         <option>Main Fusible Switch</option>
       </select></div>
     <div class="row"><label>Spaces</label><input type="text" id="txtSpaces" inputmode="numeric"/></div>
+    <div class="row"><label>Feeder length (ft)</label><input type="text" id="txtLen" inputmode="numeric" placeholder="run feeding this board"/></div>   <!-- v2.11: feeder inputs live in the registry (Dashboard R:W); Feeder Schedule and schedules read them -->
+    <div class="row"><label>Xfmr primary (ft)</label><input type="text" id="txtLenPri" inputmode="numeric" placeholder="only if a transformer feeds it"/></div>
+    <div class="row"><label>Emergency (ft)</label><input type="text" id="txtLenEm" inputmode="numeric" placeholder="only with an alternate source"/></div>
+    <div class="row"><label>Material</label><select id="selMat"><option value="">(project default)</option><option>CU</option><option>AL</option></select></div>
+    <div class="row"><label>Conduit</label><select id="selRace"><option value="">(project default)</option><option>Steel</option><option>PVC</option><option>Aluminum</option></select></div>
+    <div class="row"><label>Existing feeder</label><select id="selExist"><option value="">No (new)</option><option value="Y">Yes - to remain</option></select></div>
       <div class="row"><label>Rename to</label><input type="text" id="txtRename" maxlength="31"/></div>
   </div>
 
@@ -101,7 +107,7 @@
 
   <div id="status"></div>
 
-  <script src="commands.js?v=2.5.0"></script>   <!-- v2.5: shared SAZ engine (link, resize, repair) -->
-  <script src="taskpane.js?v=2.5.0"></script>
+  <script src="commands.js?v=2.11.0"></script>   <!-- v2.5: shared SAZ engine (link, resize, repair) -->
+  <script src="taskpane.js?v=2.11.0"></script>
 </body>
 </html>

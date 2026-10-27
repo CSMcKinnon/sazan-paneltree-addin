@@ -4,7 +4,7 @@
                         6 Sheet  8 Feed Type  9 Ckt / space                */
 
 var REG_SHEET = "Dashboard";
-var REG_RANGE = "A100:J349";   /* fallback only - see regRange() below */
+var REG_RANGE = "A101:J350";   /* fallback only - see regRange() below */
 var REG_NAME  = "Equip_Registry";   /* authoritative - resolved at runtime */
 
 /*  Resolve the registry from its defined name so this file cannot drift out of
@@ -102,11 +102,16 @@ function refresh() {
             if (!byTag(util.tag)) items.unshift({ tag: util.tag, type: "Utility Transformer", volt: util.volt,
               fed: "", kva: util.kva, sheet: "Dashboard", ft: "", ckt: "", row: -1, head: true });
           });
-          addTransformerNodes();
-          render();
-          fillFedList();
-          if (selTag) select(selTag); else clearProps();
-          setStatus("");
+          var altR = ctx.workbook.worksheets.getItem(REG_SHEET).getRange("L101:L350"); altR.load("values");   /* v2.8: column L = Alt Source (generator on a transfer switch) */
+          return ctx.sync().then(function () {
+            altR.values.forEach(function (r, k) { var a = String(r[0] || "").trim(); if (!a) return; items.forEach(function (x) { if (x.row === k) x.alt = a; }); });
+            addTransformerNodes();
+            addEmergencyNodes();
+            render();
+            fillFedList();
+            if (selTag) select(selTag); else clearProps();
+            setStatus("");
+          });
         });
       });
     });
@@ -135,6 +140,21 @@ function addTransformerNodes() {
   });
 }
 
+/*  v2.8: a transfer switch has two sources. Its registry Fed From is the normal
+    source (utility / upstream board); column L names the generator. The map
+    shows the generator as a source with a display-only emergency link down to
+    the switch, so the switch reads as fed from both directions.            */
+function addEmergencyNodes() {
+  items.slice().forEach(function (it) {
+    if (it.virtual || !it.alt) return;
+    var t = "\u21C4 " + it.tag + " (emergency)";
+    if (!byTag(t)) {
+      items.push({ tag: t, type: "Emergency feed \u2192 " + it.tag, volt: it.volt, fed: it.alt,
+        kva: it.kva, sheet: "Generator", ft: "auto", ckt: "", row: -1, virtual: true, emerg: it.tag });
+    }
+  });
+}
+
 /*  ---------- tree helpers ---------- */
 function byTag(tag) {
   for (var i = 0; i < items.length; i++) if (items[i].tag === tag) return items[i];
@@ -160,6 +180,9 @@ function downstreamKva(tag) {
   return descendants(tag).reduce(function (s, c) { return s + c.kva; }, 0);
 }
 function statusOf(it) {
+  if (it.emerg) return "\u21C4 Emergency source for " + it.emerg + " (Generator sheet)";
+  if (it.alt) return "\u2714 Normal: " + (it.fed || "(none)") + "  \u00B7  Emergency: " + it.alt;
+  if (/^UPS$/i.test(String(it.type || ""))) return "\u2714 UPS  \u00B7  Input: " + (it.fed || "(none)") + "  \u00B7  sized on UPS \u25B8 UPS SYSTEMS";
   if (it.virtual) return "\u2714 Auto (Transformers schedule)";
   if (!it.fed) return "\u25C6 Source";
   if (!byTag(it.fed)) return "\u26A0 Parent not in registry";
@@ -486,7 +509,7 @@ var SAZ_RENAME = (function () {
     allowInsertHyperlinks: false, allowInsertRows: false, allowPivotTables: false,
     allowSort: false, selectionMode: "Normal"
   };
-  var REG_NAME = "Equip_Registry", REG_SHEET = "Dashboard", REG_RANGE = "A100:J349";
+  var REG_NAME = "Equip_Registry", REG_SHEET = "Dashboard", REG_RANGE = "A101:J350";
   var C_TAG = 0, C_FED = 3, C_SHEET = 6;
 
   function esc(s) { return String(s).replace(/[.*+?^${}()|[\]\\]/g, "\\$&"); }

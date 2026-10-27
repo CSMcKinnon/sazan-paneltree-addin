@@ -103,10 +103,10 @@ function refresh() {
             if (!byTag(util.tag)) items.unshift({ tag: util.tag, type: "Utility Transformer", volt: util.volt,
               fed: "", kva: util.kva, sheet: "Dashboard", ft: "", ckt: "", row: -1, head: true });
           });
-          var altR = ctx.workbook.worksheets.getItem(REG_SHEET).getRange("L101:Q350"); altR.load("values");   /* L Alt Source | M own kVA | N UPS out V | O Main/Bus override (A) | P rating (A) | Q demand (A) */
+          var altR = ctx.workbook.worksheets.getItem(REG_SHEET).getRange("L101:W350"); altR.load("values");   /* L Alt Source | M own kVA | N UPS out V | O Main/Bus override (A) | P rating (A) | Q demand (A) | R:W feeder inputs (v2.11) */
           var xfS = ctx.workbook.worksheets.getItemOrNullObject("Transformers"); xfS.load("isNullObject");
           return ctx.sync().then(function () {
-            altR.values.forEach(function (r, k) { items.forEach(function (x) { if (x.row !== k) return; var a = String(r[0] || "").trim(); if (a) x.alt = a; x.outv = String(r[2] || "").trim(); x.ovr = Number(r[3]) || 0; x.ampR = Number(r[4]) || 0; x.ampD = Number(r[5]) || 0; }); });
+            altR.values.forEach(function (r, k) { items.forEach(function (x) { if (x.row !== k) return; var a = String(r[0] || "").trim(); if (a) x.alt = a; x.outv = String(r[2] || "").trim(); x.ovr = Number(r[3]) || 0; x.ampR = Number(r[4]) || 0; x.ampD = Number(r[5]) || 0; x.len = r[6] === "" ? "" : r[6]; x.lenPri = r[7] === "" ? "" : r[7]; x.lenEm = r[8] === "" ? "" : r[8]; x.mat = String(r[9] || "").trim().toUpperCase(); x.race = String(r[10] || "").trim(); x.exist = /^y/i.test(String(r[11] || "")) ? "Y" : ""; }); });
             xfmrKva = {};
             if (xfS.isNullObject) return null;
             var xfR = xfS.getRange("A6:G105"); xfR.load("values");
@@ -279,6 +279,7 @@ function clearProps() {
   document.getElementById("selMains").value = "";
   document.getElementById("txtSpaces").value = "";
   document.getElementById("txtRename").value = "";
+  ["txtLen", "txtLenPri", "txtLenEm", "selMat", "selRace", "selExist"].forEach(function (id) { var e = document.getElementById(id); if (e) e.value = ""; });   /* v2.11 */
 }
 
 function select(tag) {
@@ -294,6 +295,13 @@ function select(tag) {
   document.getElementById("selFT").value = ft;
   document.getElementById("txtCkt").value = (it.ckt === "FT") ? "" : (it.ckt || "");
   document.getElementById("selMains").value = it.mains || "";
+  /* v2.11: feeder inputs - the registry (Dashboard R:W) is their only home */
+  document.getElementById("txtLen").value = (it.len === undefined || it.len === null) ? "" : it.len;
+  document.getElementById("txtLenPri").value = (it.lenPri === undefined || it.lenPri === null) ? "" : it.lenPri;
+  document.getElementById("txtLenEm").value = (it.lenEm === undefined || it.lenEm === null) ? "" : it.lenEm;
+  document.getElementById("selMat").value = it.mat || "";
+  document.getElementById("selRace").value = it.race || "";
+  document.getElementById("selExist").value = it.exist || "";
   document.getElementById("txtSpaces").value = "";
   document.getElementById("txtRename").value = it.tag;
   fillFedList();
@@ -402,7 +410,13 @@ function applyLink() {
     ft: document.getElementById("selFT").value,
     ckt: document.getElementById("txtCkt").value,
     mains: document.getElementById("selMains").value,
-    spaces: document.getElementById("txtSpaces").value
+    spaces: document.getElementById("txtSpaces").value,
+    len: document.getElementById("txtLen").value,          /* v2.11 feeder inputs */
+    lenPri: document.getElementById("txtLenPri").value,
+    lenEm: document.getElementById("txtLenEm").value,
+    mat: document.getElementById("selMat").value,
+    race: document.getElementById("selRace").value,
+    exist: document.getElementById("selExist").value
   };
   if (req.fed === it.tag) { setStatus("Equipment cannot feed itself."); return; }
   busy(true); setStatus("Applying...");

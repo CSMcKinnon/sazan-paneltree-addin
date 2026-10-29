@@ -15,7 +15,7 @@ var CFG = {
 };
 
 var SAZ = {};
-SAZ.DIALOG_VER = "2.3.1";   /* sent as ?_v= on every dialog URL so Office / GitHub Pages cannot serve a cached dialog.html - bump when dialog.html changes */
+SAZ.DIALOG_VER = "2.12.0";   /* sent as ?_v= on every dialog URL so Office / GitHub Pages cannot serve a cached dialog.html - bump when dialog.html changes */
 /* ---------- dialog helpers: replace VBA MsgBox / InputBox ---------- */
 
 /* v2.5: Office refuses to open a dialog while the previous one is still closing
@@ -365,6 +365,7 @@ SAZ.stampHeader = function (ctx, sheetName, volt) {
     return SAZ.withUnprotected(ctx, sheet, function () {
       if (nc) { sheet.getRange(nc).values = [[sheetName]]; }
       if (vc && volt) { sheet.getRange(vc).values = [[volt]]; }
+      if (vc) { var vR = sheet.getRange(vc); vR.format.protection.locked = true; vR.format.fill.clear(); vR.format.font.color = SAZ.CALC_FONT; }   /* v2.12: voltage owned by the Distribution Map */
       return ctx.sync();
     });
   });
@@ -380,8 +381,8 @@ SAZ.uiCreate = function (ctx, tplName, typeLabel, err, last) {
         hint: "Becomes the sheet tab, the name on the schedule and the Distribution Map tag." },
       { id: "volt", label: "System voltage", type: "select", options: vc.list,
         value: last.volt || vc.project, required: true,
-        hint: vc.project ? "Pre-selected from the Dashboard project voltage. Change it here, or later in the schedule."
-                         : "No project voltage on the Dashboard yet - pick one. It can be changed later in the schedule." },
+        hint: vc.project ? "Pre-selected from the Dashboard project voltage. Change it here, or later in the Distribution Map (the schedule cell is locked)."
+                         : "No project voltage on the Dashboard yet - pick one. It can be changed later in the Distribution Map." },
       { id: "spaces", label: (typeLabel === "Panelboard" ? "Spaces (circuits)" : (typeLabel === "MCC" ? "Units / buckets" : "Circuits / sections")),
         type: "number", value: String(last.spaces || dSp), min: 1, max: SAZ.DEPLOY_MAX_SPACES, required: true,
         hint: typeLabel === "Panelboard" ? "Odd counts round up to even (odd circuits left, even right)."
@@ -822,6 +823,10 @@ function GoRecon (event) { SAZ.run("Reconciliation", function (ctx) {
 function ToggleSizing (event) { SAZ.run("Toggle Sizing Columns", function (ctx) {
   return SAZ.uiToggleSizingColumns(ctx);
 })(event); }
+function ToggleXfmrOverrides (event) { SAZ.run("Show / Hide Transformer Overrides", function (ctx) {
+  return SAZ.uiToggleXfmrOverrides(ctx);
+})(event); }
+
 function ToggleMatrix (event) { SAZ.run("Toggle Load Matrix", function (ctx) {
   return SAZ.uiToggleLoadMatrix(ctx);
 })(event); }
@@ -901,8 +906,30 @@ SAZ.mapDetach = function (ctx, childTag) {
     });
   });
 };
+/* v2.12: System Voltage has ONE home - the Distribution Map (or the deploy dialog for a new
+   board). The schedule's VOLT_CELL is locked and shown as a calculated (red) value; this
+   writer is the only path that changes it. Returns true when the voltage actually changed. */
+SAZ.setBoardVoltage = function (ctx, tag, volt) {
+  return SAZ.geo(ctx, tag).then(function (g) {
+    var vc = SAZ.geoUsable(g.VOLT_CELL);
+    if (!vc) { return false; }
+    var sh = ctx.workbook.worksheets.getItem(tag), cell = sh.getRange(vc);
+    cell.load("values");
+    return ctx.sync().then(function () {
+      var cur = String(cell.values[0][0] || "").trim(), want = String(volt || "").trim();
+      var change = !!want && want !== cur;
+      return SAZ.withUnprotected(ctx, sh, function () {
+        var c = sh.getRange(vc);
+        c.format.protection.locked = true; c.format.fill.clear(); c.format.font.color = SAZ.CALC_FONT;
+        if (change) { c.values = [[want]]; }
+        return ctx.sync();
+      }).then(function () { return change; });
+    });
+  });
+};
+
 SAZ.mapApply = function (ctx, req) {
-  /* req: { tag, fed, ft, ckt, mains, spaces, len, lenPri, lenEm, mat, race, exist } */
+  /* req: { tag, fed, ft, ckt, mains, spaces, len, lenPri, lenEm, mat, race, exist, volt } */
   var C = String(req.tag || "").trim(), P = String(req.fed || "").trim();
   var ft = String(req.ft || "").trim(), msgs = [];
   if (!C) { return Promise.reject(new Error("Select a board first.")); }
@@ -923,6 +950,19 @@ SAZ.mapApply = function (ctx, req) {
   } else {
     step = step.then(function () { return SAZ.repairSchedule(ctx, C).catch(function () { return null; }); });
   }
+  /* 1b. v2.12 system voltage - set here (Distribution Map) and pushed to the schedule; the
+      sub-feed link below then re-decides whether a transformer is required. */
+  step = step.then(function () {
+    if (req.volt === undefined) { return null; }
+    return SAZ.voltChoices(ctx).then(function (vc) {
+      var want = String(req.volt || "").trim();
+      if (want && vc.list.length && vc.list.indexOf(want) < 0) { throw new Error("\"" + want + "\" is not on the system voltage list (Volt_Sys)."); }
+      return SAZ.setBoardVoltage(ctx, C, want).then(function (ch) {
+        if (ch) { ctx.workbook.application.calculate(Excel.CalculationType.full); msgs.push("System voltage set to " + want + "."); }
+        return ctx.sync();
+      });
+    });
+  });
   /* 2. mains */
   step = step.then(function () {
     if (req.mains === undefined) { return null; }
@@ -1073,6 +1113,7 @@ Office.actions.associate("RefreshPlacement", RefreshPlacement);
   Office.actions.associate("GoReport", GoReport);
   Office.actions.associate("GoRecon", GoRecon);
   Office.actions.associate("ToggleSizing", ToggleSizing);
+  Office.actions.associate("ToggleXfmrOverrides", ToggleXfmrOverrides);
   Office.actions.associate("ToggleMatrix", ToggleMatrix);
 Office.actions.associate("RenameBoard", RenameBoard);
   ["01","02","03","04","05","06","07","08","09","10","11","12","13","14","15"].forEach(function (n) {   /* v2.10 Help ▸ Instructions chapters */
@@ -1988,6 +2029,30 @@ SAZ.txRowForTag = function (ctx, tag) {
    description, poles, connected load and the row that owns it if it is tied
    into a multi-pole breaker. TWOBLOCK panelboards are two independent blocks
    (odd circuits, even circuits) - a breaker may never span across them. */
+/* v2.12: the board tag a circuit description identifies. Linked sub-feeds now carry a
+   readable label - "PANEL L1" or "PANEL L1 (VIA 75 KVA XFMR T-L1)" - so every identity
+   match goes through here instead of comparing the raw text to the tag. */
+SAZ.BOARD_WORD = { panelboard: "PANEL", switchboard: "SWBD", mcc: "MCC" };
+SAZ.descKey = function (d) {
+  var s = String(d == null ? "" : d).trim();
+  var m = /\(\s*VIA\b[^)]*?\b(T-[^\s)]+)\s*\)\s*$/i.exec(s);
+  if (m) { return m[1]; }
+  m = /^(PANEL|SWBD|MCC)\s+(\S+)$/i.exec(s);
+  return m ? m[2] : s;
+};
+SAZ.descIs = function (d, tags) { var k = SAZ.descKey(d).toLowerCase(), raw = String(d || "").trim().toLowerCase(); return tags.some(function (t) { t = String(t).toLowerCase(); return t === k || t === raw; }); };
+/* Live label formula for a child board on its parent's circuit row. Reads the child's own
+   NAME_CELL (follows a rename) and the transformer's Std kVA (follows a re-size). */
+SAZ.linkDescFormula = function (childTag, childType, nameCell, viaTx) {
+  var w = SAZ.BOARD_WORD[String(childType || "").trim().toLowerCase()] || "PANEL";
+  var nm = SAZ.sheetRef(childTag, nameCell).substring(1);
+  var word = new RegExp("^" + w + "\\b", "i").test(childTag) ? "" : "\"" + w + " \"&";
+  if (!viaTx) { return "=" + word + nm; }
+  var tx = "'" + SAZ.TX_SHEET.replace(/'/g, "''") + "'!";
+  var kva = "IFERROR(TEXT(XLOOKUP(\"T-\"&" + nm + "," + tx + "$A$1:$A$400," + tx + "$G$1:$G$400),\"0\")&\" KVA \",\"\")";
+  return "=" + word + nm + "&\" (VIA \"&" + kva + "&\"XFMR T-\"&" + nm + "&\")\"";
+};
+
 SAZ.cktGrid = function (ctx, sheetName) {
   return SAZ.geo(ctx, sheetName).then(function (g) {
     var first = Number(g.CKT_FIRST) || 0, last = Number(g.CKT_LAST) || 0;
@@ -2071,7 +2136,7 @@ SAZ.slotCheck = function (grid, num, poles, mine) {
       " would run past the bottom of the schedule. Pick a lower circuit or resize " + grid.name + "." };
   }
   var mineL = (mine || []).map(function (s) { return String(s).toLowerCase(); });
-  var isMine = function (rec) { return rec.desc && mineL.indexOf(rec.desc.toLowerCase()) >= 0; };
+  var isMine = function (rec) { return rec.desc && SAZ.descIs(rec.desc, mineL);   /* v2.12 */ };
   var used = [], rowsOut = [], numsOut = [];
   for (var k = 0; k < span; k++) {
     var rec = grid.rows[start.row + k - grid.first];
@@ -2116,7 +2181,7 @@ SAZ.addParentCircuitAt = function (ctx, parentTag, descTag, kvaRef, targetRow, p
         var rg = sheet.getRange(col + targetRow);
         if (isFormula) { rg.formulas = [[val]]; } else { rg.values = [[val]]; }
       };
-      put("CKT_DESC_COL",  descTag, false);
+      put("CKT_DESC_COL",  descTag, String(descTag).charAt(0) === "=");   /* v2.12: live label formula allowed */
       put("CKT_KVA_COL",   kvaRef,  true);
       put("CKT_QTY_COL",   1,       false);
       put("CKT_POLES_COL", poles || 3, false);
@@ -2132,7 +2197,7 @@ SAZ.addParentCircuitAt = function (ctx, parentTag, descTag, kvaRef, targetRow, p
 SAZ.clearParentCircuit = function (ctx, parentTag, descs) {
   var want = descs.map(function (s) { return String(s).toLowerCase(); });
   return SAZ.cktGrid(ctx, parentTag).then(function (grid) {
-    var hits = grid.rows.filter(function (r) { return r.desc && want.indexOf(r.desc.toLowerCase()) >= 0; });
+    var hits = grid.rows.filter(function (r) { return r.desc && SAZ.descIs(r.desc, want);   /* v2.12 */ });
     if (!hits.length) { return 0; }
     var sheet = ctx.workbook.worksheets.getItem(parentTag);
     return SAZ.withUnprotected(ctx, sheet, function () {
@@ -2245,7 +2310,7 @@ SAZ.linkEquipment = function (ctx, parentTag, childTag, slot, opts) {
             " first - the link needs both voltages to decide whether a transformer is required.");
         }
         var needsTx = Math.abs(pV - cV) > SAZ.VOLT_MATCH_TOLERANCE;
-        var desc = needsTx ? "T-" + C : C;
+        var desc = SAZ.linkDescFormula(C, regC ? regC.type : "", SAZ.geoUsable(gc.NAME_CELL) || "D5", needsTx);   /* v2.12: "PANEL L1 (VIA 75 KVA XFMR T-L1)" */
         var childSheet = ctx.workbook.worksheets.getItem(C);
 
         /* resolve the slot: explicit, legacy row, or first fit */
@@ -3994,6 +4059,31 @@ SAZ.sheetKind = function (ctx, sheetName) {
   });
 };
 
+/* v2.12: Transformers override columns (Z:AF) live in a collapsed column group - editable,
+   out of sight on day one. A protected sheet blocks the outline +/- buttons, so this
+   command opens / closes the group with the sheet briefly unprotected. */
+SAZ.XFMR_OVR_COLS = "Z:AF";
+SAZ.uiToggleXfmrOverrides = function (ctx) {
+  var ws = ctx.workbook.worksheets.getItemOrNullObject(SAZ.TX_SHEET); ws.load("isNullObject,visibility");
+  return ctx.sync().then(function () {
+    if (ws.isNullObject) { return SAZ.notify("No Transformers sheet", "Create it with New Transformers first."); }
+    if (ws.visibility !== Excel.SheetVisibility.visible) { ws.visibility = Excel.SheetVisibility.visible; }
+    ws.activate();
+    var band = ws.getRange(SAZ.XFMR_OVR_COLS); var probe = ws.getRange("Z:Z"); probe.load("columnHidden");
+    return ctx.sync().then(function () {
+      var show = probe.columnHidden;
+      return SAZ.withUnprotected(ctx, ws, function () {
+        try { if (show) { band.showGroupDetails(Excel.GroupOption.byColumns); } else { band.hideGroupDetails(Excel.GroupOption.byColumns); } }
+        catch (e) { band.columnHidden = !show; }
+        return ctx.sync().catch(function () { band.columnHidden = !show; return ctx.sync(); });
+      }).then(function () {
+        if (show) { ws.getRange("Z6").select(); }
+        return ctx.sync();
+      });
+    });
+  });
+};
+
 SAZ.uiToggleSizingColumns = function (ctx) {
   var active = ctx.workbook.worksheets.getActiveWorksheet();
   active.load("name");
@@ -4506,7 +4596,7 @@ SAZ.lcSelectedLoads = function (ctx) {
         x.rg.values.forEach(function (v, i) {
           var g = function (h) { var j = idx(h); return j < 0 ? "" : v[j]; };
           if (String(g("Description")).trim() === "") { return; }
-          out.push({ table: x.e.name, cols: x.e.cols, row: x.a + i, desc: String(g("Description")).trim(), qty: Number(g("Qty")) || 1,
+          out.push({ table: x.e.name, cols: x.e.cols, row: x.a + i, desc: SAZ.lcLabel(g("No."), g("Description")), no: String(g("No.") || "").trim(), qty: Number(g("Qty")) || 1,
             ded: String(g("Ded. Ckt")).trim().toUpperCase(), unit: String(g("Unit")).trim(), volts: Number(g("Volts")) || 0,
             ph: Number(g("Ph")) || 0, recept: String(g("Recept Type")).trim(), placed: Number(g("Placed")) || 0,
             kvaEach: Number(g("kVA Each")) || 0, panelTag: String(g("Panel Tag")).trim() });
@@ -4517,6 +4607,15 @@ SAZ.lcSelectedLoads = function (ctx) {
   });
 };
 
+/* v2.12: panel label for a Load Calc row - "No. - Description" (e.g. "RTU-1 - ROOFTOP UNIT"), or the
+   description alone when No. is blank. descFormula is the live-link twin written to the schedule. */
+SAZ.lcLabel = function (no, desc) { var n = String(no || "").trim(), d = String(desc || "").trim(); return n ? n + " - " + d : d; };
+SAZ.lcDescFormula = function (rec, tagN) {
+  var R = "'" + SAZ.LC_SHEET + "'!$", d = R + rec.cols.Description + "$" + rec.row, sfx = tagN ? "&\" #" + tagN + "\"" : "";
+  if (!rec.cols["No."]) { return "=" + d + sfx; }
+  var n = R + rec.cols["No."] + "$" + rec.row;
+  return "=IF(TRIM(" + n + ")=\"\"," + d + ",TRIM(" + n + ")&\" - \"&" + d + ")" + sfx;
+};
 SAZ.lcUnits = function (rec) { return rec.ded === "N" ? 1 : Math.max(1, rec.qty); };
 
 /* Classification guess from the section and the load. */
@@ -4598,7 +4697,7 @@ SAZ.sendToPanel = function (ctx, recs, opt) {
           else { chk = nextFit(poles); }
           if (!chk) { skipped.push(rec.desc + ": no open " + poles + "-pole position left on " + P + " (" + (n - u) + " unit(s) not placed)."); break; }
           var tagN = units > 1 && rec.ded !== "N" ? (rec.placed + u + 1) : 0;
-          var dF = "='" + SAZ.LC_SHEET + "'!$" + rec.cols.Description + "$" + rec.row + (tagN ? "&\" #" + tagN + "\"" : "");
+          var dF = SAZ.lcDescFormula(rec, tagN);   /* v2.12: No. - Description */
           sheet.getRange(grid.cols.dc + chk.row).formulas = [[dF]];
           if (grid.cols.pc) { sheet.getRange(grid.cols.pc + chk.row).values = [[poles]]; }
           SAZ.CLASS_CODES.forEach(function (k) { if (cc[k]) { sheet.getRange(cc[k] + chk.row).values = [[""]]; } });
@@ -4727,6 +4826,7 @@ SAZ.uiRefreshPlacement = function (ctx) {
    - SAZ.moveCircuit / uiMoveCircuit: move any circuit (sub-feed, linked load
      or manual entry) to a chosen circuit number, with optional swap.
    ========================================================== */
+SAZ.CKT_NOTES_COL = { std: "M", mcc: "AD" };   /* v2.12: Notes column per layout (Panelboard / Switchboard M, MCC AD) */
 SAZ.CKT_INPUT_RUNS = {
   std: [["C", "E"], ["I", "J"], ["M", "M"], ["O", "W"]],
   mcc: [["C", "E"], ["I", "J"], ["M", "R"], ["V", "AD"], ["AF", "AN"]]
@@ -4780,6 +4880,7 @@ SAZ.lockLinkedRows = function (ctx, tag) {
           else { cell.format.fill.color = SAZ.INPUT_FILL; cell.format.font.color = SAZ.INPUT_FONT; }
         });
         if (lk && SAZ.CKT_LEN_COL) { var lc = sheet.getRange(SAZ.CKT_LEN_COL + r.row); lc.format.protection.locked = false; lc.format.fill.color = SAZ.INPUT_FILL; lc.format.font.color = SAZ.INPUT_FONT; }   /* v2.10: Length Ft stays a manual entry on linked rows */
+        if (lk) { var ncL = SAZ.CKT_NOTES_COL[gi.runs === SAZ.CKT_INPUT_RUNS.mcc ? "mcc" : "std"]; var nC = sheet.getRange(ncL + r.row); nC.format.protection.locked = false; nC.format.fill.color = SAZ.INPUT_FILL; nC.format.font.color = SAZ.INPUT_FONT; }   /* v2.12: Notes stay an editable (grey) entry on linked rows */
       });
       return ctx.sync().then(function () { return n; });
     });
@@ -4887,7 +4988,7 @@ SAZ.moveCircuit = function (ctx, tag, fromNum, toNum, opt) {
       return SAZ.registryRecords(ctx).then(function (reg) {
         var chain = Promise.resolve();
         moves.forEach(function (m) {
-          var hit = reg.filter(function (r) { return r.tag.toLowerCase() === m.desc.toLowerCase() && r.fed.toLowerCase() === tag.toLowerCase(); })[0];
+          var hit = reg.filter(function (r) { return SAZ.descIs(m.desc, [r.tag]) && r.fed.toLowerCase() === tag.toLowerCase(); })[0];
           if (hit) { chain = chain.then(function () { return SAZ.updateRegistryLink(ctx, hit.tag, tag, m.label); }); }
         });
         return chain;
@@ -5001,6 +5102,8 @@ SAZ.healRegistryAic = function (ctx) {
    ========================================================== */
 SAZ.XFER_SHEET = "Generator";
 SAZ.XFER_FIRST = 62; SAZ.XFER_LAST = 69;      /* Generator!B62:U69 */
+SAZ.XFER_BRANCH_COL = "W";   /* v2.12: NEC branch served by each switch (Generator!W62:W69) */
+SAZ.NEC_BRANCHES = ["700 Emergency", "701 Legally Required", "702 Optional Standby"];
 SAZ.GEN_UNIT_FIRST = 53; SAZ.GEN_UNIT_LAST = 58;
 SAZ.REG_ALT_COL = 11;                          /* registry column L (0-based from A) */
 SAZ.isXferType = function (t) { return /^(ATS|MTS)$/i.test(String(t || "").trim()); };
@@ -5053,7 +5156,7 @@ SAZ.ensureGenUnit = function (ctx) {
     if (u.length) { return u; }
     var g = ctx.workbook.worksheets.getItem(SAZ.XFER_SHEET);
     return SAZ.withUnprotected(ctx, g, function () {
-      g.getRange("B" + SAZ.GEN_UNIT_FIRST + ":C" + SAZ.GEN_UNIT_FIRST).values = [["GEN-1", "Standby Generator"]];
+      g.getRange("B" + SAZ.GEN_UNIT_FIRST).values = [["GEN-1"]];   /* v2.12: Description (C) is a formula - named from the NEC branches its switches serve */
       return ctx.sync();
     }).then(function () { return SAZ.genUnits(ctx); });
   });
@@ -5083,7 +5186,7 @@ SAZ.relabelParentCircuit = function (ctx, parent, fromTag, toTag) {
   return ctx.sync().then(function () {
     if (ws.isNullObject) { return 0; }
     return SAZ.cktGrid(ctx, parent).then(function (grid) {
-      var hits = grid.rows.filter(function (r) { return String(r.desc || "").trim().toLowerCase() === String(fromTag).toLowerCase(); });
+      var hits = grid.rows.filter(function (r) { return SAZ.descIs(r.desc, [fromTag]);   /* v2.12 */ });
       if (!hits.length) { return 0; }
       return SAZ.withUnprotected(ctx, ws, function () {
         hits.forEach(function (h) { ws.getRange(grid.cols.dc + h.row).values = [[toTag]]; });
@@ -5230,7 +5333,7 @@ SAZ.xferRemove = function (ctx, tag) {
       if (!h) { return null; }
       var g = ctx.workbook.worksheets.getItem(SAZ.XFER_SHEET);
       return SAZ.withUnprotected(ctx, g, function () {
-        ["B" + h.row + ":I" + h.row, "O" + h.row, "R" + h.row].forEach(function (a) { g.getRange(a).clear(Excel.ClearApplyTo.contents); });
+        ["B" + h.row + ":I" + h.row, "O" + h.row, "R" + h.row, SAZ.XFER_BRANCH_COL + h.row].forEach(function (a) { g.getRange(a).clear(Excel.ClearApplyTo.contents); });
         return ctx.sync();
       });
     }).then(function () {
@@ -5246,7 +5349,7 @@ SAZ.xferRemove = function (ctx, tag) {
 };
 
 SAZ.xferCreate = function (ctx, a) {
-  /* a: { tag, type, poles, se, scope, load, gen, rating, wcr } */
+  /* a: { tag, type, poles, se, scope, branch, load, gen, rating, wcr } */
   var R, load, genRow;
   return SAZ.registryFull(ctx).then(function (x) {
     R = x;
@@ -5267,6 +5370,7 @@ SAZ.xferCreate = function (ctx, a) {
       g.getRange("B" + slot.row + ":I" + slot.row).values = [[a.tag, a.type, Number(a.poles) || 3, a.se, a.scope, load.fed, a.gen, load.tag]];
       g.getRange("O" + slot.row).values = [[Number(a.rating) > 0 ? Number(a.rating) : ""]];
       g.getRange("R" + slot.row).values = [[Number(a.wcr) > 0 ? Number(a.wcr) : ""]];
+      g.getRange(SAZ.XFER_BRANCH_COL + slot.row).values = [[a.branch || ""]];   /* v2.12 */
       return ctx.sync();
     }).then(function () { return slot.row; });
   }).then(function (xrow) {
@@ -5280,7 +5384,7 @@ SAZ.xferCreate = function (ctx, a) {
       });
     }
     return step.then(function () { return SAZ.registryFreeRow(ctx); }).then(function (row) {
-      var note = a.poles + "P " + a.type + (/^y/i.test(a.se) ? ", SE rated" : "") + " - " + a.scope;
+      var note = a.poles + "P " + a.type + (/^y/i.test(a.se) ? ", SE rated" : "") + " - " + a.scope + (a.branch ? " - NEC " + a.branch : "");
       return SAZ.registryWriteRow(ctx, row, [a.tag, a.type, load.volts, load.fed, "=" + SAZ.XFER_SHEET + "!$P$" + xrow,
         0, SAZ.XFER_SHEET, note, load.ft || "", load.ckt || "", "", a.gen]);
     });
@@ -5294,7 +5398,16 @@ SAZ.xferCreate = function (ctx, a) {
   }).then(function () { return SAZ.linkSrcFaultToNode(ctx, load.tag, a.tag); })
     .then(function () { return SAZ.healXferDemand(ctx); })
     .then(function () { return SAZ.healXferAic(ctx); })
-    .then(function () { return { tag: a.tag, normal: load.fed, load: load.tag, gen: a.gen }; });
+    .then(function () { return SAZ.xferRows(ctx); })
+    .then(function (xr) {
+      var g = ctx.workbook.worksheets.getItem(SAZ.XFER_SHEET), br = g.getRange(SAZ.XFER_BRANCH_COL + SAZ.XFER_FIRST + ":" + SAZ.XFER_BRANCH_COL + SAZ.XFER_LAST), gs = g.getRange("H" + SAZ.XFER_FIRST + ":H" + SAZ.XFER_LAST);
+      br.load("values"); gs.load("values");
+      return ctx.sync().then(function () {
+        var seen = {};
+        gs.values.forEach(function (r, k) { if (String(r[0]).toLowerCase() === String(a.gen).toLowerCase() && br.values[k][0]) { seen[String(br.values[k][0]).substring(0, 3)] = true; } });
+        return { tag: a.tag, normal: load.fed, load: load.tag, gen: a.gen, branches: Object.keys(seen).length };
+      });
+    });
 };
 
 SAZ.uiTransferSwitch = function (ctx, keep, err) {
@@ -5318,6 +5431,8 @@ SAZ.uiTransferSwitch = function (ctx, keep, err) {
           { id: "poles", label: "Poles", type: "select", options: ["3", "4", "2"], value: keep.poles || "3", hint: "4-pole switches the neutral (separately derived generator)." },
           { id: "se", label: "Service-entrance rated", type: "select", options: ["Yes", "No"], value: keep.se || "Yes" },
           { id: "scope", label: "Scope", type: "select", options: ["Whole service", "Branch"], value: keep.scope || "Whole service" },
+          { id: "branch", label: "NEC branch served", type: "select", options: SAZ.NEC_BRANCHES, value: keep.branch || SAZ.NEC_BRANCHES[2],
+            hint: "One switch per branch: emergency (700), legally required (701) and optional standby (702) loads each get their own switch and downstream boards (NEC 700.10(B), 701.10). Several switches can share one generator - run this once per branch." },
           { id: "load", label: "Load side (board fed by the switch)", type: "select", options: boards.map(function (b) { return b.tag; }), value: keep.load || top.tag },
           { id: "gen", label: "Emergency source (generator unit)", type: "select", options: units.map(function (u) { return u.tag; }), value: keep.gen || units[0].tag },
           { id: "rating", label: "Rating override (A, optional)", type: "number", value: keep.rating || "" },
@@ -5332,6 +5447,9 @@ SAZ.uiTransferSwitch = function (ctx, keep, err) {
             });
           }
           var tag = SAZ.cleanTag ? SAZ.cleanTag(v.tag) : String(v.tag || "").trim();
+          if (/^700/.test(v.branch || "") && v.scope === "Whole service") {
+            return SAZ.uiTransferSwitch(ctx, v, "An emergency (NEC 700) transfer switch may supply emergency loads only (700.5(D)). Set Scope to Branch and feed a dedicated emergency board.");
+          }
           if (!tag) { return SAZ.uiTransferSwitch(ctx, v, "Enter a tag."); }
           var ld = R.rows.filter(function (r) { return r.tag === v.load; })[0];
           if (ld && R.rows.some(function (r) { return r.tag.toLowerCase() === ld.fed.toLowerCase() && SAZ.isXferType(r.type); })) {
@@ -5344,7 +5462,7 @@ SAZ.uiTransferSwitch = function (ctx, keep, err) {
             return ctx.sync().then(function () {
               return SAZ.notify("Transfer switch created",
                 o.tag + ": normal " + (o.normal || "(none)") + "  ->  " + o.tag + "  ->  " + o.load + ", emergency " + o.gen + ".\n\n" +
-                "Rating and WCR size themselves on Generator ▸ TRANSFER SWITCHES. Feeder Schedule now carries F-" + o.tag + " (normal) and F-" + o.tag + "-E (emergency); run Refresh Studies to update Short Circuit.");
+                (o.branches > 1 ? o.gen + " now serves " + o.branches + " NEC branches - its description updates automatically. Size the set for the combined load or provide automatic load shedding so 700 loads take priority over 701, and 701 over 702 (NEC 700.4(B), 701.4(B)).\n\n" : "") + "Rating and WCR size themselves on Generator ▸ TRANSFER SWITCHES. Feeder Schedule now carries F-" + o.tag + " (normal) and F-" + o.tag + "-E (emergency); run Refresh Studies to update Short Circuit.");
             });
           });
         });

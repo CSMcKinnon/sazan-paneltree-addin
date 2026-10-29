@@ -279,7 +279,29 @@ function clearProps() {
   document.getElementById("selMains").value = "";
   document.getElementById("txtSpaces").value = "";
   document.getElementById("txtRename").value = "";
-  ["txtLen", "txtLenPri", "txtLenEm", "selMat", "selRace", "selExist"].forEach(function (id) { var e = document.getElementById(id); if (e) e.value = ""; });   /* v2.11 */
+  ["txtLen", "txtLenPri", "txtLenEm", "selMat", "selRace", "selExist", "selVolt"].forEach(function (id) { var e = document.getElementById(id); if (e) e.value = ""; });   /* v2.11 */
+}
+
+/* v2.12: System Voltage list (Volt_Sys) - loaded once, then the board's current voltage is selected. */
+var VOLTS = null;
+function fillVoltList(cur) {
+  var sel = document.getElementById("selVolt");
+  var put = function () {
+    sel.innerHTML = "";
+    var o0 = document.createElement("option"); o0.value = ""; o0.textContent = "(unchanged)"; sel.appendChild(o0);
+    (VOLTS || []).forEach(function (v) { var o = document.createElement("option"); o.value = v; o.textContent = v; sel.appendChild(o); });
+    sel.value = (VOLTS || []).indexOf(cur) >= 0 ? cur : "";
+  };
+  if (VOLTS) { put(); return; }
+  Excel.run(function (ctx) {
+    var n = ctx.workbook.names.getItemOrNullObject("Volt_Sys"); n.load("isNullObject");
+    return ctx.sync().then(function () {
+      if (n.isNullObject) { return []; }
+      var r = n.getRange(); r.load("values");
+      return ctx.sync().then(function () { return r.values.map(function (x) { return String(x[0] || "").trim(); }).filter(Boolean); });
+    });
+  }).then(function (list) { VOLTS = list; if (selTag) { var it = byTag(selTag); put(); sel.value = (it && VOLTS.indexOf(it.volt) >= 0) ? it.volt : ""; } })
+    .catch(function () { VOLTS = []; put(); });
 }
 
 function select(tag) {
@@ -302,6 +324,8 @@ function select(tag) {
   document.getElementById("selMat").value = it.mat || "";
   document.getElementById("selRace").value = it.race || "";
   document.getElementById("selExist").value = it.exist || "";
+  fillVoltList(it.volt);   /* v2.12: System Voltage lives here - pushed to the schedule on Apply */
+  document.getElementById("selVolt").disabled = !!(it.head || it.virtual);
   document.getElementById("txtSpaces").value = "";
   document.getElementById("txtRename").value = it.tag;
   fillFedList();
@@ -416,7 +440,8 @@ function applyLink() {
     lenEm: document.getElementById("txtLenEm").value,
     mat: document.getElementById("selMat").value,
     race: document.getElementById("selRace").value,
-    exist: document.getElementById("selExist").value
+    exist: document.getElementById("selExist").value,
+    volt: document.getElementById("selVolt").value     /* v2.12: Distribution Map owns System Voltage */
   };
   if (req.fed === it.tag) { setStatus("Equipment cannot feed itself."); return; }
   busy(true); setStatus("Applying...");

@@ -5,7 +5,7 @@
            xmlns:ov="http://schemas.microsoft.com/office/taskpaneappversionoverrides"
            xsi:type="TaskPaneApp">
   <Id>8f1a2c34-5b6d-4e7f-9a01-2b3c4d5e6f70</Id>
-  <Version>2.10.0.0</Version>
+  <Version>2.12.0.0</Version>
   <ProviderName>Säzän Group</ProviderName>
   <DefaultLocale>en-US</DefaultLocale>
   <DisplayName DefaultValue="S&#196;Z&#196;N PowerCalc"/>
@@ -42,12 +42,6 @@
                       <Supertip><Title resid="Ls.NewProject"/><Description resid="Ld.NewProject"/></Supertip>
                       <Icon><bt:Image size="16" resid="Mso.FileNew.16"/><bt:Image size="32" resid="Mso.FileNew.32"/><bt:Image size="80" resid="Mso.FileNew.80"/></Icon>
                       <Action xsi:type="ExecuteFunction"><FunctionName>NewProject</FunctionName></Action>
-                    </Item>
-                    <Item id="Sazan.GoInstructions">
-                      <Label resid="Ls.GoInstructions"/>
-                      <Supertip><Title resid="Ls.GoInstructions"/><Description resid="Ld.GoInstructions"/></Supertip>
-                      <Icon><bt:Image size="16" resid="Mso.Info.16"/><bt:Image size="32" resid="Mso.Info.32"/><bt:Image size="80" resid="Mso.Info.80"/></Icon>
-                      <Action xsi:type="ExecuteFunction"><FunctionName>GoInstructions</FunctionName></Action>
                     </Item>
                     <Item id="Sazan.GoDashboard">
                       <Label resid="Ls.GoDashboard"/>
@@ -212,6 +206,12 @@
                       <Supertip><Title resid="Ls.GoTransformers"/><Description resid="Ld.GoTransformers"/></Supertip>
                       <Icon><bt:Image size="16" resid="Mso.Transformer.16"/><bt:Image size="32" resid="Mso.Transformer.32"/><bt:Image size="80" resid="Mso.Transformer.80"/></Icon>
                       <Action xsi:type="ExecuteFunction"><FunctionName>GoTransformers</FunctionName></Action>
+                    </Item>
+                    <Item id="Sazan.ToggleXfmrOverrides">
+                      <Label resid="Ls.ToggleXfmrOvr"/>
+                      <Supertip><Title resid="Ls.ToggleXfmrOvr"/><Description resid="Ld.ToggleXfmrOvr"/></Supertip>
+                      <Icon><bt:Image size="16" resid="Mso.Transformer.16"/><bt:Image size="32" resid="Mso.Transformer.32"/><bt:Image size="80" resid="Mso.Transformer.80"/></Icon>
+                      <Action xsi:type="ExecuteFunction"><FunctionName>ToggleXfmrOverrides</FunctionName></Action>
                     </Item>
                   </Items>
                 </Control>
@@ -680,6 +680,7 @@
         <bt:String id="Ls.GoUPS" DefaultValue="Go To UPS"/>
         <bt:String id="Ls.NewTransformers" DefaultValue="New Transformers"/>
         <bt:String id="Ls.GoTransformers" DefaultValue="Go To Transformers"/>
+        <bt:String id="Ls.ToggleXfmrOvr" DefaultValue="Show / Hide Overrides"/>
         <bt:String id="Ls.Xfmr" DefaultValue="Transformers"/>
         <bt:String id="Ls.GrpCalc" DefaultValue="Calculations"/>
         <bt:String id="Ls.GrpBackup" DefaultValue="Backup Power"/>
@@ -786,6 +787,7 @@
         <bt:String id="Ld.GoUPS" DefaultValue="Go To UPS — S&#196;Z&#196;N PowerCalc."/>
         <bt:String id="Ld.NewTransformers" DefaultValue="New Transformers — S&#196;Z&#196;N PowerCalc."/>
         <bt:String id="Ld.GoTransformers" DefaultValue="Go To Transformers — S&#196;Z&#196;N PowerCalc."/>
+        <bt:String id="Ld.ToggleXfmrOvr" DefaultValue="Open or collapse the transformer override columns (Pri / Sec OCPD, connections, type, taps, enclosure) — S&#196;Z&#196;N PowerCalc."/>
         <bt:String id="Ld.Studies" DefaultValue="Studies — S&#196;Z&#196;N PowerCalc."/>
         <bt:String id="Ld.NewShortCircuit" DefaultValue="New Short Circuit — S&#196;Z&#196;N PowerCalc."/>
         <bt:String id="Ld.GoShortCircuit" DefaultValue="Go To Short Circuit — S&#196;Z&#196;N PowerCalc."/>
@@ -805,11 +807,11 @@
         <bt:String id="Ld.GoRecon" DefaultValue="Reconciliation — S&#196;Z&#196;N PowerCalc."/>
         <bt:String id="Ld.ToggleSizing" DefaultValue="Shows or hides Length / VD % / Wire columns on the active schedule — S&#196;Z&#196;N PowerCalc."/>
         <bt:String id="Ld.ToggleMatrix" DefaultValue="Shows or hides the Circuit Entry Dashboard (classification columns) on the active schedule — S&#196;Z&#196;N PowerCalc."/>
-<bt:String id="Ld.MnuProject" DefaultValue="New project, instructions and the project Dashboard. — S&#196;Z&#196;N PowerCalc."/>
+<bt:String id="Ld.MnuProject" DefaultValue="New project and the project Dashboard. — S&#196;Z&#196;N PowerCalc."/>
 <bt:String id="Ld.MnuLoadCalc" DefaultValue="Build the Load Calc, manage its sections and rows, and send loads to panels. — S&#196;Z&#196;N PowerCalc."/>
 <bt:String id="Ld.MnuDemand" DefaultValue="12-month utility demand and 30-day logging demand sheets, and utility meters. — S&#196;Z&#196;N PowerCalc."/>
 <bt:String id="Ld.MnuPanels" DefaultValue="Distribution Map, new switchboards / MCCs / panelboards and schedule tools. — S&#196;Z&#196;N PowerCalc."/>
-<bt:String id="Ld.MnuXfmr" DefaultValue="Transformer schedule: create it or go to it. — S&#196;Z&#196;N PowerCalc."/>
+<bt:String id="Ld.MnuXfmr" DefaultValue="Transformer schedule: create it, go to it, or show / hide the override columns. — S&#196;Z&#196;N PowerCalc."/>
 <bt:String id="Ld.MnuBackup" DefaultValue="Generator, transfer switches, UPS sizing and UPS systems. — S&#196;Z&#196;N PowerCalc."/>
 <bt:String id="Ld.MnuFeeders" DefaultValue="Feeder &amp; OCPD schedule: create, go to and refresh. — S&#196;Z&#196;N PowerCalc."/>
 <bt:String id="Ld.MnuVD" DefaultValue="Voltage drop study. — S&#196;Z&#196;N PowerCalc."/>

@@ -103,15 +103,15 @@ function refresh() {
             if (!byTag(util.tag)) items.unshift({ tag: util.tag, type: "Utility Transformer", volt: util.volt,
               fed: "", kva: util.kva, sheet: "Dashboard", ft: "", ckt: "", row: -1, head: true });
           });
-          var altR = ctx.workbook.worksheets.getItem(REG_SHEET).getRange("L101:W350"); altR.load("values");   /* L Alt Source | M own kVA | N UPS out V | O Main/Bus override (A) | P rating (A) | Q demand (A) | R:W feeder inputs (v2.11) */
+          var altR = ctx.workbook.worksheets.getItem(REG_SHEET).getRange("L101:Z350"); altR.load("values");   /* L Alt Source | M own kVA | N UPS out V | O Main/Bus override (A) | P rating (A) | Q demand (A) | R:W feeder inputs (v2.11) | X:Z alternate feeder (v2.13) */
           var xfS = ctx.workbook.worksheets.getItemOrNullObject("Transformers"); xfS.load("isNullObject");
           return ctx.sync().then(function () {
-            altR.values.forEach(function (r, k) { items.forEach(function (x) { if (x.row !== k) return; var a = String(r[0] || "").trim(); if (a) x.alt = a; x.outv = String(r[2] || "").trim(); x.ovr = Number(r[3]) || 0; x.ampR = Number(r[4]) || 0; x.ampD = Number(r[5]) || 0; x.len = r[6] === "" ? "" : r[6]; x.lenPri = r[7] === "" ? "" : r[7]; x.lenEm = r[8] === "" ? "" : r[8]; x.mat = String(r[9] || "").trim().toUpperCase(); x.race = String(r[10] || "").trim(); x.exist = /^y/i.test(String(r[11] || "")) ? "Y" : ""; }); });
+            altR.values.forEach(function (r, k) { items.forEach(function (x) { if (x.row !== k) return; var a = String(r[0] || "").trim(); if (a) x.alt = a; x.outv = String(r[2] || "").trim(); x.ovr = Number(r[3]) || 0; x.ampR = Number(r[4]) || 0; x.ampD = Number(r[5]) || 0; x.len = r[6] === "" ? "" : r[6]; x.lenPri = r[7] === "" ? "" : r[7]; x.lenEm = r[8] === "" ? "" : r[8]; x.mat = String(r[9] || "").trim().toUpperCase(); x.race = String(r[10] || "").trim(); x.exist = /^y/i.test(String(r[11] || "")) ? "Y" : ""; x.matEm = String(r[12] || "").trim().toUpperCase(); x.raceEm = String(r[13] || "").trim(); x.existEm = /^y/i.test(String(r[14] || "")) ? "Y" : ""; }); });
             xfmrKva = {};
             if (xfS.isNullObject) return null;
             var xfR = xfS.getRange("A6:G105"); xfR.load("values");
             return ctx.sync().then(function () { xfR.values.forEach(function (r) { var t = String(r[0] || "").trim(); if (t) xfmrKva[t] = { std: r[6], load: Number(r[5]) || 0 }; }); });
-          }).then(function () {
+          }).then(function () { return loadNec(ctx); }).then(function () {
             addTransformerNodes();
             addEmergencyNodes();
             render();
@@ -166,6 +166,40 @@ function addTransformerNodes() {
   });
 }
 
+/*  v2.13: NEC article per transfer switch (Generator > TRANSFER SWITCHES > NEC Branch) and the
+    articles each generator serves - shown on the map as 'ATS-1 (NEC 701 - Legally Required)',
+    'GEN-1 (NEC 700, 702)'. Rows are found from the Generator banners (shared engine).        */
+var NECB = {}, GENB = {};
+function loadNec(ctx) {
+  NECB = {}; GENB = {};
+  var g = ctx.workbook.worksheets.getItemOrNullObject("Generator"); g.load("isNullObject");
+  return ctx.sync().then(function () {
+    if (g.isNullObject) return null;
+    var pre = (typeof SAZ !== "undefined" && SAZ.refreshModuleLayout) ? SAZ.refreshModuleLayout(ctx).catch(function () { return null; }) : Promise.resolve(null);
+    return pre.then(function () {
+      var f = (typeof SAZ !== "undefined" && SAZ.XFER_FIRST) || 64, l = (typeof SAZ !== "undefined" && SAZ.XFER_LAST) || 71;
+      var r = g.getRange("B" + f + ":W" + l); r.load("values");
+      return ctx.sync().then(function () {
+        r.values.forEach(function (v) {
+          var t = String(v[0] || "").trim(), gen = String(v[6] || "").trim(), b = String(v[21] || "").trim();
+          if (!t) return;
+          NECB[t] = b;
+          var m = b.match(/^(70[012])/);
+          if (gen && m) { GENB[gen] = GENB[gen] || {}; GENB[gen][m[1]] = true; }
+        });
+      });
+    });
+  }).catch(function () { return null; });
+}
+function necTxt(b) { var m = String(b || "").match(/^(70[012])\s*(.*)$/); return m ? "NEC " + m[1] + (m[2] ? " \u2013 " + m[2] : "") : ""; }
+function necSuffix(it) {
+  if (!it || it.virtual) return "";
+  if (/^(ATS|MTS)$/i.test(String(it.type || ""))) { var b = necTxt(NECB[it.tag]); return b ? " (" + b + ")" : ""; }
+  if (/^Generator$/i.test(String(it.type || "")) && GENB[it.tag]) { var k = Object.keys(GENB[it.tag]).sort(); return k.length ? " (NEC " + k.join(", ") + ")" : ""; }
+  return "";
+}
+
+
 /*  v2.8: a transfer switch has two sources. Its registry Fed From is the normal
     source (utility / upstream board); column L names the generator. The map
     shows the generator as a source with a display-only emergency link down to
@@ -173,9 +207,9 @@ function addTransformerNodes() {
 function addEmergencyNodes() {
   items.slice().forEach(function (it) {
     if (it.virtual || !it.alt) return;
-    var t = "\u21C4 " + it.tag + " (emergency)";
+    var t = "\u21C4 " + it.tag + " (alternate)";
     if (!byTag(t)) {
-      items.push({ tag: t, type: "Emergency feed \u2192 " + it.tag, volt: it.volt, fed: it.alt,
+      items.push({ tag: t, type: "Alternate feed \u2192 " + it.tag + (necTxt(NECB[it.tag]) ? " \u00B7 " + necTxt(NECB[it.tag]) : ""), volt: it.volt, fed: it.alt,
         kva: it.kva, sheet: "Generator", ft: "auto", ckt: "", row: -1, virtual: true, emerg: it.tag });
     }
   });
@@ -206,8 +240,8 @@ function downstreamKva(tag) {
   return descendants(tag).reduce(function (s, c) { return s + c.kva; }, 0);
 }
 function statusOf(it) {
-  if (it.emerg) return "\u21C4 Emergency source for " + it.emerg + " (Generator sheet)";
-  if (it.alt) return "\u2714 Normal: " + (it.fed || "(none)") + "  \u00B7  Emergency: " + it.alt;
+  if (it.emerg) return "\u21C4 Alternate source for " + it.emerg + (necTxt(NECB[it.emerg]) ? " (" + necTxt(NECB[it.emerg]) + ")" : "") + "  \u00B7  set its alternate feeder below";
+  if (it.alt) return "\u2714 Normal: " + (it.fed || "(none)") + "  \u00B7  Alternate: " + it.alt + (necTxt(NECB[it.tag]) ? "  \u00B7  " + necTxt(NECB[it.tag]) : "");
   if (/^UPS$/i.test(String(it.type || ""))) return "\u2714 UPS  \u00B7  Input: " + (it.fed || "(none)") + "  \u00B7  sized on UPS \u25B8 UPS SYSTEMS";
   if (it.virtual) return "\u2714 Auto (Transformers schedule)";
   if (!it.fed) return "\u25C6 Source";
@@ -248,7 +282,7 @@ function render() {
     var st = statusOf(it);
     var lead = "  ".repeat(depth) + (depth === 0 ? "\u25CF  " : "\u2514\u2500 ");
     var label = document.createElement("span");
-    label.textContent = lead + it.tag + nodeRating(it);   /* v2.10: rating + demand (transformers keep kVA) */
+    label.textContent = lead + it.tag + necSuffix(it) + nodeRating(it);   /* v2.13: NEC 700/701/702 */   /* v2.10: rating + demand (transformers keep kVA) */
     div.appendChild(label);
 
     if (st.indexOf("\u26A0") === 0) {
@@ -279,7 +313,7 @@ function clearProps() {
   document.getElementById("selMains").value = "";
   document.getElementById("txtSpaces").value = "";
   document.getElementById("txtRename").value = "";
-  ["txtLen", "txtLenPri", "txtLenEm", "selMat", "selRace", "selExist", "selVolt"].forEach(function (id) { var e = document.getElementById(id); if (e) e.value = ""; });   /* v2.11 */
+  ["txtLen", "txtLenPri", "txtLenEm", "selMat", "selRace", "selExist", "selVolt", "selMatEm", "selRaceEm", "selExistEm"].forEach(function (id) { var e = document.getElementById(id); if (e) e.value = ""; });   /* v2.11 */
 }
 
 /* v2.12: System Voltage list (Volt_Sys) - loaded once, then the board's current voltage is selected. */
@@ -313,17 +347,23 @@ function select(tag) {
   document.getElementById("vKVA").textContent = it.kva ? it.kva.toFixed(1) : "\u2013";
   document.getElementById("vDown").textContent = downstreamKva(it.tag).toFixed(1);
   document.getElementById("vStat").textContent = statusOf(it);
-  var ft = /feed-through/i.test(it.ft) ? "Feed-Through" : (/tap/i.test(it.ft) ? "Tap / Splice" : "Sub-Feed");
+  var ft = /bus extension/i.test(it.ft) ? "Section 2 / Bus Extension" : /feed-through/i.test(it.ft) ? "Feed-Through" : (/tap/i.test(it.ft) ? "Tap / Splice" : "Sub-Feed");
   document.getElementById("selFT").value = ft;
   document.getElementById("txtCkt").value = (it.ckt === "FT") ? "" : (it.ckt || "");
   document.getElementById("selMains").value = it.mains || "";
   /* v2.11: feeder inputs - the registry (Dashboard R:W) is their only home */
   document.getElementById("txtLen").value = (it.len === undefined || it.len === null) ? "" : it.len;
   document.getElementById("txtLenPri").value = (it.lenPri === undefined || it.lenPri === null) ? "" : it.lenPri;
-  document.getElementById("txtLenEm").value = (it.lenEm === undefined || it.lenEm === null) ? "" : it.lenEm;
+  var src = it.emerg ? (byTag(it.emerg) || it) : it;   /* v2.13: the alternate link node edits its switch's alternate feeder */
   document.getElementById("selMat").value = it.mat || "";
   document.getElementById("selRace").value = it.race || "";
   document.getElementById("selExist").value = it.exist || "";
+  document.getElementById("txtLenEm").value = (src.lenEm === undefined || src.lenEm === null) ? "" : src.lenEm;
+  document.getElementById("selMatEm").value = src.matEm || "";
+  document.getElementById("selRaceEm").value = src.raceEm || "";
+  document.getElementById("selExistEm").value = src.existEm || "";
+  document.getElementById("altBox").style.display = (src && src.alt) ? "" : "none";
+  document.getElementById("normBox").style.display = it.emerg ? "none" : "";
   fillVoltList(it.volt);   /* v2.12: System Voltage lives here - pushed to the schedule on Apply */
   document.getElementById("selVolt").disabled = !!(it.head || it.virtual);
   document.getElementById("txtSpaces").value = "";
@@ -426,6 +466,16 @@ function applyLink() {
   var it = byTag(selTag);
   if (!it) { setStatus("Select a piece of equipment first."); return; }
   if (it.head) { setStatus(it.tag + " is the utility head end - edit it on the Dashboard."); return; }
+  if (it.virtual && it.emerg) {   /* v2.13: alternate-source feeder (generator -> switch) */
+    if (!engineReady()) { return; }
+    var areq = { tag: it.emerg, altOnly: true, lenEm: document.getElementById("txtLenEm").value, matEm: document.getElementById("selMatEm").value,
+      raceEm: document.getElementById("selRaceEm").value, existEm: document.getElementById("selExistEm").value };
+    busy(true); setStatus("Applying...");
+    SAZ.exec(function (ctx) { return SAZ.mapApply(ctx, areq); })
+      .then(function (msg) { busy(false); return refresh().then(function () { setStatus(msg || "Applied."); }); })
+      .catch(function (e) { busy(false); setStatus("Apply failed: " + (e && e.message ? e.message : e)); });
+    return;
+  }
   if (it.virtual) { setStatus(it.tag + " is derived automatically - link its secondary board instead."); return; }
   if (!engineReady()) { return; }
   var req = {
@@ -441,6 +491,9 @@ function applyLink() {
     mat: document.getElementById("selMat").value,
     race: document.getElementById("selRace").value,
     exist: document.getElementById("selExist").value,
+    matEm: document.getElementById("selMatEm").value,   /* v2.13 alternate feeder */
+    raceEm: document.getElementById("selRaceEm").value,
+    existEm: document.getElementById("selExistEm").value,
     volt: document.getElementById("selVolt").value     /* v2.12: Distribution Map owns System Voltage */
   };
   if (req.fed === it.tag) { setStatus("Equipment cannot feed itself."); return; }

@@ -5,7 +5,7 @@
            xmlns:ov="http://schemas.microsoft.com/office/taskpaneappversionoverrides"
            xsi:type="TaskPaneApp">
   <Id>8f1a2c34-5b6d-4e7f-9a01-2b3c4d5e6f70</Id>
-  <Version>2.12.0.0</Version>
+  <Version>2.13.0.0</Version>
   <ProviderName>Säzän Group</ProviderName>
   <DefaultLocale>en-US</DefaultLocale>
   <DisplayName DefaultValue="S&#196;Z&#196;N PowerCalc"/>
@@ -79,6 +79,12 @@
                       <Supertip><Title resid="Ls.TrimSectionRows"/><Description resid="Ld.TrimSectionRows"/></Supertip>
                       <Icon><bt:Image size="16" resid="Mso.TableRowsDeleteRows.16"/><bt:Image size="32" resid="Mso.TableRowsDeleteRows.32"/><bt:Image size="80" resid="Mso.TableRowsDeleteRows.80"/></Icon>
                       <Action xsi:type="ExecuteFunction"><FunctionName>TrimSectionRows</FunctionName></Action>
+                    </Item>
+                    <Item id="Sazan.DeleteSectionRows">
+                      <Label resid="Ls.DeleteSectionRows"/>
+                      <Supertip><Title resid="Ls.DeleteSectionRows"/><Description resid="Ld.DeleteSectionRows"/></Supertip>
+                      <Icon><bt:Image size="16" resid="Mso.TableRowsDeleteRows.16"/><bt:Image size="32" resid="Mso.TableRowsDeleteRows.32"/><bt:Image size="80" resid="Mso.TableRowsDeleteRows.80"/></Icon>
+                      <Action xsi:type="ExecuteFunction"><FunctionName>DeleteSectionRows</FunctionName></Action>
                     </Item>
                     <Item id="Sazan.ToggleSection">
                       <Label resid="Ls.ToggleSection"/>
@@ -650,6 +656,7 @@
         <bt:String id="Ls.GoLoadCalc" DefaultValue="Go To Load Calc"/>
         <bt:String id="Ls.AddSectionRow" DefaultValue="Add Row"/>
         <bt:String id="Ls.TrimSectionRows" DefaultValue="Trim Empty Rows"/>
+        <bt:String id="Ls.DeleteSectionRows" DefaultValue="Delete Selected Rows"/>
         <bt:String id="Ls.ToggleSection" DefaultValue="Add / Remove Section"/>
         <bt:String id="Ls.MoveCircuit" DefaultValue="Move Circuit"/>
         <bt:String id="Ls.SendToPanel" DefaultValue="Send to Panel"/>
@@ -756,6 +763,7 @@
         <bt:String id="Ld.GoLoadCalc" DefaultValue="Go To Load Calc — S&#196;Z&#196;N PowerCalc."/>
         <bt:String id="Ld.AddSectionRow" DefaultValue="Adds one row to the Load Calc section your cursor is in, keeping the section formatting."/>
         <bt:String id="Ld.TrimSectionRows" DefaultValue="Removes empty rows from the bottom of the Load Calc section your cursor is in."/>
+        <bt:String id="Ld.DeleteSectionRows" DefaultValue="Deletes the selected rows from the Load Calc section your cursor is in (Baseline Square Footage, W/SF or any equipment section). Loads already placed on a panel are protected."/>
         <bt:String id="Ld.ToggleSection" DefaultValue="Load Calc: adds or removes an optional section (Refrigeration, Kitchen, Elevators, EV, Fire, Process). Logging Demand: adds or removes the interval-data blocks and load duration curve."/>
         <bt:String id="Ld.SendToPanel" DefaultValue="Places the selected Load Calc rows on a panel, switchboard or MCC at the circuit you choose, as live links. Ckts / Placed / Status track what has been moved."/>
         <bt:String id="Ld.MoveCircuit" DefaultValue="Moves the selected circuit (sub-feed, Load Calc load or manual entry) to the circuit number you choose, or swaps two circuits. Linked rows stay locked; registry and Load Calc tracking follow."/>

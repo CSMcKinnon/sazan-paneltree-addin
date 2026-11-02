@@ -15,7 +15,7 @@ var CFG = {
 };
 
 var SAZ = {};
-SAZ.DIALOG_VER = "2.16.5";   /* sent as ?_v= on every dialog URL so Office / GitHub Pages cannot serve a cached dialog.html - bump when dialog.html changes */
+SAZ.DIALOG_VER = "2.16.6";   /* sent as ?_v= on every dialog URL so Office / GitHub Pages cannot serve a cached dialog.html - bump when dialog.html changes */
 /* ---------- dialog helpers: replace VBA MsgBox / InputBox ---------- */
 
 /* v2.5: Office refuses to open a dialog while the previous one is still closing
@@ -30,30 +30,103 @@ SAZ.dialog = function (params) {
     var url = CFG.host + "/dialog.html?" + qs + "&_v=" + encodeURIComponent(SAZ.DIALOG_VER);
     var done = false;
     var finish = function (out) { if (done) { return; } done = true; setTimeout(function () { resolve(out); }, 350); };
+    /* v2.16.6: a dialog that cannot open or load is never silent any more. The message it
+       was meant to show (and the reason the pop-up failed) is written to the
+       "Add-in Messages" tab, which is then activated so the user sees it. */
+    var fail = function (code, stage, dlg) {
+      if (done) { return; }
+      if (dlg) { try { dlg.close(); } catch (e) { } }
+      var out = { ok: false, dialogFailed: true, code: code };
+      SAZ.fallbackNotice(params, code, stage, url).then(function () { finish(out); }, function () { finish(out); });
+    };
     var open = function (tries) {
-      Office.context.ui.displayDialogAsync(url,
-        { height: params._h || 42, width: params._w || 30, displayInIframe: true },
-        function (res) {
-          if (res.status !== Office.AsyncResultStatus.Succeeded) {
-            if (res.error && res.error.code === 12007 && tries < 8) {
-              setTimeout(function () { open(tries + 1); }, 250);
+      try {
+        Office.context.ui.displayDialogAsync(url,
+          { height: params._h || 42, width: params._w || 30, displayInIframe: true },
+          function (res) {
+            if (res.status !== Office.AsyncResultStatus.Succeeded) {
+              if (res.error && res.error.code === 12007 && tries < 8) {
+                setTimeout(function () { open(tries + 1); }, 250);
+                return;
+              }
+              fail(res.error ? res.error.code : "unknown", "open");
               return;
             }
-            finish({ ok: false }); return;
-          }
-          var dlg = res.value;
-          dlg.addEventHandler(Office.EventType.DialogMessageReceived, function (arg) {
-            var out = { ok: false };
-            try { out = JSON.parse(arg.message); } catch (e) { }
-            dlg.close();
-            finish(out);
+            var dlg = res.value;
+            dlg.addEventHandler(Office.EventType.DialogMessageReceived, function (arg) {
+              var out = { ok: false };
+              try { out = JSON.parse(arg.message); } catch (e) { }
+              try { dlg.close(); } catch (e) { }
+              finish(out);
+            });
+            dlg.addEventHandler(Office.EventType.DialogEventReceived, function (arg) {
+              var code = arg ? arg.error : "unknown";
+              if (code === 12006) { finish({ ok: false }); return; }   /* user closed the box = Cancel */
+              fail(code, "load", dlg);                                  /* 12002 page missing, 12003 not https, etc. */
+            });
           });
-          dlg.addEventHandler(Office.EventType.DialogEventReceived, function () {
-            finish({ ok: false });
-          });
-        });
+      } catch (e) {
+        fail((e && e.message) ? e.message : String(e), "api");
+      }
     };
     open(0);
+  });
+};
+
+/* v2.16.6: where a message goes when the pop-up itself fails. */
+SAZ.MSG_SHEET = "Add-in Messages";
+SAZ.DIALOG_ERR = {
+  12002: "dialog.html was not found on the host (404) - check it is in the repo root and GitHub Pages has finished publishing",
+  12003: "the dialog address is not HTTPS",
+  12004: "the dialog domain is not trusted - <AppDomains> in manifest.xml must list https://csmckinnon.github.io",
+  12005: "the dialog address is HTTP - HTTPS is required",
+  12007: "another dialog was still open and did not close in time",
+  12009: "the pop-up was blocked (browser or Office pop-up settings)",
+  12011: "browser security settings blocked the dialog"
+};
+SAZ.cellText = function (s) {
+  s = String(s == null ? "" : s);
+  if (/^[=+\-@]/.test(s)) { s = "'" + s; }     /* never let a message be read as a formula */
+  return s.length > 32000 ? s.substring(0, 32000) : s;
+};
+SAZ.fallbackNotice = function (params, code, stage, url) {
+  var title = params.title || "SAZAN PowerCalc";
+  var text  = params.text || params.label || "";
+  if (params.mode === "prompt" || params.mode === "form") {
+    text = "(The input box could not open, so this command was cancelled.)  " + text;
+  }
+  var why = "Pop-up could not " + (stage === "load" ? "load" : "open") + " - error " + code +
+            (SAZ.DIALOG_ERR[code] ? ": " + SAZ.DIALOG_ERR[code] : "") + "   |   " + url.split("?")[0];
+  try { console.error("[SAZ] " + title + " | " + text + " | " + why); } catch (e) { }
+  return Excel.run(function (ctx) {
+    var ws = ctx.workbook.worksheets.getItemOrNullObject(SAZ.MSG_SHEET);
+    ws.load("isNullObject");
+    return ctx.sync().then(function () {
+      if (ws.isNullObject) {
+        ws = ctx.workbook.worksheets.add(SAZ.MSG_SHEET);
+        var hdr = ws.getRange("A1:D1");
+        hdr.values = [["Time", "Message", "Details", "Why the pop-up did not show"]];
+        hdr.format.font.bold = true;
+        ws.getRange("A:A").format.columnWidth = 120;
+        ws.getRange("B:B").format.columnWidth = 220;
+        ws.getRange("C:C").format.columnWidth = 420;
+        ws.getRange("D:D").format.columnWidth = 420;
+        ws.freezePanes.freezeRows(1);
+      }
+      var used = ws.getUsedRange();
+      used.load("rowCount");
+      return ctx.sync().then(function () {
+        var r = used.rowCount + 1;
+        var row = ws.getRange("A" + r + ":D" + r);
+        row.values = [[SAZ.cellText(new Date().toLocaleString()), SAZ.cellText(title),
+                       SAZ.cellText(text), SAZ.cellText(why)]];
+        row.format.wrapText = true;
+        row.format.verticalAlignment = "Top";
+        ws.activate();
+        row.select();
+        return ctx.sync();
+      });
+    });
   });
 };
 

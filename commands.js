@@ -6985,8 +6985,8 @@ SAZ.tidyLoadCalcFormat = function (ctx) {
           var lpd1 = 0, lpd2 = 0, inputs = [];
           for (var r = 1; r <= S.n; r++) {
             var b = txt(r, 2);
-            if (/^NEC DEMAND FACTOR/i.test(b)) { sh.getRange("G" + r).numberFormat = [["0.00"]]; sh.getRange("I" + r).numberFormat = [["0.00"]]; }
-            if (/^Override/i.test(txt(r, 8))) { sh.getRange("H" + r).format.font.color = "#000000"; }
+if (/^NEC DEMAND FACTOR/i.test(b)) { sh.getRange("G" + r).numberFormat = [["0.00"]]; sh.getRange("I" + r).numberFormat = [["0.00"]]; } 
+if (/^Override/i.test(txt(r, 8))) { sh.getRange("H" + r).format.font.color = "#000000"; }
             if (/^Energy Code \(Jurisdiction\)/i.test(b)) { lpd1 = r; }
             if (lpd1 && !lpd2 && r > lpd1 && (b === "" && txt(r, 3) === "")) { lpd2 = r - 1; }
             if (/^(Energy Code \(Jurisdiction\)|Compliance Method|Lighting Occupancy)/i.test(b)) { inputs.push(r); }

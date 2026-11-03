@@ -251,7 +251,7 @@ SAZ.ensureTemplate = function (ctx, tplName) {
       return s.name.toLowerCase() === tplName.toLowerCase();
     })[0];
     if (hit) { return hit.name; }
-    return fetch(CFG.host + "/" + CFG.projectFile).then(function (res) {
+    return fetch(CFG.host + "/" + CFG.projectFile + "?_=" + Date.now(), { cache: "no-store" }).then(function (res) {   /* v2.16.7: never serve a cached seed */
       if (!res.ok) {
         throw new Error("Project seed not reachable (" + res.status + "). " +
           "Add " + tplName + " to this workbook, or check your connection and try again.");
@@ -1583,7 +1583,7 @@ SAZ.ensureProject = function (ctx, announce) {
         "This workbook already has a " + SAZ.PROJECT_ANCHOR + " tab, so the scaffold " +
         "is already in place.\n\nRun New Project from a blank workbook instead.");
     }
-    return fetch(CFG.host + "/" + CFG.projectFile).then(function (res) {
+    return fetch(CFG.host + "/" + CFG.projectFile + "?_=" + Date.now(), { cache: "no-store" }).then(function (res) {   /* v2.16.7: never serve a cached seed */
       if (!res.ok) {
         throw new Error("Project seed not reachable (" + res.status + "). The SÄZÄN PowerCalc template library could not be reached - check your connection and try again.");
       }

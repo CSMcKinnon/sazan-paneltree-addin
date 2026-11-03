@@ -5,7 +5,7 @@
            xmlns:ov="http://schemas.microsoft.com/office/taskpaneappversionoverrides"
            xsi:type="TaskPaneApp">
   <Id>8f1a2c34-5b6d-4e7f-9a01-2b3c4d5e6f70</Id>
-  <Version>2.16.6.0</Version>
+  <Version>2.16.7.0</Version>
   <ProviderName>Säzän Group</ProviderName>
   <DefaultLocale>en-US</DefaultLocale>
   <DisplayName DefaultValue="S&#196;Z&#196;N PowerCalc"/>
@@ -15,7 +15,7 @@
   <SupportUrl DefaultValue="https://csmckinnon.github.io/sazan-paneltree-addin/"/>
   <AppDomains><AppDomain>https://csmckinnon.github.io</AppDomain></AppDomains>
   <Hosts><Host Name="Workbook"/></Hosts>
-  <DefaultSettings><SourceLocation DefaultValue="https://csmckinnon.github.io/sazan-paneltree-addin/taskpane.html"/></DefaultSettings>
+  <DefaultSettings><SourceLocation DefaultValue="https://csmckinnon.github.io/sazan-paneltree-addin/taskpane.html?v=2.16.7.0"/></DefaultSettings>
   <Permissions>ReadWriteDocument</Permissions>
   <VersionOverrides xmlns="http://schemas.microsoft.com/office/taskpaneappversionoverrides" xsi:type="VersionOverridesV1_0">
     <Hosts>
@@ -638,8 +638,8 @@
         <bt:Image id="Mso.Transformer.80" DefaultValue="https://csmckinnon.github.io/sazan-paneltree-addin/transformer-80.png"/>
       </bt:Images>
       <bt:Urls>
-        <bt:Url id="Url.Taskpane" DefaultValue="https://csmckinnon.github.io/sazan-paneltree-addin/taskpane.html"/>
-        <bt:Url id="Url.Commands" DefaultValue="https://csmckinnon.github.io/sazan-paneltree-addin/commands.html"/>
+        <bt:Url id="Url.Taskpane" DefaultValue="https://csmckinnon.github.io/sazan-paneltree-addin/taskpane.html?v=2.16.7.0"/>
+        <bt:Url id="Url.Commands" DefaultValue="https://csmckinnon.github.io/sazan-paneltree-addin/commands.html?v=2.16.7.0"/>
         <bt:Url id="Url.Support"  DefaultValue="https://csmckinnon.github.io/sazan-paneltree-addin/"/>
       </bt:Urls>
       <bt:ShortStrings>

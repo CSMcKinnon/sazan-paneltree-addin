@@ -5,7 +5,7 @@
            xmlns:ov="http://schemas.microsoft.com/office/taskpaneappversionoverrides"
            xsi:type="TaskPaneApp">
   <Id>8f1a2c34-5b6d-4e7f-9a01-2b3c4d5e6f70</Id>
-  <Version>2.16.7.0</Version>
+  <Version>2.17.5.0</Version>
   <ProviderName>Säzän Group</ProviderName>
   <DefaultLocale>en-US</DefaultLocale>
   <DisplayName DefaultValue="S&#196;Z&#196;N PowerCalc"/>
@@ -15,7 +15,7 @@
   <SupportUrl DefaultValue="https://csmckinnon.github.io/sazan-paneltree-addin/"/>
   <AppDomains><AppDomain>https://csmckinnon.github.io</AppDomain></AppDomains>
   <Hosts><Host Name="Workbook"/></Hosts>
-  <DefaultSettings><SourceLocation DefaultValue="https://csmckinnon.github.io/sazan-paneltree-addin/taskpane.html?v=2.16.7.0"/></DefaultSettings>
+  <DefaultSettings><SourceLocation DefaultValue="https://csmckinnon.github.io/sazan-paneltree-addin/taskpane.html?v=2.17.5.0"/></DefaultSettings>
   <Permissions>ReadWriteDocument</Permissions>
   <VersionOverrides xmlns="http://schemas.microsoft.com/office/taskpaneappversionoverrides" xsi:type="VersionOverridesV1_0">
     <Hosts>
@@ -638,8 +638,8 @@
         <bt:Image id="Mso.Transformer.80" DefaultValue="https://csmckinnon.github.io/sazan-paneltree-addin/transformer-80.png"/>
       </bt:Images>
       <bt:Urls>
-        <bt:Url id="Url.Taskpane" DefaultValue="https://csmckinnon.github.io/sazan-paneltree-addin/taskpane.html?v=2.16.7.0"/>
-        <bt:Url id="Url.Commands" DefaultValue="https://csmckinnon.github.io/sazan-paneltree-addin/commands.html?v=2.16.7.0"/>
+        <bt:Url id="Url.Taskpane" DefaultValue="https://csmckinnon.github.io/sazan-paneltree-addin/taskpane.html?v=2.17.5.0"/>
+        <bt:Url id="Url.Commands" DefaultValue="https://csmckinnon.github.io/sazan-paneltree-addin/commands.html?v=2.17.5.0"/>
         <bt:Url id="Url.Support"  DefaultValue="https://csmckinnon.github.io/sazan-paneltree-addin/"/>
       </bt:Urls>
       <bt:ShortStrings>
@@ -671,7 +671,7 @@
         <bt:String id="Ls.NewPanelboard" DefaultValue="New Panelboard"/>
         <bt:String id="Ls.NewSwitchboard" DefaultValue="New Switchboard"/>
         <bt:String id="Ls.NewMCC" DefaultValue="New MCC"/>
-        <bt:String id="Ls.Link" DefaultValue="Link Equipment"/>
+        <bt:String id="Ls.Link" DefaultValue="Link / Unlink"/>
         <bt:String id="Ls.SubFeed" DefaultValue="Sub-Feed"/>
         <bt:String id="Ls.FeedThru" DefaultValue="Feed-Through"/>
         <bt:String id="Ls.Resize" DefaultValue="Resize Panel"/>
@@ -766,7 +766,7 @@
         <bt:String id="Ld.DeleteSectionRows" DefaultValue="Deletes the selected rows from the Load Calc section your cursor is in (Baseline Square Footage, W/SF or any equipment section). Loads already placed on a panel are protected."/>
         <bt:String id="Ld.ToggleSection" DefaultValue="Load Calc: adds or removes an optional section (Refrigeration, Kitchen, Elevators, EV, Fire, Process). Logging Demand: adds or removes the interval-data blocks and load duration curve."/>
         <bt:String id="Ld.SendToPanel" DefaultValue="Places the selected Load Calc rows on a panel, switchboard or MCC at the circuit you choose, as live links. Ckts / Placed / Status track what has been moved."/>
-        <bt:String id="Ld.MoveCircuit" DefaultValue="Moves the selected circuit (sub-feed, Load Calc load or manual entry) to the circuit number you choose, or swaps two circuits. Linked rows stay locked; registry and Load Calc tracking follow."/>
+        <bt:String id="Ld.MoveCircuit" DefaultValue="Moves the selected circuit to another circuit number on this board (or swaps two), or to a circuit on another board. Sub-feeds re-link, Load Calc loads follow, breaker sizing updates."/>
         <bt:String id="Ld.RefreshPlacement" DefaultValue="Rescans every schedule and updates the Ckts / Placed / Status columns on Load Calc (picks up circuits cleared or moved on a panel)."/>
         <bt:String id="Ld.ExistDemand" DefaultValue="Existing Demand — S&#196;Z&#196;N PowerCalc."/>
         <bt:String id="Ld.NewUtility" DefaultValue="New Utility Demand (12 mo) — S&#196;Z&#196;N PowerCalc."/>
@@ -778,7 +778,7 @@
         <bt:String id="Ld.NewPanelboard" DefaultValue="New Panelboard — S&#196;Z&#196;N PowerCalc."/>
         <bt:String id="Ld.NewSwitchboard" DefaultValue="New Switchboard — S&#196;Z&#196;N PowerCalc."/>
         <bt:String id="Ld.NewMCC" DefaultValue="New MCC — S&#196;Z&#196;N PowerCalc."/>
-        <bt:String id="Ld.Link" DefaultValue="Link Equipment — S&#196;Z&#196;N PowerCalc."/>
+        <bt:String id="Ld.Link" DefaultValue="Connect a board, UPS or transfer switch to a source, move it to a different source, or unlink it. Old breaker is removed, new breaker auto-sized, voltage mismatches flagged."/>
         <bt:String id="Ld.SubFeed" DefaultValue="Sub-Feed — S&#196;Z&#196;N PowerCalc."/>
         <bt:String id="Ld.FeedThru" DefaultValue="Feed-Through — S&#196;Z&#196;N PowerCalc."/>
         <bt:String id="Ld.Resize" DefaultValue="Resize Panel — S&#196;Z&#196;N PowerCalc."/>

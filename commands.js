@@ -2940,16 +2940,16 @@ SAZ.healGridTotals = function (ctx, sheetName, firstRow, lastRow) {
    two rows up into the last ODD row, so a shrink (which deletes that row) left
    #REF! cascading down the even block, and a 3-pole at the last odd ckt wrongly
    tied ckt 4. Rewritten on every TWOBLOCK resize so older panels self-heal. */
-SAZ.PNL_TIE_COL = "AN";
+SAZ.PNL_TIE_COL = "AN";   /* v2.17.3: fallback only - the tie column is found by its "Cons" header (it moved with the 18-class layout and the spacer column) */
 SAZ.healPanelTies = function (ctx, sheetName, b1F, b2F, perBlock, polesCol) {
   if (!polesCol || polesCol === "-" || perBlock < 2) { return Promise.resolve(); }
-  var sheet = ctx.workbook.worksheets.getItem(sheetName), tc = SAZ.PNL_TIE_COL;
-  [b1F, b2F].forEach(function (top) {
-    sheet.getRange(tc + top).values = [[0]];
+  var sheet = ctx.workbook.worksheets.getItem(sheetName), hdr = sheet.getRange("A" + (b1F - 1) + ":CZ" + (b1F - 1)); hdr.load("values");
+  return ctx.sync().then(function () { var j = hdr.values[0].map(function (v) { return String(v || "").trim().toLowerCase(); }).indexOf("cons"); if (j < 0) { return; } var tc = SAZ.colLetter(j);
+  [b1F, b2F].forEach(function (top) { sheet.getRange(tc + top).values = [[0]];
     sheet.getRange(tc + (top + 1)).formulas = [[
       "=IF(AND($" + polesCol + top + ">=2,$" + tc + top + "=0),1,0)" ]];
   });
-  return ctx.sync();
+  return ctx.sync(); });
 };
 
 /* Resize a panel to a target space count, then self-heal GEO_MAP.
@@ -3409,8 +3409,8 @@ SAZ.upgradeClassLayout = function (ctx, name) {
 };
 
 SAZ.SYNC_CELLS  = ["D6", "D11", "D13", "C12", "D12", "K18", "H6", "H7", "H8", "M5:M21"];   /* v2.13 P6: alternate-source fault + governing source — Fed From, Mains Type, Std Device AIC (v2.5); v2.13: Main/Bus label + rating (existing metered board) and method-aware Existing Load */
-SAZ.SYNC_GRID   = { "TPL_Panelboard": ["H", "AG", "AK"] }; /* per-pole kVA display + total-based FLA / VA (v2.13: 18-class column positions) */
-SAZ.SYNC_ENGINE = { "TPL_Panelboard": ["AT43"] };            /* largest motor from VA#, not the per-pole display (v2.13 position) */
+SAZ.SYNC_GRID   = { "TPL_Panelboard": ["H", "AH", "AL"] }; /* per-pole kVA display + total-based FLA / VA (v2.13: 18-class column positions) */   /* v2.17.3: +1 col for spacer O */
+SAZ.SYNC_ENGINE = { "TPL_Panelboard": ["AU44"] };            /* largest motor from VA#, not the per-pole display (v2.13 position) */   /* v2.17.3: spacer O; largest-motor row is 44 */
 SAZ.repairSchedule = function (ctx, name) {
   var sheet = ctx.workbook.worksheets.getItem(name);
   return SAZ.templateFor(ctx, name).then(function (tpl) {
@@ -5091,10 +5091,10 @@ SAZ.CKT_INPUT_RUNS = {
   std: [["C", "E"], ["I", "J"], ["M", "M"], ["O", "Z"]],
   mcc: [["C", "E"], ["I", "J"], ["M", "R"], ["V", "AD"], ["AF", "AQ"]]
 };
-SAZ.INPUT_FILL = "#D9D9D9"; SAZ.INPUT_FONT = "#0000FF"; SAZ.CALC_FONT = "#FF0000";
+SAZ.INPUT_FILL = "#D9D9D9"; SAZ.INPUT_FONT = "#0000FF"; SAZ.CALC_FONT = "#FF0000"; SAZ.BASE_FONT_NAME = "Segoe UI"; SAZ.BASE_FONT_SIZE = 10;   /* v2.17.5: platform base font for every schedule cell */
 SAZ.colNum = function (L) { var n = 0; String(L).toUpperCase().split("").forEach(function (ch) { n = n * 26 + (ch.charCodeAt(0) - 64); }); return n; };
 SAZ.colLet = function (n) { var s = ""; while (n > 0) { var m = (n - 1) % 26; s = String.fromCharCode(65 + m) + s; n = Math.floor((n - 1) / 26); } return s; };
-SAZ.boardRuns = function (g) { return String(SAZ.geoUsable(g.CKT_KVA_COL) || "").toUpperCase() .match(/^(AN|AQ|AW)$/) ? SAZ.CKT_INPUT_RUNS.mcc : SAZ.CKT_INPUT_RUNS.std; };
+SAZ.boardRuns = function (g) { if (String(SAZ.geoUsable(g.CKT_KVA_COL) || "").toUpperCase().match(/^(AN|AQ|AW)$/)) { return SAZ.CKT_INPUT_RUNS.mcc; } var nc = String(SAZ.geoUsable(g.CKT_NOTES_COL) || "").toUpperCase(), d1 = String(SAZ.geoUsable(g.DASH_FIRST_COL) || "").toUpperCase(), kv = String(SAZ.geoUsable(g.CKT_KVA_COL) || "").toUpperCase(); return SAZ.CKT_INPUT_RUNS.std.map(function (run) { if (run[0] === "M" && run[1] === "M" && nc) { return [nc, nc]; } if (run[0] === "O" && run[1] === "Z" && d1 && kv) { return [d1, kv]; } return run; }); };   /* v2.17.2: Notes input from GEO CKT_NOTES_COL; v2.17.3: dashboard input run from GEO DASH_FIRST_COL:CKT_KVA_COL (Panelboard P:AA after spacer column O) */
 SAZ.isLinkFormula = function (f) { return typeof f === "string" && f.charAt(0) === "=" && f.indexOf("!") > 0; };
 
 /* Read every input cell of the grid once: returns { grid, runs, lastCol, f: [[...]] (B..lastCol per row) } */
@@ -5132,7 +5132,7 @@ SAZ.lockLinkedRows = function (ctx, tag) {
     return SAZ.withUnprotected(ctx, sheet, function () {
       var n = 0;
       grid.rows.forEach(function (r) {
-        var lk = !!linkedRow[r.row]; if (lk) { n++; }
+        var lk = !!linkedRow[r.row]; if (lk) { n++; } var rowF = sheet.getRange("B" + r.row + ":" + gi.lastCol + r.row).format.font; rowF.name = SAZ.BASE_FONT_NAME; rowF.size = SAZ.BASE_FONT_SIZE;   /* v2.17.5: linked or manual, every grid row is Segoe UI 10 */
         gi.runs.forEach(function (run) {
           var cell = sheet.getRange(run[0] + r.row + ":" + run[1] + r.row);
           cell.format.protection.locked = lk;
@@ -5140,7 +5140,7 @@ SAZ.lockLinkedRows = function (ctx, tag) {
           else { cell.format.fill.color = SAZ.INPUT_FILL; cell.format.font.color = SAZ.INPUT_FONT; }
         });
         if (lk && SAZ.CKT_LEN_COL) { var lc = sheet.getRange(SAZ.CKT_LEN_COL + r.row); lc.format.protection.locked = false; lc.format.fill.color = SAZ.INPUT_FILL; lc.format.font.color = SAZ.INPUT_FONT; }   /* v2.10: Length Ft stays a manual entry on linked rows */
-        if (lk) { var ncL = SAZ.CKT_NOTES_COL[gi.runs === SAZ.CKT_INPUT_RUNS.mcc ? "mcc" : "std"]; var nC = sheet.getRange(ncL + r.row); nC.format.protection.locked = false; nC.format.fill.color = SAZ.INPUT_FILL; nC.format.font.color = SAZ.INPUT_FONT; }   /* v2.12: Notes stay an editable (grey) entry on linked rows */
+        if (lk) { var ncL = gi.runs === SAZ.CKT_INPUT_RUNS.mcc ? SAZ.CKT_NOTES_COL.mcc : (String(SAZ.geoUsable(gi.grid.g.CKT_NOTES_COL) || "").toUpperCase() || SAZ.CKT_NOTES_COL.std); var nC = sheet.getRange(ncL + r.row); nC.format.protection.locked = false; nC.format.fill.color = SAZ.INPUT_FILL; nC.format.font.color = SAZ.INPUT_FONT; }   /* v2.12: Notes stay an editable (grey) entry on linked rows */
       });
       return ctx.sync().then(function () { return n; });
     });
@@ -6918,23 +6918,23 @@ SAZ.tidyScheduleFormat = function (ctx, name) {
             for (var q = notesRow + 1; q <= lastRow; q++) {
               if (/^\d+$/.test(txt(q, 2))) {
                 if (c1) { sh.getRange("B" + q).copyFrom(sh.getRange("B" + c1), Excel.RangeCopyType.formats); }
-                var nt = sh.getRange("C" + q + ":" + lastCol + q), keep = true;
-                for (var cc = 4; cc <= clN(lastCol); cc++) { if (fx(q, cc) !== "") { keep = false; } }
-                if (keep) { nt.unmerge(); nt.merge(false); nt.format.fill.color = fill(q, 3) || "#D9D9D9"; nt.format.horizontalAlignment = "Left"; }
+                var noteEnd = lastCol === "N" ? "M" : lastCol;   /* v2.17.2: Panelboard notes stop short of the spacer column */ var nt = sh.getRange("C" + q + ":" + noteEnd + q), keep = true;
+                for (var cc = 4; cc <= clN(noteEnd); cc++) { if (fx(q, cc) !== "") { keep = false; } }
+                if (keep) { sh.getRange("C" + q + ":" + lastCol + q).unmerge(); nt.merge(false); nt.format.fill.color = fill(q, 3) || "#D9D9D9"; nt.format.horizontalAlignment = "Left"; }
               }
             }
-            for (var q2 = notesRow + 1; q2 <= lastRow; q2++) { if (!/^\d+$/.test(txt(q2, 2))) { var bl = sh.getRange("B" + q2 + ":" + lastCol + q2); bl.format.borders.getItem("InsideVertical").style = "None"; } if (/^\d+$/.test(txt(q2, 2))) { SAZ.thinBox(sh.getRange("B" + q2), false); SAZ.thinBox(sh.getRange("C" + q2 + ":" + lastCol + q2), false); } }
+            for (var q2 = notesRow + 1; q2 <= lastRow; q2++) { if (!/^\d+$/.test(txt(q2, 2))) { var bl = sh.getRange("B" + q2 + ":" + lastCol + q2); bl.format.borders.getItem("InsideVertical").style = "None"; } if (/^\d+$/.test(txt(q2, 2))) { SAZ.thinBox(sh.getRange("B" + q2), false); SAZ.thinBox(sh.getRange("C" + q2 + ":" + (lastCol === "N" ? "M" : lastCol) + q2), false); } }
           }
           /* fr defined earlier (v2.16.1) */
           fr("B2:B" + lastRow, "EdgeLeft"); fr(lastCol + "2:" + lastCol + lastRow, "EdgeRight");
           /* v2.16.1: setting a column's outer frame edge clears the neighbouring block edge — re-draw every block outline after the frame */
-          segs.forEach(function (s) { SAZ.thinBox(row1(s), false); if (s.end > s.r) { SAZ.thinBox(sh.getRange(clL(s.c1) + (s.r + 1) + ":" + clL(s.c2) + s.end), false); } });
-          var nc = g.DASH_FIRST_COL === "AF" ? "AD" : "M";
+          segs.forEach(function (s) { SAZ.thinBox(row1(s), false); if (s.end > s.r) { SAZ.thinBox(sh.getRange(clL(s.c1) + (s.r + 1) + ":" + clL(s.c2) + s.end), false); } }); /* v2.17.4: also stamp each box's right edge as the LEFT edge of the next column (and on the Notes rows) so a later frame / column format can never drop it */ segs.forEach(function (s) { if (s.c2 < clN(lastCol)) { var nx = clL(s.c2 + 1); fr(nx + s.r + ":" + nx + Math.max(s.r, s.end || s.r), "EdgeLeft"); } }); if (notesRow) { var nEnd = lastCol === "N" ? "M" : lastCol; for (var q3 = notesRow + 1; q3 <= lastRow; q3++) { if (/^\d+$/.test(txt(q3, 2))) { fr("C" + q3 + ":" + nEnd + q3, "EdgeRight"); if (nEnd !== lastCol) { fr(clL(clN(nEnd) + 1) + q3, "EdgeLeft"); } } } }
+          var nc = g.DASH_FIRST_COL === "AF" ? "AD" : (lastCol === "N" ? "N" : "M");   /* v2.17.1: Panelboard right spacer column N (CKT width), circuit + bottom Notes span M:N */
           var ncr = sh.getRange(nc + ":" + nc), ckr = sh.getRange((g.CKT_NUM_COL && g.CKT_NUM_COL !== "-" ? g.CKT_NUM_COL : "B") + ":B"); ckr.load("format/columnWidth");
           if (g.DASH_FIRST_COL && g.CKT_KVA_COL) {
             for (var s2 = 1; s2 <= 4; s2++) { var tx = txt(s2, 2); if (/CIRCUIT ENTRY DASHBOARD columns \([A-Z]+:[A-Z]+\)/.test(tx)) { sh.getRange("B" + s2).values = [[tx.replace(/columns \([A-Z]+:[A-Z]+\)/, "columns (" + g.DASH_FIRST_COL + ":" + g.CKT_KVA_COL + ")")]]; } }
           }
-          return ctx.sync().then(function () { ncr.format.columnWidth = ckr.format.columnWidth; return ctx.sync(); })
+          return ctx.sync().then(function () { ncr.format.columnWidth = ckr.format.columnWidth; if (lastCol === "N" && String(g.DASH_FIRST_COL || "") === "P") { sh.getRange("O:O").format.columnWidth = 15; }   /* v2.17.3: spacer between schedule and Circuit Entry Dashboard */ return ctx.sync(); })
             .then(function () { return { sheet: name, banners: segs.map(function (s) { return clL(s.c1) + s.r + ":" + clL(s.c2) + s.end; }), overrides: overrides, notesRow: notesRow }; });
         });
       });
@@ -6985,8 +6985,8 @@ SAZ.tidyLoadCalcFormat = function (ctx) {
           var lpd1 = 0, lpd2 = 0, inputs = [];
           for (var r = 1; r <= S.n; r++) {
             var b = txt(r, 2);
-if (/^NEC DEMAND FACTOR/i.test(b)) { sh.getRange("G" + r).numberFormat = [["0.00"]]; sh.getRange("I" + r).numberFormat = [["0.00"]]; } 
-if (/^Override/i.test(txt(r, 8))) { sh.getRange("H" + r).format.font.color = "#000000"; }
+            if (/^NEC DEMAND FACTOR/i.test(b)) { sh.getRange("G" + r).numberFormat = [["0.00"]]; sh.getRange("I" + r).numberFormat = [["0.00"]]; }
+            if (/^Override/i.test(txt(r, 8))) { sh.getRange("H" + r).format.font.color = "#000000"; }
             if (/^Energy Code \(Jurisdiction\)/i.test(b)) { lpd1 = r; }
             if (lpd1 && !lpd2 && r > lpd1 && (b === "" && txt(r, 3) === "")) { lpd2 = r - 1; }
             if (/^(Energy Code \(Jurisdiction\)|Compliance Method|Lighting Occupancy)/i.test(b)) { inputs.push(r); }
@@ -7257,3 +7257,659 @@ SAZ.labelFit = function (ctx, name) {
     return Promise.resolve(o.apply(self, a)).then(function (res) { return SAZ.labelFit(ctx, name).catch(function () { }).then(function () { return res; }); }); };
   SAZ.tidyScheduleFormat._v2165 = true;
 })();
+
+
+/* ==========================================================
+   v2.17  (2026-11-04)
+   1. SPEED - every ribbon command / Distribution Map action runs with calculation held in
+      manual (values are refreshed right before each read that needs them, one settle at the
+      end) and schedule formatting / row locking is queued and run ONCE per touched board at
+      the end of the command instead of after every step.
+   2. FEEDER BREAKER on the parent is sized automatically and kept live (circuit OVR cell):
+      board = child's Main/Bus Rating (its override wins), transformer = Pri OCPD from the
+      Transformers schedule, UPS = Input OCPD, transfer switch = switch rating. A number typed
+      in OVR always wins.
+   3. CONNECTION CHECKS - voltage / phase mismatch needs a confirm; a connection that would
+      make a loop (e.g. UPS input fed from its own output board) is refused.
+   4. LINK EQUIPMENT = Link / Relink / Unlink for boards, UPS systems and transfer switches.
+   5. MOVE CIRCUIT can move a circuit to another board (same circuit layout).
+   6. Load Summary 'Incl. Downstream' column permanent and boxed; existing load spread across
+      the phase balance; Load Calc energy-code dropdowns re-stamped; Dashboard secondary
+      voltage row self-heals.
+   ========================================================== */
+SAZ.V217 = true;
+SAZ._voltOk = {};
+SAZ._defer = null;
+SAZ._manual = false;
+
+/* ---------- 1. speed ---------- */
+/* queued, not synced: it rides in the same round trip as the read that follows it */
+SAZ.calcRefresh = function (ctx) {
+  if (SAZ._manual && ctx) { try { ctx.workbook.application.calculate(Excel.CalculationType.recalculate); } catch (e) { } }
+  return Promise.resolve();
+};
+(function () {
+  var pre = function (fn) {
+    var o = SAZ[fn]; if (typeof o !== "function" || o._v217r) { return; }
+    var w = function () { var a = arguments, self = this; return SAZ.calcRefresh(a[0]).then(function () { return o.apply(self, a); }); };
+    Object.keys(o).forEach(function (k) { w[k] = o[k]; }); w._v217r = true; SAZ[fn] = w;
+  };
+  ["cktGrid", "geoCellValue", "registryRecords", "registryFull", "registryRange", "xferRows", "upsRows", "txRowForTag",
+   "isUtilityTag", "refreshStudies", "refreshFeeders", "refreshStudySheet", "lcSelectedLoads", "lcEquipTables", "genUnits", "upsUnits",
+   "utilTags", "sectionRegistry", "equipTableRegistry", "voltChoices"].forEach(pre);
+})();
+
+SAZ.withCommand = function (ctx, body) {
+  if (SAZ._defer) { return Promise.resolve().then(body); }
+  var app = ctx.workbook.application, saved = null, mine = false, ls = null;
+  try { ls = window.localStorage; } catch (e0) { ls = null; }
+  SAZ._defer = { tidy: {}, lock: {}, ocp: {}, lc: false };
+  SAZ._voltOk = {};
+  app.load("calculationMode");
+  var start = ctx.sync().then(function () {
+    saved = app.calculationMode;
+    if (saved === Excel.CalculationMode.manual && ls && ls.getItem("SAZ_calc_forced") === "1") { saved = Excel.CalculationMode.automatic; }
+    if (saved === Excel.CalculationMode.manual) { return null; }
+    app.calculationMode = Excel.CalculationMode.manual;
+    return ctx.sync().then(function () {
+      mine = true; SAZ._manual = true;
+      if (ls) { try { ls.setItem("SAZ_calc_forced", "1"); } catch (e1) { } }
+    }, function () { SAZ._manual = false; });
+  }).catch(function () { return null; });
+  var finish = function () {
+    var d = SAZ._defer; SAZ._defer = null; SAZ._voltOk = {};
+    return SAZ.calcRefresh(ctx).then(function () { return ctx.sync(); }).then(function () { return SAZ.flushDeferred(ctx, d); }).catch(function () { return null; }).then(function () {
+      if (!mine) { return null; }
+      SAZ._manual = false;
+      app.calculationMode = (saved && saved !== Excel.CalculationMode.manual) ? saved : Excel.CalculationMode.automatic;
+      return ctx.sync().then(function () { if (ls) { try { ls.removeItem("SAZ_calc_forced"); } catch (e2) { } } }).catch(function () { return null; });
+    });
+  };
+  return start.then(function () { return body(); }).then(
+    function (out) { return finish().then(function () { return out; }); },
+    function (err) { return finish().then(function () { throw err; }, function () { throw err; }); });
+};
+SAZ.run = function (name, body) {
+  return function (event) {
+    Excel.run(function (ctx) {
+      return SAZ.seedUnlock(ctx).then(function () { return SAZ.refreshModuleLayout ? SAZ.refreshModuleLayout(ctx).catch(function () { return null; }) : null; })
+        .then(function () { return SAZ.withCommand(ctx, function () { return body(ctx); }); })
+        .then(function (out) { return SAZ.seedRelock(ctx).then(function () { return out; }); },
+              function (err) { return SAZ.seedRelock(ctx).then(function () { throw err; }, function () { throw err; }); });
+    })
+      .then(function () { event.completed(); })
+      .catch(function (err) {
+        var msg = (err && err.message) ? err.message : String(err);
+        SAZ.notify(name + " failed", msg).then(function () { event.completed(); }, function () { event.completed(); });
+      });
+  };
+};
+SAZ.exec = function (body) {
+  return Excel.run(function (ctx) {
+    return SAZ.seedUnlock(ctx).then(function () { return SAZ.refreshModuleLayout ? SAZ.refreshModuleLayout(ctx).catch(function () { return null; }) : null; })
+      .then(function () { return SAZ.withCommand(ctx, function () { return body(ctx); }); })
+      .then(function (out) { return SAZ.seedRelock(ctx).then(function () { return out; }); },
+            function (err) { return SAZ.seedRelock(ctx).then(function () { throw err; }, function () { throw err; }); });
+  });
+};
+/* a command that died mid-way must never leave the workbook in manual calculation */
+try {
+  Office.onReady(function () {
+    var ls = null; try { ls = window.localStorage; } catch (e) { ls = null; }
+    if (!ls || ls.getItem("SAZ_calc_forced") !== "1") { return; }
+    Excel.run(function (ctx) { ctx.workbook.application.calculationMode = Excel.CalculationMode.automatic; return ctx.sync(); })
+      .then(function () { try { ls.removeItem("SAZ_calc_forced"); } catch (e1) { } }, function () { });
+  });
+} catch (e3) { }
+
+/* ---------- 6a. Load Calc dropdowns (tidy unmerge/merge drops them) ---------- */
+SAZ.LC_LISTS = [
+  [/^Energy Code \(Jurisdiction\)/i, "WSEC (WA State),SEC (Seattle)"],
+  [/^Compliance Method/i, "Building Area Method,Space-by-Space Method"],
+  [/^Lighting Occupancy/i, "=Occ_List"]
+];
+SAZ.lcRestampLists = function (ctx) {
+  var sh = ctx.workbook.worksheets.getItemOrNullObject(SAZ.LC_SHEET); sh.load("isNullObject");
+  return ctx.sync().then(function () {
+    if (sh.isNullObject) { return 0; }
+    var b = sh.getRange("B1:B60"); b.load("values");
+    return ctx.sync().then(function () {
+      var hits = [];
+      b.values.forEach(function (v, i) { var s = String(v[0] == null ? "" : v[0]).trim(); SAZ.LC_LISTS.forEach(function (L) { if (L[0].test(s)) { hits.push({ r: i + 1, src: L[1] }); } }); });
+      if (!hits.length) { return 0; }
+      var dvs = hits.map(function (h) { var dv = sh.getRange("C" + h.r).dataValidation; dv.load("type"); return dv; });
+      return ctx.sync().then(function () {
+        var need = hits.filter(function (h, k) { return String(dvs[k].type) !== "List"; });
+        if (!need.length) { return 0; }
+        return SAZ.withUnprotected(ctx, sh, function () {
+          need.forEach(function (h) { var dv = sh.getRange("C" + h.r).dataValidation; dv.clear(); dv.rule = { list: { inCellDropDown: true, source: h.src } }; });
+          return ctx.sync().then(function () { return need.length; });
+        });
+      });
+    });
+  });
+};
+(function () {
+  var o = SAZ.tidyLoadCalcFormat; if (typeof o !== "function" || o._v217) { return; }
+  SAZ.tidyLoadCalcFormat = function (ctx) { var a = arguments, self = this;
+    return Promise.resolve(o.apply(self, a)).then(function (res) { return SAZ.lcRestampLists(ctx).catch(function () { }).then(function () { return res; }); }); };
+  SAZ.tidyLoadCalcFormat._v217 = true;
+})();
+
+/* ---------- 6b. Dashboard utility sources: Secondary Voltage follows the system voltage ---------- */
+SAZ.healDashSecV = function (ctx) {
+  var sh = ctx.workbook.worksheets.getItemOrNullObject(CFG.regSheet); sh.load("isNullObject");
+  return ctx.sync().then(function () {
+    if (sh.isNullObject) { return 0; }
+    var lab = sh.getRange("B50:B95"); lab.load("values");
+    return ctx.sync().then(function () {
+      var r = 0, t = 0;
+      lab.values.forEach(function (v, i) { var s = String(v[0] || "").trim(); if (!t && /^Source Tag/i.test(s)) { t = 50 + i; } if (t && !r && /^Secondary Voltage/i.test(s)) { r = 50 + i; } });
+      if (!r || !t) { return 0; }
+      var rg = sh.getRange("C" + r + ":F" + r); rg.load("formulas");
+      return ctx.sync().then(function () {
+        var miss = []; rg.formulas[0].forEach(function (f, j) { if (f === "" || f === null) { miss.push(j); } });
+        if (!miss.length) { return 0; }
+        return SAZ.withUnprotected(ctx, sh, function () {
+          miss.forEach(function (j) { var c = String.fromCharCode(67 + j); sh.getRange(c + r).formulas = [["=IF(OR(" + c + "$" + t + "=\"\",Cfg_Volt=\"\"),\"\",Cfg_Volt)"]]; });
+          return ctx.sync().then(function () { return miss.length; });
+        });
+      });
+    });
+  });
+};
+
+/* ---------- 6c. Load Summary 'Incl. Downstream' permanent + existing load in the phase balance ---------- */
+SAZ.summaryPermanent = function (ctx, name) {
+  var sh = ctx.workbook.worksheets.getItem(name);
+  var R = sh.getRange("J4:M24"); R.load("values,formulas");
+  var P = sh.getRange("G21:H23"); P.load("formulas");
+  var mw = sh.getRange("M1"); mw.format.load("columnWidth");
+  return SAZ.geo(ctx, name).then(function (g) {
+    return ctx.sync().then(function () {
+      var V = R.values, F = R.formulas, txt = function (i) { return String(V[i][0] == null ? "" : V[i][0]).trim(); };
+      if (!/^Category/i.test(txt(1)) || !/^TOTALS \(kVA\)/i.test(txt(16)) || !/^TOTALS \(Amps\)/i.test(txt(17))) { return { sheet: name, skip: "layout" }; }
+      var ph = String(SAZ.geoUsable(g.ENG_PH_CELL) || "").replace(/^([A-Z]+)(\d+)$/i, "$$$1$$$2");
+      var exist = /^Existing Load/i.test(txt(14));
+      return SAZ.withUnprotected(ctx, sh, function () {
+        sh.getRange("M5").values = [["Incl. Downstream"]];
+        for (var r = 6; r <= 18; r++) {
+          var f = String(F[r - 4][3] == null ? "" : F[r - 4][3]);
+          if (r === 17) { sh.getRange("M17").values = [["\u21B3 in rows above"]]; continue; }
+          if (/IF\(SUM\(hit\)=0,"",/.test(f)) { sh.getRange("M" + r).formulas = [[f.replace(/IF\(SUM\(hit\)=0,"",/, "IF(SUM(hit)=0,N($K" + r + "),")]]; }
+        }
+        if (/^=IF\(COUNT\(\$M\$6:\$M\$18\)=0,"",/.test(String(F[16][3]))) { sh.getRange("M20").formulas = [["=SUM($M$6:$M$18)"]]; }
+        sh.getRange("M5:M21").copyFrom(sh.getRange("L5:L21"), Excel.RangeCopyType.formats);
+        sh.getRange("M5").format.shrinkToFit = true;
+        sh.getRange("M17").format.font.color = "#808080";
+        var t = sh.getRange("J4:M4"); t.unmerge(); t.merge(false);
+        t.format.fill.color = "#000000"; t.format.font.color = "#FFFFFF"; t.format.horizontalAlignment = "Left"; t.format.verticalAlignment = "Center";
+        SAZ.thinBox(t, false);
+        SAZ.thinBox(sh.getRange("J5:M21"), true);
+        if (ph && exist) {
+          var add = ["+IF(N(" + ph + ")=1,N($K$18)/2,N($K$18)/3)", "+IF(N(" + ph + ")=1,N($K$18)/2,N($K$18)/3)", "+IF(N(" + ph + ")=1,0,N($K$18)/3)"];
+          for (var k = 0; k < 3; k++) {
+            var pf = String(P.formulas[k][1] == null ? "" : P.formulas[k][1]);
+            if (pf.charAt(0) === "=" && pf.indexOf("$K$18") < 0) { sh.getRange("H" + (21 + k)).formulas = [[pf + add[k]]]; }
+          }
+        }
+        if (mw.format.columnWidth < 96) { sh.getRange("M:M").format.columnWidth = 96; }
+        return ctx.sync().then(function () { return { sheet: name, ok: true }; });
+      });
+    });
+  });
+};
+(function () {
+  var o = SAZ.tidyScheduleFormat; if (typeof o !== "function" || o._v217) { return; }
+  SAZ.tidyScheduleFormat = function (ctx, name) { var a = arguments, self = this;
+    return Promise.resolve(o.apply(self, a)).then(function (res) { return SAZ.summaryPermanent(ctx, name).catch(function () { }).then(function () { return res; }); }); };
+  SAZ.tidyScheduleFormat._v217 = true;
+})();
+
+/* ---------- 2. feeder breaker sized from the equipment it feeds ---------- */
+SAZ.OCP_MARK = "N(\"auto-feeder\")";
+SAZ.isAutoOcp = function (f) { return typeof f === "string" && f.indexOf(SAZ.OCP_MARK) > 0; };
+SAZ.ovrColumn = function (ctx, tag, grid) {
+  var sh = ctx.workbook.worksheets.getItem(tag);
+  var hdr = sh.getRange("A" + (grid.first - 1) + ":CZ" + (grid.first - 1)); hdr.load("values");
+  return ctx.sync().then(function () {
+    var oc = "";
+    hdr.values[0].forEach(function (v, j) { if (!oc && String(v == null ? "" : v).trim().toUpperCase() === "OVR") { oc = SAZ.colLet(j + 1); } });
+    return oc;
+  });
+};
+SAZ.mainBusCell = function (ctx, tag) {
+  var r = ctx.workbook.worksheets.getItem(tag).getRange("C4:C24"); r.load("values");
+  return ctx.sync().then(function () {
+    for (var i = 0; i < r.values.length; i++) { if (/^Main\/Bus/i.test(String(r.values[i][0] || "").trim())) { return "D" + (i + 4); } }
+    return "D12";
+  }).catch(function () { return "D12"; });
+};
+SAZ.feederOcpFormula = function (ctx, kid, desc) {
+  var q = function (s) { return "'" + String(s).replace(/'/g, "''") + "'!"; }, M = SAZ.OCP_MARK;
+  var lit = function (s) { return "\"" + String(s).replace(/"/g, "\"\"") + "\""; };
+  var key = SAZ.descKey(desc);
+  if (/^T-/i.test(key)) {
+    var tx = q(SAZ.TX_SHEET);
+    return Promise.resolve("=IFERROR(XLOOKUP(" + lit(key) + "," + tx + "$A$6:$A$105," + tx + "$M$6:$M$105,\"\")+" + M + ",\"\")");
+  }
+  if (SAZ.isUpsType(kid.type)) {
+    if (!SAZ.UPSSYS_FIRST || !SAZ.UPS_SHEET) { return Promise.resolve(null); }
+    var u = q(SAZ.UPS_SHEET);
+    return Promise.resolve("=IFERROR(XLOOKUP(" + lit(kid.tag) + "," + u + "$B$" + SAZ.UPSSYS_FIRST + ":$B$" + SAZ.UPSSYS_LAST + "," + u + "$R$" + SAZ.UPSSYS_FIRST + ":$R$" + SAZ.UPSSYS_LAST + ",\"\")+" + M + ",\"\")");
+  }
+  if (SAZ.isXferType(kid.type)) {
+    if (!SAZ.XFER_FIRST || !SAZ.XFER_SHEET) { return Promise.resolve(null); }
+    var x = q(SAZ.XFER_SHEET);
+    return Promise.resolve("=IFERROR(XLOOKUP(" + lit(kid.tag) + "," + x + "$B$" + SAZ.XFER_FIRST + ":$B$" + SAZ.XFER_LAST + "," + x + "$P$" + SAZ.XFER_FIRST + ":$P$" + SAZ.XFER_LAST + ",\"\")+" + M + ",\"\")");
+  }
+  if (SAZ.isBoardType(kid.type)) {
+    var ws = ctx.workbook.worksheets.getItemOrNullObject(kid.tag); ws.load("isNullObject");
+    return ctx.sync().then(function () {
+      if (ws.isNullObject) { return null; }
+      return SAZ.mainBusCell(ctx, kid.tag).then(function (c) {
+        var r = q(kid.tag) + c.replace(/^([A-Z]+)(\d+)$/, "$$$1$$$2");
+        return "=IFERROR(IF(N(" + r + ")>0," + r + ",\"\")+" + M + ",\"\")";
+      });
+    });
+  }
+  return Promise.resolve(null);
+};
+SAZ.syncFeederOcp = function (ctx, tag) {
+  var grid, oc = "", ovr = null, sh = null, out = { sheet: tag, set: 0, cleared: 0 };
+  return SAZ.cktGrid(ctx, tag).then(function (g) {
+    grid = g; sh = ctx.workbook.worksheets.getItem(tag);
+    return SAZ.ovrColumn(ctx, tag, g);
+  }).then(function (c) {
+    oc = c; if (!oc) { return null; }
+    ovr = sh.getRange(oc + grid.first + ":" + oc + grid.last); ovr.load("formulas");
+    return ctx.sync().then(function () { return SAZ.registryFull(ctx); });
+  }).then(function (reg) {
+    if (!oc || !reg) { return out; }
+    var want = [], chain = Promise.resolve();
+    grid.rows.forEach(function (rec, i) {
+      var cur = ovr.formulas[i][0];
+      var kid = (rec.desc && !rec.owner) ? reg.rows.filter(function (r) {
+        return r.fed.toLowerCase() === String(tag).toLowerCase() && SAZ.descIs(rec.desc, [r.tag, "T-" + r.tag]); })[0] : null;
+      if (!kid) { if (SAZ.isAutoOcp(cur)) { want.push([i, ""]); } return; }
+      if (cur !== "" && cur !== null && cur !== undefined && !SAZ.isAutoOcp(cur)) { return; }   /* a typed override wins */
+      chain = chain.then(function () { return SAZ.feederOcpFormula(ctx, kid, rec.desc); }).then(function (f) { if (f && f !== cur) { want.push([i, f]); } });
+    });
+    return chain.then(function () {
+      if (!want.length) { return out; }
+      return SAZ.withUnprotected(ctx, sh, function () {
+        want.forEach(function (w) { sh.getRange(oc + (grid.first + w[0])).formulas = [[w[1]]]; if (w[1]) { out.set++; } else { out.cleared++; } });
+        return ctx.sync().then(function () { return out; });
+      });
+    });
+  });
+};
+
+/* ---------- deferred formatting: queued during a command, run once per board at the end ---------- */
+(function () {
+  var dfr = function (fn, kind) {
+    var o = SAZ[fn]; if (typeof o !== "function" || o._v217d) { return; }
+    var w = function (ctx, x) {
+      var d = SAZ._defer;
+      if (d) {
+        if (kind === "lc") { d.lc = true; }
+        else if (x) { d[kind][String(x)] = true; d.ocp[String(x)] = true; }
+        return Promise.resolve(null);
+      }
+      return o.apply(this, arguments);
+    };
+    Object.keys(o).forEach(function (k) { w[k] = o[k]; }); w._v217d = true; SAZ[fn] = w;
+  };
+  dfr("autoTidy", "tidy"); dfr("lockLinkedRows", "lock"); dfr("tidyLoadCalcFormat", "lc");
+})();
+SAZ.flushDeferred = function (ctx, d) {
+  if (!d) { return Promise.resolve(null); }
+  var step = Promise.resolve();
+  var each = function (obj, fn) { Object.keys(obj).forEach(function (k) { step = step.then(function () { return fn(k); }).catch(function () { return null; }); }); };
+  each(d.ocp, function (k) { return SAZ.syncFeederOcp(ctx, k); });
+  each(d.tidy, function (k) { return SAZ.autoTidy(ctx, k); });
+  each(d.lock, function (k) { return SAZ.lockLinkedRows(ctx, k); });
+  if (d.lc) { step = step.then(function () { return SAZ.tidyLoadCalcFormat(ctx); }).catch(function () { return null; }); }
+  else { step = step.then(function () { return SAZ.lcRestampLists(ctx); }).catch(function () { return null; }); }
+  step = step.then(function () { return SAZ.healDashSecV(ctx); }).catch(function () { return null; });
+  return step;
+};
+
+/* ---------- 3. connection checks ---------- */
+SAZ.vParse = function (s) {
+  s = String(s == null ? "" : s);
+  var nums = (s.replace(/,/g, "").match(/\d+(\.\d+)?/g) || []).map(Number).filter(function (n) { return n >= 100; });
+  var ph = /1\s*(\u00D8|PH|\u03A6)/i.test(s) ? 1 : (/3\s*(\u00D8|PH|\u03A6)/i.test(s) ? 3 : 0);
+  return { v: nums.length ? Math.max.apply(null, nums) : 0, ph: ph, txt: s.trim() };
+};
+SAZ.equipVolt = function (ctx, rec, side) {
+  if (!rec) { return Promise.resolve(null); }
+  if (SAZ.isBoardType(rec.type)) {
+    var ws = ctx.workbook.worksheets.getItemOrNullObject(rec.tag); ws.load("isNullObject");
+    return ctx.sync().then(function () {
+      var fb = SAZ.vParse(rec.volts);
+      if (ws.isNullObject) { return fb; }
+      var out = { v: 0, ph: 0, txt: fb.txt };
+      return SAZ.geoCellValue(ctx, rec.tag, "ENG_VLL_CELL").then(function (v) { out.v = Number(v) || fb.v; return SAZ.geoCellValue(ctx, rec.tag, "ENG_PH_CELL"); })
+        .then(function (p) { out.ph = Number(p) || fb.ph; return out; });
+    }).catch(function () { return SAZ.vParse(rec.volts); });
+  }
+  if (side === "out" && rec.outV) { return Promise.resolve(SAZ.vParse(rec.outV)); }
+  return Promise.resolve(SAZ.vParse(rec.volts));
+};
+SAZ.voltCheck = function (ctx, P, C) {
+  var R = [];
+  return SAZ.registryFull(ctx).then(function (x) {
+    R = x.rows; var n = x.dash.getRange("N101:N350"); n.load("values");
+    return ctx.sync().then(function () { R.forEach(function (r) { r.outV = String(n.values[r.row - 101][0] == null ? "" : n.values[r.row - 101][0]); }); });
+  }).then(function () {
+    var find = function (t) { return R.filter(function (r) { return r.tag.toLowerCase() === String(t || "").toLowerCase(); })[0]; };
+    var cr = find(C), pr = find(P);
+    if (!cr || !pr) { return { ok: true }; }
+    var up = pr, hops = 0;
+    while (up && hops < 40) {
+      if (up.tag.toLowerCase() === String(C).toLowerCase()) {
+        return { ok: false, loop: true, title: "Connection refused", lines: [P + " is already fed (directly or further up) from " + C + ", so feeding " + C + " from " + P + " would make a loop. Unlink the wrong connection first (Link Equipment > Unlink), then connect it the right way round."] };
+      }
+      up = (up.fed && up.fed !== "(unassigned)") ? find(up.fed) : null; hops++;
+    }
+    if (cr.fed && cr.fed.toLowerCase() === String(P).toLowerCase()) { return { ok: true, same: true }; }
+    return SAZ.equipVolt(ctx, pr, "out").then(function (pv) {
+      return SAZ.equipVolt(ctx, cr, "in").then(function (cv) {
+        if (!pv || !cv || !pv.v || !cv.v) { return { ok: true }; }
+        var lines = [], both = SAZ.isBoardType(pr.type) && SAZ.isBoardType(cr.type);
+        var pass = SAZ.isUpsType(pr.type) || SAZ.isUpsType(cr.type) || SAZ.isXferType(pr.type) || SAZ.isXferType(cr.type);
+        var vDiff = Math.abs(pv.v - cv.v) > SAZ.VOLT_MATCH_TOLERANCE;
+        if (vDiff && both) { lines.push(P + " is " + pv.v + " V and " + C + " is " + cv.v + " V. Connecting them adds a transformer (T-" + C + ") between the two."); }
+        if (vDiff && !both) { lines.push(P + " supplies " + pv.v + " V but " + C + " is " + cv.v + " V." + (pass ? " A UPS or transfer switch passes the voltage straight through - check which side is the input and which is the output." : "")); }
+        if (pv.ph === 1 && cv.ph === 3) { lines.push(C + " is 3-phase but " + P + " is single-phase."); }
+        if (!lines.length) { return { ok: true }; }
+        return { ok: false, title: (vDiff && both && lines.length === 1) ? "Transformer needed - confirm" : "Voltage / phase mismatch", lines: lines };
+      });
+    });
+  });
+};
+SAZ.confirmVolt = function (chk) {
+  return SAZ.form(chk.title, chk.lines.join("\n\n"),
+    [{ id: "go", label: "What do you want to do?", type: "select", options: ["Cancel - leave it as it is", "Connect anyway"], value: "Cancel - leave it as it is", required: true }], "", 55)
+    .then(function (a) { return !!(a && a.ok && /^Connect/.test(String(a.values.go))); }, function () { return false; });
+};
+(function () {
+  var o = SAZ.mapApply; if (typeof o !== "function" || o._v217) { return; }
+  var w = function (ctx, req) {
+    var a = arguments, self = this;
+    var C = String(req && req.tag || "").trim(), P = String(req && req.fed || "").trim();
+    if (!C || !P || req.altOnly) { return o.apply(self, a); }
+    return SAZ.voltCheck(ctx, P, C).then(function (chk) {
+      if (chk.ok) { SAZ._voltOk[C.toLowerCase()] = P.toLowerCase(); return o.apply(self, a); }
+      if (chk.loop) { throw new Error(chk.lines.join(" ")); }
+      return SAZ.confirmVolt(chk).then(function (go) {
+        if (!go) { return "Not connected - " + C + " was left as it was."; }
+        SAZ._voltOk[C.toLowerCase()] = P.toLowerCase();
+        return o.apply(self, a);
+      });
+    });
+  };
+  Object.keys(o).forEach(function (k) { w[k] = o[k]; }); w._v217 = true; SAZ.mapApply = w;
+})();
+(function () {
+  var o = SAZ.linkEquipment; if (typeof o !== "function" || o._v217) { return; }
+  var w = function (ctx, P, C, slot, opts) {
+    var a = arguments, self = this, key = String(C).toLowerCase(), pk = String(P).toLowerCase();
+    if (SAZ._voltOk[key] === pk) { return o.apply(self, a); }
+    return SAZ.voltCheck(ctx, P, C).then(function (chk) {
+      if (chk.ok) { return o.apply(self, a); }
+      if (chk.loop) { throw new Error(chk.lines.join(" ")); }
+      return SAZ.confirmVolt(chk).then(function (go) {
+        if (!go) { var t = C + " was not linked - nothing changed."; return (opts && opts.quiet) ? { title: "Not linked", text: t, cancelled: true } : SAZ.notify("Not linked", t); }
+        SAZ._voltOk[key] = pk; return o.apply(self, a);
+      });
+    });
+  };
+  Object.keys(o).forEach(function (k) { w[k] = o[k]; }); w._v217 = true; SAZ.linkEquipment = w;
+})();
+
+/* ---------- 4. Link Equipment = Link / Relink / Unlink ---------- */
+SAZ.healSources = function (ctx) {
+  var s = Promise.resolve();
+  ["healUpsDemand", "healXferDemand"].forEach(function (f) { if (typeof SAZ[f] === "function") { s = s.then(function () { return SAZ[f](ctx); }).catch(function () { return null; }); } });
+  return s;
+};
+SAZ.unlinkAny = function (ctx, tag) {
+  return SAZ.registryFull(ctx).then(function (x) {
+    var me = x.rows.filter(function (r) { return r.tag.toLowerCase() === String(tag).toLowerCase(); })[0];
+    if (!me) { throw new Error(tag + " is not in the equipment registry."); }
+    var was = (me.fed && me.fed !== "(unassigned)") ? me.fed : "";
+    if (!was) { return me.tag + " is not connected to anything - nothing to unlink."; }
+    var p = SAZ.isSourceType(me.type) ? SAZ.mapApply(ctx, { tag: me.tag, fed: "" }) : SAZ.mapUnlink(ctx, me.tag);
+    return p.then(function () { return SAZ.healSources(ctx); }).then(function () {
+      return me.tag + " was fed from " + was + ". It is now unlinked and its breaker / feed-through entry on " + was + " was removed.\n\nRun Link Equipment again to connect it to the right source.";
+    });
+  });
+};
+SAZ.uiPickCkt = function (ctx, P, C, err, want) {
+  var grid = null, poles = 3, mine = [C.tag, "T-" + C.tag];
+  return SAZ.cktGrid(ctx, P).then(function (g) {
+    grid = g;
+    var src = SAZ.isBoardType(C.type) ? C.tag : P;
+    return SAZ.geoCellValue(ctx, src, "ENG_PH_CELL").then(function (ph) { return SAZ.geoCellValue(ctx, src, "ENG_VLL_CELL").then(function (v) { poles = SAZ.defaultPoles(ph, v); }); }).catch(function () { return null; });
+  }).then(function () {
+    var nums = Object.keys(grid.byNum).map(Number).sort(function (a, b) { return a - b; });
+    var fit = SAZ.firstFit(grid, poles, mine);
+    var cur = grid.rows.filter(function (r) { return r.desc && SAZ.descIs(r.desc, mine); })[0];
+    var val = want || (cur ? cur.num : fit) || nums[0];
+    return SAZ.form("Circuit on " + P, C.tag + " needs a " + poles + "-pole position on " + P + ". The breaker is sized automatically from " + C.tag + ".",
+      [{ id: "ckt", label: "Circuit position on " + P, type: "number", value: String(val), min: nums[0], max: nums[nums.length - 1], required: true,
+         hint: fit ? "First open " + poles + "-pole slot: " + fit + "." : "No open " + poles + "-pole slot - resize " + P + " first." }], err || "", 50).then(function (ans) {
+      if (!ans.ok) { return null; }
+      var n = parseInt(ans.values.ckt, 10), chk = SAZ.slotCheck(grid, n, poles, mine);
+      if (!chk.ok) { return SAZ.uiPickCkt(ctx, P, C, chk.msg, n); }
+      return n;
+    });
+  });
+};
+SAZ.uiLink = function (ctx, keep, presetNum, err) {
+  if (keep == null || typeof keep === "string") { keep = { parent: keep || "" }; }
+  var active = ctx.workbook.worksheets.getActiveWorksheet(); active.load("name");
+  var R = [], utils = [];
+  return ctx.sync().then(function () { return SAZ.registryFull(ctx); }).then(function (x) {
+    R = x.rows;
+    var un = ctx.workbook.names.getItemOrNullObject("Util_Tags"); un.load("isNullObject");
+    return ctx.sync().then(function () {
+      if (un.isNullObject) { return null; }
+      var ur = un.getRange(); ur.load("values");
+      return ctx.sync().then(function () { ur.values.forEach(function (row) { row.forEach(function (v) { v = String(v == null ? "" : v).trim(); if (v) { utils.push(v); } }); }); });
+    });
+  }).then(function () {
+    var usable = function (r) { return !/^(Generator|Transformer|Utility)/i.test(r.type); };
+    var kids = R.filter(usable).map(function (r) { return r.tag; }).slice(0, 200);
+    var srcs = R.filter(usable).map(function (r) { return r.tag; }).concat(utils).slice(0, 220);
+    var find = function (t) { return R.filter(function (r) { return r.tag.toLowerCase() === String(t || "").trim().toLowerCase(); })[0]; };
+    var a0 = find(active.name);
+    var childDefault = keep.child || (keep.parent ? "" : (a0 && usable(a0) ? a0.tag : ""));
+    var cur = find(childDefault);
+    var text = "Connect equipment to a source, move it to a different source, or unlink it. The breaker or feed-through entry on the old source is removed automatically, and the new breaker is sized from the equipment it feeds." +
+      (cur ? "\n\n" + cur.tag + " is currently fed from: " + ((cur.fed && cur.fed !== "(unassigned)") ? cur.fed : "nothing") + "." : "");
+    return SAZ.form("Link / Unlink Equipment", text, [
+      { id: "child", label: "EQUIPMENT (board, UPS or transfer switch)", type: "text", value: childDefault, list: kids, required: true },
+      { id: "act", label: "Action", type: "select", options: ["Connect / move to the source below", "Unlink - disconnect from its source"], value: keep.act || "Connect / move to the source below", required: true },
+      { id: "parent", label: "SOURCE (upstream board, UPS, transfer switch or utility)", type: "text", value: keep.parent || "", list: srcs } ], err || "", 64).then(function (ans) {
+      if (!ans.ok) { return null; }
+      var v = ans.values, C = find(v.child), unlink = /^Unlink/.test(String(v.act));
+      var again = function (m) { return SAZ.uiLink(ctx, { child: v.child, parent: v.parent, act: v.act }, presetNum, m); };
+      if (!C) { return again("\"" + v.child + "\" is not in the equipment registry."); }
+      if (unlink) { return SAZ.unlinkAny(ctx, C.tag).then(function (m) { return SAZ.notify("Unlinked", m); }, function (e) { return again(e.message || String(e)); }); }
+      var pt = String(v.parent || "").trim();
+      if (!pt) { return again("Pick the source " + C.tag + " should be fed from, or choose Unlink."); }
+      var Pr = find(pt), uHit = utils.filter(function (u) { return u.toLowerCase() === pt.toLowerCase(); })[0];
+      if (!Pr && !uHit) { return again("\"" + pt + "\" is not in the equipment registry or the utility source list."); }
+      var P = Pr ? Pr.tag : uHit;
+      if (P.toLowerCase() === C.tag.toLowerCase()) { return again("Equipment cannot feed itself."); }
+      if (Pr && /^Generator$/i.test(Pr.type)) { return again(P + " is a generator - connect it as the emergency source of a transfer switch."); }
+      if (/^Generator$/i.test(C.type)) { return again(C.tag + " is a generator - it is a source and is not fed from anything."); }
+      var go = function (ckt) {
+        return SAZ.mapApply(ctx, { tag: C.tag, fed: P, ckt: ckt || "" }).then(function (msg) {
+          return SAZ.healSources(ctx).then(function () {
+            var m = String(msg || (C.tag + " is now fed from " + P + "."));
+            return SAZ.notify(/^Not connected/.test(m) ? "Not connected" : "Linked", m);
+          });
+        }, function (e) { return again(e.message || String(e)); });
+      };
+      if (!Pr || !SAZ.isBoardType(Pr.type)) { return go(""); }
+      return SAZ.uiPickCkt(ctx, P, C, "", presetNum).then(function (n) { return n === null ? null : go(String(n)); });
+    });
+  });
+};
+
+/* ---------- 5. Move Circuit to another board ---------- */
+SAZ.moveCircuitTo = function (ctx, tag, fromNum, dest, toNum) {
+  var gs = null, gd = null, R = [];
+  return SAZ.gridInputs(ctx, tag).then(function (x) { gs = x; return SAZ.gridInputs(ctx, dest); })
+  .then(function (x) { gd = x; return SAZ.registryFull(ctx); })
+  .then(function (x) {
+    R = x.rows;
+    if (SAZ.boardRuns(gs.grid.g) !== SAZ.boardRuns(gd.grid.g)) {
+      throw new Error(tag + " and " + dest + " use different circuit layouts. Circuits move between panelboards and switchboards, or between MCCs.");
+    }
+    var g = gs.grid, rec = g.byNum[fromNum];
+    if (!rec) { throw new Error("Circuit " + fromNum + " does not exist on " + tag + "."); }
+    var si = SAZ.ownerIndex(g, rec.row - g.first), srec = g.rows[si];
+    if (!SAZ.rowHasInput(gs, si) && !srec.desc) { throw new Error("Circuit " + fromNum + " on " + tag + " is empty - nothing to move."); }
+    var kid = srec.desc ? R.filter(function (r) { return r.fed.toLowerCase() === String(tag).toLowerCase() && SAZ.descIs(srec.desc, [r.tag, "T-" + r.tag]); })[0] : null;
+    if (kid) {
+      return SAZ.mapApply(ctx, { tag: kid.tag, fed: dest, ckt: String(toNum) }).then(function (m) {
+        return { moved: !/^Not connected/.test(String(m)), text: String(m || (kid.tag + " is now fed from " + dest + " at circuit " + toNum + ".")) };
+      });
+    }
+    var p = srec.poles || 1;
+    var chk = SAZ.slotCheck(gd.grid, toNum, gd.grid.spans ? p : 1, []);
+    if (!chk.ok) { throw new Error(chk.msg); }
+    var vv = {};
+    return SAZ.geoCellValue(ctx, tag, "ENG_VLL_CELL").then(function (a) { vv.sv = Number(a) || 0; return SAZ.geoCellValue(ctx, dest, "ENG_VLL_CELL"); })
+      .then(function (b) { vv.dv = Number(b) || 0; return SAZ.geoCellValue(ctx, dest, "ENG_PH_CELL"); })
+      .then(function (c) {
+        vv.dph = Number(c) || 0;
+        if (vv.dph === 1 && p === 3) { throw new Error(dest + " is single-phase - a 3-pole circuit cannot move there."); }
+        var lines = [];
+        if (vv.sv && vv.dv && Math.abs(vv.sv - vv.dv) > SAZ.VOLT_MATCH_TOLERANCE) { lines.push(tag + " is " + vv.sv + " V and " + dest + " is " + vv.dv + " V. The load keeps its own voltage - check it suits " + dest + "."); }
+        return (lines.length ? SAZ.confirmVolt({ title: "Voltage mismatch", lines: lines }) : Promise.resolve(true)).then(function (go) {
+          if (!go) { return { moved: false, text: "Not moved - nothing changed." }; }
+          return doMove(si, p, chk);
+        });
+      });
+  });
+  function doMove(si, p, chk) {
+    var g = gs.grid, srcRows = SAZ.spanRows(g, si, p) || [si];
+    var di = chk.row - gd.grid.first, dstRows = [];
+    for (var k = 0; k < (gd.grid.spans ? p : 1); k++) { dstRows.push(di + k); }
+    var rowF = gs.f[si].map(function (v) { return SAZ.isDashFormula(v) ? "" : v; });
+    var desc = String(g.rows[si].desc || "(circuit)");
+    var ssh = ctx.workbook.worksheets.getItem(tag), dsh = ctx.workbook.worksheets.getItem(dest);
+    var lcRows = [], rx = new RegExp("'" + SAZ.reEsc(SAZ.LC_SHEET) + "'!\\$?[A-Z]{1,3}\\$?(\\d+)", "g");
+    rowF.forEach(function (v) { if (typeof v === "string") { var m; rx.lastIndex = 0; while ((m = rx.exec(v)) !== null) { if (lcRows.indexOf(Number(m[1])) < 0) { lcRows.push(Number(m[1])); } } } });
+    var write = function (sh, gi, i, f) {
+      var r = gi.grid.rows[i].row;
+      gi.runs.forEach(function (run) {
+        var a = SAZ.colNum(run[0]), b = SAZ.colNum(run[1]), vals = [];
+        for (var c = a; c <= b; c++) { var v = f ? f[c - 2] : ""; vals.push(v === null || v === undefined ? "" : v); }
+        sh.getRange(run[0] + r + ":" + run[1] + r).formulas = [vals];
+      });
+    };
+    var ocS = "", ocD = "", ovS = null;
+    return SAZ.ovrColumn(ctx, tag, g).then(function (c) { ocS = c; return SAZ.ovrColumn(ctx, dest, gd.grid); }).then(function (c) {
+      ocD = c;
+      if (!ocS) { return null; }
+      var o = ssh.getRange(ocS + g.rows[si].row); o.load("formulas");
+      return ctx.sync().then(function () { ovS = o.formulas[0][0]; });
+    }).then(function () {
+      return SAZ.withUnprotected(ctx, ssh, function () {
+        return SAZ.withUnprotected(ctx, dsh, function () {
+          srcRows.forEach(function (i) { write(ssh, gs, i, null); });
+          dstRows.forEach(function (i, k) { write(dsh, gd, i, k === 0 ? rowF : null); });
+          if (ocS) { ssh.getRange(ocS + g.rows[si].row).values = [[""]]; }
+          if (ocD && ovS !== "" && ovS !== null && !SAZ.isAutoOcp(ovS)) { dsh.getRange(ocD + chk.row).formulas = [[ovS]]; }
+          return ctx.sync();
+        });
+      });
+    }).then(function () {
+      if (!lcRows.length || typeof SAZ.lcEquipTables !== "function") { return null; }
+      var lcs = ctx.workbook.worksheets.getItem(SAZ.LC_SHEET);
+      return SAZ.lcEquipTables(ctx).then(function (list) {
+        return SAZ.withUnprotected(ctx, lcs, function () {
+          list.forEach(function (e) {
+            var col = e.cols && e.cols["Panel Tag"]; if (!col) { return; }
+            lcRows.forEach(function (r) { if (r >= e.first && r <= e.last) { lcs.getRange(col + r).values = [[dest]]; } });
+          });
+          return ctx.sync();
+        });
+      }).then(function () { return SAZ.lcRefreshPlacement(ctx).catch(function () { return null; }); });
+    }).then(function () {
+      return SAZ.ensureSpanDashes(ctx, tag).catch(function () { return null; });
+    }).then(function () {
+      return SAZ.ensureSpanDashes(ctx, dest).catch(function () { return null; });
+    }).then(function () {
+      return SAZ.lockLinkedRows(ctx, tag).then(function () { return SAZ.lockLinkedRows(ctx, dest); })
+        .then(function () { return SAZ.autoTidy(ctx, tag); }).then(function () { return SAZ.autoTidy(ctx, dest); }).catch(function () { return null; });
+    }).then(function () {
+      return { moved: true, text: "\u2022 " + desc + ":  " + tag + " ckt " + g.rows[si].num + "  \u2192  " + dest + " ckt " + chk.label + (lcRows.length ? "\n\nLoad Calc Panel Tag updated to " + dest + "." : "") };
+    });
+  }
+};
+(function () {
+  var o = SAZ.moveCircuit; if (typeof o !== "function" || o._v217) { return; }
+  var w = function (ctx, tag, fromNum, toNum, opt) {
+    var a = arguments, self = this, oc = "", ov = null, grid = null;
+    return SAZ.cktGrid(ctx, tag).then(function (g) { grid = g; return SAZ.ovrColumn(ctx, tag, g); }).then(function (c) {
+      oc = c; if (!oc) { return null; }
+      ov = ctx.workbook.worksheets.getItem(tag).getRange(oc + grid.first + ":" + oc + grid.last); ov.load("formulas");
+      return ctx.sync();
+    }).then(function () { return o.apply(self, a); }).then(function (res) {
+      if (!res || !res.moved || !oc || !ov) { return res; }
+      var s = grid.byNum[fromNum], d = grid.byNum[toNum]; if (!s || !d) { return res; }
+      var si = SAZ.ownerIndex(grid, s.row - grid.first), sRow = grid.rows[si].row, dRow = d.row;
+      var fs = ov.formulas[sRow - grid.first][0], fd = ov.formulas[dRow - grid.first][0];
+      var sh = ctx.workbook.worksheets.getItem(tag);
+      return SAZ.withUnprotected(ctx, sh, function () {
+        sh.getRange(oc + dRow).formulas = [[SAZ.isAutoOcp(fs) ? "" : (fs == null ? "" : fs)]];
+        sh.getRange(oc + sRow).formulas = [[(opt && opt.swap && !SAZ.isAutoOcp(fd)) ? (fd == null ? "" : fd) : ""]];
+        return ctx.sync();
+      }).then(function () { return res; });
+    });
+  };
+  Object.keys(o).forEach(function (k) { w[k] = o[k]; }); w._v217 = true; SAZ.moveCircuit = w;
+})();
+SAZ.uiMoveCircuit = function (ctx, keep, err) {
+  var active = ctx.workbook.worksheets.getActiveWorksheet(); active.load("name");
+  var sel = ctx.workbook.getSelectedRange(); sel.load("rowIndex");
+  return ctx.sync().then(function () {
+    var tag = active.name;
+    return SAZ.cktGrid(ctx, tag).catch(function () { return null; }).then(function (grid) {
+      if (!grid) { return SAZ.notify("Open a schedule", "Go to a panelboard, switchboard or MCC schedule, click the circuit you want to move, then run Move Circuit."); }
+      return SAZ.registryFull(ctx).then(function (x) {
+        var boards = x.rows.filter(function (r) { return SAZ.isBoardType(r.type) && !/^(Transformer|Utility)/i.test(r.type); }).map(function (r) { return r.tag; }).slice(0, 200);
+        keep = keep || {};
+        var at = grid.rows.filter(function (r) { return r.row === sel.rowIndex + 1; })[0];
+        if (at && at.owner) { at = grid.rows[at.owner - grid.first]; }
+        var from = keep.from || (at ? String(at.num) : "");
+        var fields = [
+          { id: "from", label: "Move circuit (on " + tag + ")", type: "number", value: from, required: true },
+          { id: "board", label: "To board", type: "text", value: keep.board || tag, list: boards, required: true },
+          { id: "to", label: "To circuit", type: "number", value: keep.to || "", required: true },
+          { id: "mode", label: "If the destination is occupied (same board only)", type: "select", options: ["Refuse", "Swap the two circuits"], value: keep.mode || "Refuse" } ];
+        var text = (at && (at.desc || at.conn) ? "Selected: ckt " + at.num + " - " + (at.desc || "(no description)") + (at.poles > 1 ? " (" + at.poles + "-pole)" : "") + ". " : "") +
+          "Pick another board in 'To board' to move the circuit there. Sub-feeds re-link (breaker re-sized), Load Calc loads update their Panel Tag, manual circuits move with every cell.";
+        return SAZ.form("Move Circuit - " + tag, text, fields, err || "", 62).then(function (ans) {
+          if (!ans.ok) { return null; }
+          var v = ans.values, bt = String(v.board || "").trim() || tag;
+          var dest = boards.filter(function (b) { return b.toLowerCase() === bt.toLowerCase(); })[0] || (bt.toLowerCase() === tag.toLowerCase() ? tag : "");
+          if (!dest) { return SAZ.uiMoveCircuit(ctx, v, "\"" + bt + "\" is not a board in the equipment registry."); }
+          var f = parseInt(v.from, 10), t = parseInt(v.to, 10);
+          var job = dest.toLowerCase() === tag.toLowerCase()
+            ? SAZ.moveCircuit(ctx, tag, f, t, { swap: /^Swap/.test(v.mode) })
+            : SAZ.moveCircuitTo(ctx, tag, f, dest, t);
+          return job.then(function (res) { return SAZ.notify("Move Circuit", res.text); }, function (e) { return SAZ.uiMoveCircuit(ctx, v, e.message || String(e)); });
+        });
+      });
+    });
+  });
+};
